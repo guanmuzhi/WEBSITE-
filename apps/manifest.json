@@ -1,0 +1,27 @@
+[
+  {
+    "id": "calculator",
+    "name": "计算器",
+    "path": "calculator.app"
+  },
+  {
+    "id": "texteditor",
+    "name": "文本编辑器",
+    "path": "texteditor.app"
+  },
+  {
+    "id": "filemanager",
+    "name": "文件管理器",
+    "path": "filemanager.app"
+  },
+  {
+    "id": "imageviewer",
+    "name": "图片查看器",
+    "path": "imageviewer.app"
+  },
+  {
+    "id": "mediaplayer",
+    "name": "影音播放器",
+    "path": "mediaplayer.app"
+  }
+]

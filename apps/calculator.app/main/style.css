@@ -1,0 +1,145 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+    background: #0d0d0d;
+    height: 100vh;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.calculator {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.display {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: right;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.expression {
+    color: #888;
+    font-size: 13px;
+    min-height: 18px;
+    word-break: break-all;
+    margin-bottom: 4px;
+}
+
+.result {
+    color: #e0e0e0;
+    font-size: 32px;
+    font-weight: 300;
+    line-height: 1.2;
+    word-break: break-all;
+}
+
+.buttons {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.btn-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.btn-row:last-child {
+    grid-template-columns: 2fr 1fr 1fr;
+}
+
+.btn {
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: background 0.1s;
+    padding: 14px 0;
+    font-family: inherit;
+    color: #e0e0e0;
+    user-select: none;
+}
+
+.btn:active {
+    opacity: 0.8;
+}
+
+.num {
+    background: #2a2a2a;
+}
+
+.num:hover {
+    background: #333;
+}
+
+.op {
+    background: #3a3a3a;
+    font-size: 18px;
+}
+
+.op:hover {
+    background: #444;
+}
+
+.func {
+    background: #1f1f1f;
+    font-size: 12px;
+    color: #aaa;
+}
+
+.func:hover {
+    background: #262626;
+}
+
+.clear {
+    background: #c0392b;
+    color: #fff;
+}
+
+.clear:hover {
+    background: #d04436;
+}
+
+.delete {
+    background: #7f8c8d;
+    color: #fff;
+}
+
+.delete:hover {
+    background: #95a5a6;
+}
+
+.equals {
+    background: #e67e22;
+    color: #fff;
+    font-size: 20px;
+}
+
+.equals:hover {
+    background: #f39c12;
+}
+
+.zero {
+    grid-column: span 1;
+}

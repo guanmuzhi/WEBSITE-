@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Terminal OS</title>
+    <link rel="stylesheet" href="style.css?v=7">
+</head>
+<body>
+    <div id="boot-screen" class="boot-screen">
+        <div class="terminal">
+            <div class="terminal-title" id="terminal-title">Web Terminal OS</div>
+            <div class="terminal-body" id="terminal-body">
+                <div class="output" id="output"></div>
+                <div class="input-line">
+                    <span class="prompt" id="prompt">~/</span>
+                    <input type="text" id="command-input" class="command-input" autofocus>
+                </div>
+            </div>
+            <div class="editor-status-bar" id="editor-status-bar" style="display: none;">
+                <span class="editor-mode normal" id="editor-mode">NORMAL</span>
+                <span class="editor-position" id="editor-position">行 1, 列 1</span>
+            </div>
+            <div class="editor-command-line" id="editor-command-line" style="display: none;">
+                <span class="editor-command-prompt" id="editor-command-prompt">:</span>
+                <input type="text" id="editor-command-input" class="editor-command-input">
+            </div>
+        </div>
+    </div>
+
+    <div id="desktop" class="desktop" style="display: none;">
+        <div class="desktop-icons">
+            <div id="terminal-icon" class="desktop-icon">
+                <div class="icon-image">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="4 17 10 11 4 5"></polyline>
+                        <line x1="12" y1="19" x2="20" y2="19"></line>
+                    </svg>
+                </div>
+                <div class="icon-label">终端</div>
+            </div>
+            <div id="calculator-icon" class="desktop-icon" data-app="calculator">
+                <div class="icon-image">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#ecf0f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="2" width="16" height="20" rx="2"/>
+                        <line x1="8" y1="6" x2="16" y2="6"/>
+                        <line x1="8" y1="10" x2="10" y2="10"/>
+                        <line x1="14" y1="10" x2="16" y2="10"/>
+                        <line x1="8" y1="14" x2="10" y2="14"/>
+                        <line x1="14" y1="14" x2="16" y2="14"/>
+                        <line x1="8" y1="18" x2="10" y2="18"/>
+                        <line x1="14" y1="18" x2="16" y2="18"/>
+                    </svg>
+                </div>
+                <div class="icon-label">计算器</div>
+            </div>
+            <div id="filemanager-icon" class="desktop-icon" data-app="filemanager">
+                <div class="icon-image">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#ecf0f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </div>
+                <div class="icon-label">文件管理器</div>
+            </div>
+        </div>
+        <div class="windows-container"></div>
+        <div class="taskbar">
+            <div class="taskbar-items"></div>
+            <div class="taskbar-right">
+                <div class="taskbar-clock"></div>
+                <div class="taskbar-user" id="taskbar-user">
+                    <span class="taskbar-user-name" id="taskbar-user-name">public</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <template id="terminal-template">
+        <div class="terminal">
+            <div class="terminal-title">Web Terminal OS</div>
+            <div class="terminal-body">
+                <div class="output"></div>
+                <div class="input-line">
+                    <span class="prompt">~/</span>
+                    <input type="text" class="command-input" autofocus>
+                </div>
+            </div>
+            <div class="editor-status-bar" style="display: none;">
+                <span class="editor-mode normal">NORMAL</span>
+                <span class="editor-position">行 1, 列 1</span>
+            </div>
+            <div class="editor-command-line" style="display: none;">
+                <span class="editor-command-prompt">:</span>
+                <input type="text" class="editor-command-input">
+            </div>
+        </div>
+    </template>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script type="module" src="src/main.js?v=13"></script>
+</body>
+</html>

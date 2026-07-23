@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件管理器</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="filemanager">
+        <div class="fm-toolbar">
+            <button class="fm-btn" id="fm-back" title="返回上级">↑</button>
+            <button class="fm-btn" id="fm-home" title="根目录">/</button>
+            <div class="fm-path" id="fm-path">/</div>
+            <button class="fm-btn" id="fm-refresh" title="刷新">⟳</button>
+        </div>
+        <div class="fm-sidebar">
+            <div class="fm-sidebar-title">位置</div>
+            <div class="fm-sidebar-item" data-path="/">根目录</div>
+            <div class="fm-sidebar-item" data-path="/home">home</div>
+            <div class="fm-sidebar-item" data-path="/tmp">tmp</div>
+        </div>
+        <div class="fm-main">
+            <div class="fm-filelist" id="fm-filelist"></div>
+        </div>
+        <div class="fm-viewer" id="fm-viewer" style="display:none;">
+            <div class="fm-viewer-header">
+                <span class="fm-viewer-title" id="fm-viewer-title"></span>
+                <button class="fm-btn" id="fm-viewer-close">关闭</button>
+            </div>
+            <pre class="fm-viewer-content" id="fm-viewer-content"></pre>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1062 @@
+@font-face {
+    font-family: 'Monaco';
+    src: local('Monaco'), local('Menlo'), local('Consolas'), local('Liberation Mono');
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: 'Monaco', 'Menlo', 'Consolas', 'Liberation Mono', monospace;
+    background-color: #1a1a2e;
+}
+
+.terminal {
+    width: 100vw;
+    height: 100vh;
+    background-color: #1e1e1e;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-title {
+    padding: 8px 12px;
+    background-color: #333;
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.terminal-body {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    padding-bottom: 40px;
+}
+
+.output {
+    color: #00ff00;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.input-line {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    background-color: #1e1e1e;
+    border-top: 1px solid #333;
+}
+
+.prompt {
+    color: #00ffff;
+    font-weight: bold;
+    margin-right: 8px;
+    font-size: 14px;
+}
+
+.command-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #00ff00;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 14px;
+}
+
+.command-input::placeholder {
+    color: #666;
+}
+
+.editor-content {
+    width: 100%;
+    height: calc(100vh - 80px);
+    padding: 0;
+    background-color: #000;
+    color: #d0d0d0;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 14px;
+    border: none;
+    outline: none;
+    resize: none;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-wrap: normal;
+    overflow-x: auto;
+}
+
+.editor-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 10px;
+    background-color: #222;
+    color: #888;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.editor-mode {
+    font-weight: bold;
+}
+
+.editor-mode.normal {
+    color: #27c93f;
+}
+
+.editor-mode.insert {
+    color: #ffbd2e;
+}
+
+.editor-mode.command {
+    color: #00ffff;
+}
+
+.editor-position {
+    color: #888;
+}
+
+.editor-command-line {
+    display: flex;
+    align-items: center;
+    background-color: #000;
+    border-top: 1px solid #333;
+    flex-shrink: 0;
+}
+
+.editor-command-prompt {
+    color: #ffbd2e;
+    padding: 4px 8px;
+    font-size: 14px;
+}
+
+.editor-command-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #d0d0d0;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 14px;
+}
+
+.error {
+    color: #ff5f56;
+}
+
+.success {
+    color: #27c93f;
+}
+
+.folder {
+    color: #00ffff;
+}
+
+.file {
+    color: #ffbd2e;
+}
+
+.boot-screen {
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+}
+
+.boot-screen .terminal {
+    width: 100vw;
+    height: 100vh;
+}
+
+.desktop {
+    width: 100vw;
+    height: 100vh;
+    background-color: #2c3e50;
+    position: relative;
+    overflow: hidden;
+}
+
+.desktop-icons {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 110px;
+    height: calc(100% - 48px);
+    padding: 20px 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background-color: rgba(30, 40, 50, 0.6);
+    backdrop-filter: blur(4px);
+    box-sizing: border-box;
+    z-index: 1;
+}
+
+.desktop-icon {
+    width: 80px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.desktop-icon .icon-image {
+    width: 56px;
+    height: 56px;
+    background-color: #2c3e50;
+    border-radius: 12px;
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ecf0f1;
+    transition: background-color 0.15s, transform 0.15s;
+}
+
+.desktop-icon .icon-image svg,
+.desktop-icon .icon-image img {
+    width: 28px;
+    height: 28px;
+}
+
+.desktop-icon .icon-label {
+    color: #fff;
+    font-size: 12px;
+}
+
+.desktop-icon:hover .icon-image {
+    background-color: #3d566e;
+    transform: scale(1.05);
+}
+
+.desktop-icon:active .icon-image {
+    transform: scale(0.95);
+}
+
+.windows-container {
+    position: absolute;
+    top: 0;
+    left: 110px;
+    right: 0;
+    bottom: 48px;
+}
+
+.window {
+    position: absolute;
+    background-color: #1e1e1e;
+    border: 1px solid #34495e;
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 300px;
+    min-height: 200px;
+}
+
+.window-titlebar {
+    height: 32px;
+    background-color: #34495e;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    cursor: move;
+    user-select: none;
+}
+
+.window-title {
+    color: #ecf0f1;
+    font-size: 13px;
+    flex: 1;
+    text-align: center;
+}
+
+.window-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.window-btn {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-minimize {
+    background-color: #f1c40f;
+}
+
+.btn-close {
+    background-color: #e74c3c;
+}
+
+.window-btn:hover {
+    opacity: 0.8;
+}
+
+.window-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.window-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 20px;
+    height: 20px;
+    cursor: se-resize;
+    z-index: 10;
+    background: linear-gradient(135deg, transparent 55%, rgba(255,255,255,0.35) 55%);
+    border-bottom-right-radius: 6px;
+}
+
+.window-resize-handle::after {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid rgba(255,255,255,0.6);
+    border-bottom: 2px solid rgba(255,255,255,0.6);
+}
+
+.window-resize-handle:hover {
+    background: linear-gradient(135deg, transparent 55%, rgba(255,255,255,0.55) 55%);
+}
+
+.window-resize-handle:hover::after {
+    border-color: rgba(255,255,255,0.9);
+}
+
+.window-content .terminal {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.window-content .terminal-title {
+    display: none;
+}
+
+.window-content .terminal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 10px;
+}
+
+.window-content .input-line {
+    flex-shrink: 0;
+    position: static;
+    border-top: none;
+}
+
+.taskbar {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 48px;
+    background-color: #2c3e50;
+    border-top: 1px solid #34495e;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    z-index: 10000;
+}
+
+.taskbar-items {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+}
+
+.taskbar-item {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #34495e;
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.taskbar-item:hover {
+    background-color: #3d566e;
+}
+
+.taskbar-item.active {
+    background-color: #2980b9;
+}
+
+.taskbar-icon {
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+}
+
+.taskbar-clock {
+    color: #ecf0f1;
+    font-size: 13px;
+    padding: 0 8px;
+}
+
+.taskbar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.taskbar-user {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    height: 36px;
+    background-color: #34495e;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.taskbar-user:hover {
+    background-color: #3d566e;
+}
+
+.taskbar-user-name {
+    color: #ecf0f1;
+    font-size: 13px;
+}
+
+.boot-screen.fade-out {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.desktop.fade-in {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.desktop.fade-in.visible {
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    .desktop-icons {
+        padding: 30px;
+        gap: 30px;
+    }
+
+    .desktop-icon {
+        width: 100px;
+        min-height: 44px;
+        padding: 8px;
+    }
+
+    .desktop-icon .icon-image {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 12px;
+        border-radius: 12px;
+    }
+
+    .desktop-icon .icon-label {
+        font-size: 14px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .taskbar {
+        height: 56px;
+        padding: 0 16px;
+    }
+
+    .taskbar-items {
+        gap: 8px;
+    }
+
+    .taskbar-item {
+        padding: 10px 20px;
+        font-size: 14px;
+        border-radius: 6px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+
+    .taskbar-clock {
+        font-size: 15px;
+        padding: 0 16px;
+    }
+
+    .windows-container {
+        bottom: 56px;
+    }
+
+    .window {
+        width: 100%;
+        height: calc(100% - 56px);
+        top: 0;
+        left: 0;
+        min-width: 0;
+        min-height: 0;
+        border-radius: 0;
+        border: none;
+    }
+
+    .window-resize-handle {
+        width: 28px;
+        height: 28px;
+    }
+
+    .window-resize-handle::after {
+        width: 14px;
+        height: 14px;
+        right: 5px;
+        bottom: 5px;
+        border-width: 3px;
+    }
+
+    .window-titlebar {
+        height: 44px;
+        padding: 0 12px;
+    }
+
+    .window-title {
+        font-size: 15px;
+    }
+
+    .window-controls {
+        gap: 10px;
+    }
+
+    .window-btn {
+        width: 20px;
+        height: 20px;
+        min-width: 44px;
+        min-height: 44px;
+        position: relative;
+    }
+
+    .window-btn::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+    }
+
+    .btn-minimize::before {
+        background-color: #f1c40f;
+    }
+
+    .btn-close::before {
+        background-color: #e74c3c;
+    }
+
+    .window-btn {
+        background-color: transparent;
+    }
+
+    .output {
+        font-size: 15px;
+    }
+
+    .prompt {
+        font-size: 15px;
+    }
+
+    .command-input {
+        font-size: 15px;
+    }
+
+    .terminal-body {
+        padding: 12px;
+    }
+
+    .input-line {
+        padding: 10px 12px;
+    }
+}
+
+/* User Switcher */
+.user-switcher {
+    position: fixed;
+    bottom: 56px;
+    right: 12px;
+    width: 260px;
+    background: #2d2d2d;
+    border: 1px solid #3d3d3d;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    display: none;
+    z-index: 99998;
+    overflow: hidden;
+}
+
+.user-switcher-title {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #888;
+    border-bottom: 1px solid #3d3d3d;
+}
+
+.user-switcher-list {
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.user-switcher-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.user-switcher-item:hover {
+    background: #3d3d3d;
+}
+
+.user-switcher-item.current {
+    background: #34495e;
+}
+
+.user-switcher-avatar {
+    width: 32px;
+    height: 32px;
+    background: #3d566e;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ecf0f1;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.user-switcher-name {
+    color: #ecf0f1;
+    font-size: 14px;
+    flex: 1;
+}
+
+.user-switcher-badge {
+    font-size: 11px;
+    color: #3498db;
+    padding: 2px 6px;
+    background: rgba(52, 152, 219, 0.15);
+    border-radius: 3px;
+}
+
+.user-switcher-password {
+    padding: 14px;
+}
+
+.user-switcher-password-label {
+    color: #ccc;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.user-switcher-password-input {
+    width: 100%;
+    padding: 8px 10px;
+    background: #1e1e1e;
+    border: 1px solid #3d3d3d;
+    border-radius: 4px;
+    color: #ccc;
+    font-size: 14px;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+}
+
+.user-switcher-password-input:focus {
+    outline: none;
+    border-color: #5d5d5d;
+}
+
+.user-switcher-password-error {
+    color: #e74c3c;
+    font-size: 12px;
+    margin-bottom: 8px;
+    height: 16px;
+}
+
+.user-switcher-password-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.user-switcher-cancel-btn {
+    padding: 6px 16px;
+    background: #3d3d3d;
+    border: none;
+    border-radius: 4px;
+    color: #ccc;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.user-switcher-cancel-btn:hover {
+    background: #4d4d4d;
+}
+
+.user-switcher-confirm-btn {
+    padding: 6px 16px;
+    background: #3498db;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.user-switcher-confirm-btn:hover {
+    background: #2980b9;
+}
+
+.user-switcher-lock-btn {
+    padding: 10px 14px;
+    text-align: center;
+    color: #888;
+    font-size: 13px;
+    cursor: pointer;
+    border-top: 1px solid #3d3d3d;
+    transition: background 0.15s;
+}
+
+.user-switcher-lock-btn:hover {
+    background: #3d3d3d;
+    color: #ccc;
+}
+
+/* Lock Screen */
+.lock-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.lock-screen .lock-container {
+    background: rgba(30, 30, 30, 0.85);
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    width: 360px;
+    max-width: 90vw;
+}
+
+.lock-screen .lock-user-list-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    border-radius: 8px;
+    color: #888;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.lock-screen .lock-user-list-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.lock-screen .lock-user-list-btn.active {
+    background: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+}
+
+.lock-screen .lock-user-list-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.lock-screen .lock-user-avatar {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 32px;
+    font-weight: 600;
+    color: #fff;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.lock-screen .lock-username {
+    color: #f5f5f5;
+    font-size: 28px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.lock-screen .lock-subtitle {
+    color: #666;
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.lock-screen .lock-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.lock-screen .lock-password-input {
+    width: 100%;
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 15px;
+    text-align: center;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+}
+
+.lock-screen .lock-password-input:focus {
+    outline: none;
+    border-color: #3498db;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.lock-screen .lock-password-input::placeholder {
+    color: #555;
+}
+
+.lock-screen .lock-unlock-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+}
+
+.lock-screen .lock-unlock-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.lock-screen .lock-unlock-btn:active {
+    transform: translateY(0);
+}
+
+.lock-screen .lock-error {
+    color: #e74c3c;
+    font-size: 13px;
+    margin-top: 12px;
+    height: 18px;
+    text-align: center;
+}
+
+.lock-screen .lock-create-user-btn {
+    padding: 10px 24px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #888;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: all 0.2s;
+}
+
+.lock-screen .lock-create-user-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.lock-screen .lock-create-title,
+.lock-screen .lock-switch-title {
+    color: #f5f5f5;
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.lock-screen .lock-create-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+}
+
+.lock-screen .lock-create-input:focus {
+    outline: none;
+    border-color: #3498db;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.lock-screen .lock-create-input::placeholder {
+    color: #555;
+}
+
+.lock-screen .lock-create-cancel-btn,
+.lock-screen .lock-switch-cancel-btn {
+    padding: 10px 24px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #888;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.lock-screen .lock-create-cancel-btn:hover,
+.lock-screen .lock-switch-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.lock-screen .lock-create-btn,
+.lock-screen .lock-switch-confirm-btn {
+    padding: 10px 24px;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.lock-screen .lock-create-btn:hover,
+.lock-screen .lock-switch-confirm-btn:hover {
+    opacity: 0.9;
+}
+
+.lock-screen .lock-user-list {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lock-screen .lock-user-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+}
+
+.lock-screen .lock-user-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.lock-screen .lock-user-item-current {
+    background: rgba(52, 152, 219, 0.1);
+    cursor: default;
+}
+
+.lock-screen .lock-user-item-current:hover {
+    background: rgba(52, 152, 219, 0.1);
+}
+
+.lock-screen .lock-user-item-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.lock-screen .lock-user-item-info {
+    flex: 1;
+}
+
+.lock-screen .lock-user-item-name {
+    color: #f5f5f5;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.lock-screen .lock-user-item-status {
+    color: #666;
+    font-size: 12px;
+    margin-top: 2px;
+}

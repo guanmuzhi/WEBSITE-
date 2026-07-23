@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计算器</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="calculator">
+        <div class="display">
+            <div class="expression" id="expression"></div>
+            <div class="result" id="result">0</div>
+        </div>
+
+        <div class="buttons">
+            <div class="btn-row">
+                <button class="btn func" data-value="sin">sin</button>
+                <button class="btn func" data-value="cos">cos</button>
+                <button class="btn func" data-value="tan">tan</button>
+                <button class="btn func" data-value="log">log</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn func" data-value="ln">ln</button>
+                <button class="btn func" data-value="sqrt">√</button>
+                <button class="btn func" data-value="^">xʸ</button>
+                <button class="btn func" data-value="1/x">1/x</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn func" data-value="(">(</button>
+                <button class="btn func" data-value=")">)</button>
+                <button class="btn func" data-value="pi">π</button>
+                <button class="btn func" data-value="e">e</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn clear" data-value="AC">AC</button>
+                <button class="btn delete" data-value="DEL">DEL</button>
+                <button class="btn op" data-value="%">%</button>
+                <button class="btn op" data-value="/">÷</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn num" data-value="7">7</button>
+                <button class="btn num" data-value="8">8</button>
+                <button class="btn num" data-value="9">9</button>
+                <button class="btn op" data-value="*">×</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn num" data-value="4">4</button>
+                <button class="btn num" data-value="5">5</button>
+                <button class="btn num" data-value="6">6</button>
+                <button class="btn op" data-value="-">−</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn num" data-value="1">1</button>
+                <button class="btn num" data-value="2">2</button>
+                <button class="btn num" data-value="3">3</button>
+                <button class="btn op" data-value="+">+</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn num zero" data-value="0">0</button>
+                <button class="btn num" data-value=".">.</button>
+                <button class="btn equals" data-value="=">=</button>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
