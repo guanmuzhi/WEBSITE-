@@ -21,6 +21,162 @@ class FileManager {
         this.render();
     }
 
+    showAlert(message) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
+
+            const dialog = document.createElement('div');
+            dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
+
+            const title = document.createElement('div');
+            title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
+            title.textContent = '提示';
+            dialog.appendChild(title);
+
+            const msg = document.createElement('div');
+            msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:16px;';
+            msg.textContent = message;
+            dialog.appendChild(msg);
+
+            const okBtn = document.createElement('button');
+            okBtn.textContent = '确定';
+            okBtn.style.cssText = 'padding:8px 24px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
+            okBtn.addEventListener('mouseenter', () => { okBtn.style.background = '#2980b9'; });
+            okBtn.addEventListener('mouseleave', () => { okBtn.style.background = '#3498db'; });
+            okBtn.addEventListener('click', () => {
+                document.body.removeChild(overlay);
+                resolve();
+            });
+
+            dialog.appendChild(okBtn);
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+
+            setTimeout(() => okBtn.focus(), 50);
+        });
+    }
+
+    showConfirm(message) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
+
+            const dialog = document.createElement('div');
+            dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
+
+            const title = document.createElement('div');
+            title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
+            title.textContent = '确认';
+            dialog.appendChild(title);
+
+            const msg = document.createElement('div');
+            msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:16px;';
+            msg.textContent = message;
+            dialog.appendChild(msg);
+
+            const btnContainer = document.createElement('div');
+            btnContainer.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '取消';
+            cancelBtn.style.cssText = 'padding:8px 16px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;';
+            cancelBtn.addEventListener('mouseenter', () => { cancelBtn.style.background = '#4d4d4d'; });
+            cancelBtn.addEventListener('mouseleave', () => { cancelBtn.style.background = '#3d3d3d'; });
+            cancelBtn.addEventListener('click', () => {
+                document.body.removeChild(overlay);
+                resolve(false);
+            });
+            btnContainer.appendChild(cancelBtn);
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = '确定';
+            confirmBtn.style.cssText = 'padding:8px 16px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
+            confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = '#2980b9'; });
+            confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = '#3498db'; });
+            confirmBtn.addEventListener('click', () => {
+                document.body.removeChild(overlay);
+                resolve(true);
+            });
+            btnContainer.appendChild(confirmBtn);
+
+            dialog.appendChild(btnContainer);
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+
+            setTimeout(() => confirmBtn.focus(), 50);
+        });
+    }
+
+    showPrompt(message, defaultValue = '') {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
+
+            const dialog = document.createElement('div');
+            dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
+
+            const title = document.createElement('div');
+            title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
+            title.textContent = '输入';
+            dialog.appendChild(title);
+
+            const msg = document.createElement('div');
+            msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:12px;';
+            msg.textContent = message;
+            dialog.appendChild(msg);
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = defaultValue;
+            input.style.cssText = 'width:100%;padding:10px 12px;background:#1e1e1e;border:1px solid #3d3d3d;border-radius:4px;color:#ddd;font-size:13px;font-family:inherit;margin-bottom:12px;outline:none;';
+            input.addEventListener('focus', () => { input.style.borderColor = '#3498db'; });
+            input.addEventListener('blur', () => { input.style.borderColor = '#3d3d3d'; });
+            dialog.appendChild(input);
+
+            const btnContainer = document.createElement('div');
+            btnContainer.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '取消';
+            cancelBtn.style.cssText = 'padding:8px 16px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;';
+            cancelBtn.addEventListener('mouseenter', () => { cancelBtn.style.background = '#4d4d4d'; });
+            cancelBtn.addEventListener('mouseleave', () => { cancelBtn.style.background = '#3d3d3d'; });
+            cancelBtn.addEventListener('click', () => {
+                document.body.removeChild(overlay);
+                resolve(null);
+            });
+            btnContainer.appendChild(cancelBtn);
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = '确定';
+            confirmBtn.style.cssText = 'padding:8px 16px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
+            confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = '#2980b9'; });
+            confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = '#3498db'; });
+            confirmBtn.addEventListener('click', () => {
+                document.body.removeChild(overlay);
+                resolve(input.value);
+            });
+            btnContainer.appendChild(confirmBtn);
+
+            dialog.appendChild(btnContainer);
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+
+            setTimeout(() => { input.focus(); input.select(); }, 50);
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    document.body.removeChild(overlay);
+                    resolve(input.value);
+                } else if (e.key === 'Escape') {
+                    document.body.removeChild(overlay);
+                    resolve(null);
+                }
+            });
+        });
+    }
+
     loadFS() {
         const data = localStorage.getItem(STORAGE_KEY);
         if (data) {
@@ -46,8 +202,9 @@ class FileManager {
         document.getElementById('fm-back').addEventListener('click', () => this.goUp());
         document.getElementById('fm-home').addEventListener('click', () => this.goRoot());
         document.getElementById('fm-refresh').addEventListener('click', () => {
+            const currentPath = this.getCurrentPath();
             this.loadFS();
-            this.render();
+            this.navigateToPath(currentPath);
         });
         document.getElementById('fm-viewer-close').addEventListener('click', () => {
             this.viewerEl.style.display = 'none';
@@ -278,12 +435,13 @@ class FileManager {
         return false;
     }
 
-    deleteFile(name) {
+    async deleteFile(name) {
         if (this.isProtected(name)) {
-            alert('无法删除此目录');
+            await this.showAlert('无法删除此目录');
             return;
         }
-        if (!confirm(`确定删除 "${name}" 吗？`)) return;
+        const confirmed = await this.showConfirm(`确定删除 "${name}" 吗？`);
+        if (!confirmed) return;
         if (!this.currentDir.children) return;
         const index = this.currentDir.children.findIndex(c => c.name === name);
         if (index !== -1) {
@@ -293,19 +451,19 @@ class FileManager {
         }
     }
 
-    renameFile(oldName) {
+    async renameFile(oldName) {
         if (this.isProtected(oldName)) {
-            alert('无法重命名此目录');
+            await this.showAlert('无法重命名此目录');
             return;
         }
-        const newName = prompt(`重命名 "${oldName}" 为:`, oldName);
+        const newName = await this.showPrompt(`重命名 "${oldName}" 为:`, oldName);
         if (!newName || newName === oldName) return;
         if (!this.currentDir.children) return;
         const node = this.currentDir.children.find(c => c.name === oldName);
         if (node) {
             const existing = this.currentDir.children.find(c => c.name === newName);
             if (existing) {
-                alert(`"${newName}" 已存在`);
+                await this.showAlert(`"${newName}" 已存在`);
                 return;
             }
             node.name = newName;

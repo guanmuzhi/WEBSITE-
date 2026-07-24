@@ -15,13 +15,8 @@
     "path": "filemanager.app"
   },
   {
-    "id": "imageviewer",
-    "name": "图片查看器",
-    "path": "imageviewer.app"
-  },
-  {
-    "id": "mediaplayer",
-    "name": "影音播放器",
-    "path": "mediaplayer.app"
+    "id": "mediaviewer",
+    "name": "媒体查看器",
+    "path": "mediaviewer.app"
   }
 ]

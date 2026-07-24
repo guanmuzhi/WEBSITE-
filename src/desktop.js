@@ -91,6 +91,12 @@ class DesktopManager {
 
         this.updateTaskbar();
 
+        // 确保桌面图标可见
+        const desktopIcons = this.desktopEl.querySelector('.desktop-icons');
+        if (desktopIcons) {
+            desktopIcons.style.display = '';
+        }
+
         // 通知其他组件（如终端）用户已切换
         document.dispatchEvent(new CustomEvent('user-switched', { detail: { username } }));
     }
@@ -149,8 +155,8 @@ class DesktopManager {
         document.addEventListener('open-image-viewer', (e) => {
             const filePath = e.detail.path;
             this.openAppByPath({ 
-                path: 'imageviewer.app', 
-                name: '图片查看器',
+                path: 'mediaviewer.app', 
+                name: '媒体查看器',
                 params: { path: filePath }
             });
         });
@@ -158,8 +164,8 @@ class DesktopManager {
         document.addEventListener('open-media-player', (e) => {
             const filePath = e.detail.path;
             this.openAppByPath({ 
-                path: 'mediaplayer.app', 
-                name: '影音播放器',
+                path: 'mediaviewer.app', 
+                name: '媒体查看器',
                 params: { path: filePath }
             });
         });

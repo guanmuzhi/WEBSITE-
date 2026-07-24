@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>媒体查看器</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="viewer-container">
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <button class="toolbar-btn" id="open-btn">打开</button>
+                <span id="filename" class="filename">未打开文件</span>
+                <span id="file-info" class="file-info"></span>
+            </div>
+            <div class="toolbar-right">
+                <div class="zoom-controls" id="zoom-controls">
+                    <button class="zoom-btn" id="zoom-out">−</button>
+                    <span class="zoom-level" id="zoom-level">100%</span>
+                    <button class="zoom-btn" id="zoom-in">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <div id="placeholder" class="placeholder">
+                <div class="placeholder-icon">🎬</div>
+                <div class="placeholder-text">点击"打开"按钮选择文件</div>
+                <div class="placeholder-hint">支持图片、视频、音频格式</div>
+            </div>
+
+            <div id="image-viewer" class="image-viewer" style="display: none;">
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <span>加载中...</span>
+                </div>
+                <div id="image-wrapper" class="image-wrapper">
+                    <img id="image" class="image" src="" alt="">
+                </div>
+            </div>
+
+            <div id="media-player" class="media-player" style="display: none;">
+                <div id="video-container" class="video-container">
+                    <video id="video-player" class="video-player" controls></video>
+                </div>
+                <div id="audio-mode" class="audio-mode" style="display: none;">
+                    <div class="audio-artwork">
+                        <div class="audio-icon">🎵</div>
+                    </div>
+                    <div class="audio-info">
+                        <div id="audio-title" class="audio-title">未知</div>
+                        <div id="audio-artist" class="audio-artist">本地文件</div>
+                    </div>
+                    <div id="audio-waveform" class="audio-waveform">
+                        <span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                </div>
+
+                <div class="player-controls">
+                    <button class="control-btn" id="play-btn">▶</button>
+                    <button class="control-btn" id="prev-btn">⏮</button>
+                    <button class="control-btn" id="next-btn">⏭</button>
+                    
+                    <div class="progress-container">
+                        <div id="progress-bar" class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                        <span id="time-display" class="time-display">00:00 / 00:00</span>
+                    </div>
+
+                    <button class="control-btn" id="volume-btn">🔊</button>
+                    <div class="volume-container">
+                        <div id="volume-slider" class="volume-slider">
+                            <div id="volume-fill" class="volume-fill"></div>
+                        </div>
+                    </div>
+
+                    <select id="speed-selector" class="speed-selector">
+                        <option value="0.5">0.5x</option>
+                        <option value="0.75">0.75x</option>
+                        <option value="1" selected>1x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="2">2x</option>
+                    </select>
+
+                    <button class="control-btn" id="fullscreen-btn">⛶</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <span id="status-size" class="status-item">大小: 未知</span>
+            <span id="status-dimensions" class="status-item">尺寸: 未知</span>
+            <span id="status-format" class="status-item">格式: 未知</span>
+            <span id="status-duration" class="status-item">时长: 未知</span>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
