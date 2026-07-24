@@ -352,16 +352,21 @@ class LockScreen {
         usernameInput.focus();
     }
 
-    show() {
+    show(options = {}) {
         this._render();
         if (this.passwordInput) {
             this.passwordInput.value = '';
         }
         this.errorEl.textContent = '';
-        this.userListEl.style.display = 'none';
-        this.userListBtn.classList.remove('active');
+        if (options.showUserList) {
+            this.userListEl.style.display = 'block';
+            this.userListBtn.classList.add('active');
+        } else {
+            this.userListEl.style.display = 'none';
+            this.userListBtn.classList.remove('active');
+        }
         this.el.style.display = 'flex';
-        if (this.passwordInput) {
+        if (this.passwordInput && !options.showUserList) {
             this.passwordInput.focus();
         }
     }

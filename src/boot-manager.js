@@ -68,17 +68,23 @@ class BootManager {
     }
 
     _checkLockOnBoot() {
-        const currentUser = this.userManager.getCurrentUser();
-        if (currentUser && currentUser.password) {
-            this.lockScreen = new LockScreen({
-                onUnlock: () => {
-                    if (this.desktopManager) {
-                        this.desktopManager.updateTaskbarUser();
-                    }
+        // 始终显示锁屏界面，默认public用户，总是显示用户列表
+        this.userManager.setCurrentUser('public');
+        this.userManager.reload();
+
+        this.lockScreen = new LockScreen({
+            onUnlock: () => {
+                if (this.desktopManager) {
+                    this.desktopManager.updateTaskbarUser();
                 }
-            });
-            this.lockScreen.show();
-        }
+            },
+            onUserSwitch: (username) => {
+                if (this.desktopManager) {
+                    this.desktopManager.switchUser(username);
+                }
+            }
+        });
+        this.lockScreen.show({ showUserList: true });
     }
 
     stayInTerminal() {
