@@ -134,6 +134,14 @@ class LockScreen {
                 e.stopPropagation();
                 this._confirmDeleteUser(user.username);
             });
+
+            const renameBtn = document.createElement('button');
+            renameBtn.className = 'lock-user-item-rename';
+            renameBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+            renameBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this._showRenameUser(user.username);
+            });
             
             userItem.innerHTML = `
                 <div class="lock-user-item-avatar">${(user.username.charAt(0) || '?').toUpperCase()}</div>
@@ -145,6 +153,10 @@ class LockScreen {
             
             if (!isCurrent && users.length > 1) {
                 userItem.appendChild(deleteBtn);
+            }
+
+            if (isCurrent) {
+                userItem.appendChild(renameBtn);
             }
             
             if (!isCurrent) {
@@ -162,6 +174,9 @@ class LockScreen {
     }
 
     _confirmDeleteUser(username) {
+        const user = this.userManager.getUser(username);
+        const needsPassword = user && user.password;
+
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
 
@@ -177,6 +192,28 @@ class LockScreen {
         msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:16px;';
         msg.textContent = `确定要删除用户 "${username}" 吗？此操作无法撤销。`;
         dialog.appendChild(msg);
+
+        let passwordInput = null;
+        let errorDiv = null;
+
+        if (needsPassword) {
+            const pwdLabel = document.createElement('div');
+            pwdLabel.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:8px;';
+            pwdLabel.textContent = '请输入密码以确认删除';
+            dialog.appendChild(pwdLabel);
+
+            passwordInput = document.createElement('input');
+            passwordInput.type = 'password';
+            passwordInput.placeholder = '密码';
+            passwordInput.style.cssText = 'width:100%;padding:10px 12px;background:#1e1e1e;border:1px solid #3d3d3d;border-radius:4px;color:#ddd;font-size:13px;font-family:inherit;margin-bottom:8px;outline:none;';
+            passwordInput.addEventListener('focus', () => { passwordInput.style.borderColor = '#3498db'; });
+            passwordInput.addEventListener('blur', () => { passwordInput.style.borderColor = '#3d3d3d'; });
+            dialog.appendChild(passwordInput);
+
+            errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'color:#e74c3c;font-size:12px;margin-bottom:16px;min-height:16px;';
+            dialog.appendChild(errorDiv);
+        }
 
         const btnContainer = document.createElement('div');
         btnContainer.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
@@ -196,21 +233,129 @@ class LockScreen {
         deleteBtn.style.cssText = 'padding:8px 16px;background:#c0392b;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
         deleteBtn.addEventListener('mouseenter', () => { deleteBtn.style.background = '#a93226'; });
         deleteBtn.addEventListener('mouseleave', () => { deleteBtn.style.background = '#c0392b'; });
-        deleteBtn.addEventListener('click', () => {
+
+        const doDelete = () => {
+            if (needsPassword) {
+                const pwd = passwordInput.value;
+                if (!this.userManager.verifyPassword(username, pwd)) {
+                    if (errorDiv) {
+                        errorDiv.textContent = '密码错误';
+                        passwordInput.style.borderColor = '#e74c3c';
+                    }
+                    return;
+                }
+            }
+
             const result = this.userManager.deleteUser(username);
             if (result.success) {
                 this.userManager.reload();
                 this._render();
             }
             document.body.removeChild(overlay);
-        });
+        };
+
+        deleteBtn.addEventListener('click', doDelete);
+
+        if (passwordInput) {
+            passwordInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    doDelete();
+                }
+            });
+        }
+
         btnContainer.appendChild(deleteBtn);
 
         dialog.appendChild(btnContainer);
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
 
-        setTimeout(() => deleteBtn.focus(), 50);
+        setTimeout(() => {
+            if (passwordInput) {
+                passwordInput.focus();
+            } else {
+                deleteBtn.focus();
+            }
+        }, 50);
+    }
+
+    _showRenameUser(username) {
+        this.contentEl.innerHTML = '';
+        this.userListEl.style.display = 'none';
+        this.userListBtn.classList.remove('active');
+
+        const title = document.createElement('div');
+        title.className = 'lock-create-title';
+        title.textContent = '重命名用户';
+        this.contentEl.appendChild(title);
+
+        const currentNameLabel = document.createElement('div');
+        currentNameLabel.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:8px;';
+        currentNameLabel.textContent = `当前用户名: ${username}`;
+        this.contentEl.appendChild(currentNameLabel);
+
+        const usernameInput = document.createElement('input');
+        usernameInput.className = 'lock-create-input';
+        usernameInput.type = 'text';
+        usernameInput.placeholder = '新用户名';
+        this.contentEl.appendChild(usernameInput);
+
+        const user = this.userManager.getUser(username);
+        let passwordInput = null;
+        if (user && user.password) {
+            passwordInput = document.createElement('input');
+            passwordInput.className = 'lock-create-input';
+            passwordInput.type = 'password';
+            passwordInput.placeholder = '输入当前密码';
+            this.contentEl.appendChild(passwordInput);
+        }
+
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'lock-error';
+        this.contentEl.appendChild(errorDiv);
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'lock-create-cancel-btn';
+        cancelBtn.textContent = '取消';
+        cancelBtn.addEventListener('click', () => this._render());
+        this.contentEl.appendChild(cancelBtn);
+
+        const renameBtn = document.createElement('button');
+        renameBtn.className = 'lock-create-btn';
+        renameBtn.textContent = '重命名';
+        renameBtn.addEventListener('click', () => {
+            const newUsername = usernameInput.value.trim();
+            const password = passwordInput ? passwordInput.value.trim() : null;
+            const result = this.userManager.renameUser(username, newUsername, password);
+            if (result.success) {
+                this.userManager.reload();
+                if (typeof this.onUserSwitch === 'function') {
+                    this.onUserSwitch(newUsername);
+                }
+                this._render();
+            } else {
+                errorDiv.textContent = result.message;
+            }
+        });
+        this.contentEl.appendChild(renameBtn);
+
+        usernameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && passwordInput) {
+                passwordInput.focus();
+            } else if (e.key === 'Enter') {
+                renameBtn.click();
+            }
+        });
+
+        if (passwordInput) {
+            passwordInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    renameBtn.click();
+                }
+            });
+        }
+
+        setTimeout(() => usernameInput.focus(), 50);
     }
 
     _toggleUserList() {

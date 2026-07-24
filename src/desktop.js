@@ -65,7 +65,7 @@ class DesktopManager {
         this.setupUserSwitchListener();
     }
 
-    switchUser(username) {
+    async switchUser(username) {
         // 先保存当前用户状态（使用当前用户的存储键）
         this.saveState();
 
@@ -85,9 +85,7 @@ class DesktopManager {
 
         // 重置窗口层级并加载新用户状态
         this.windowManager.zIndexCounter = 1;
-        this._isLoadingState = true;
-        this.loadState();
-        this._isLoadingState = false;
+        await this.loadState();
 
         this.updateTaskbar();
 
@@ -354,6 +352,8 @@ class DesktopManager {
 
         win.appName = app.name;
         win.appIcon = `/apps/${app.path}/icon.svg`;
+        win.appPath = app.path;
+        win.appParams = app.params;
 
         const originalClose = win.close;
         win.close = () => {
@@ -473,6 +473,11 @@ class DesktopManager {
                         winState.currentPath = terminal.fs.getCurrentPath();
                     }
 
+                    if (win.windowType === 'app') {
+                        winState.appPath = win.appPath;
+                        winState.appParams = win.appParams;
+                    }
+
                     return winState;
                 })
             };
@@ -485,7 +490,7 @@ class DesktopManager {
         }
     }
 
-    loadState() {
+    async loadState() {
         try {
             const data = localStorage.getItem(this.getStorageKey());
             if (!data) return;
@@ -495,7 +500,7 @@ class DesktopManager {
 
             this._isLoadingState = true;
 
-            state.windows.forEach(winState => {
+            for (const winState of state.windows) {
                 if (winState.windowType === 'terminal') {
                     this.openTerminalWindow({
                         x: winState.x,
@@ -504,13 +509,23 @@ class DesktopManager {
                         height: winState.height,
                         initialPath: winState.currentPath
                     });
+                } else if (winState.windowType === 'app' && winState.appPath) {
+                    await this.openAppByPath({
+                        path: winState.appPath,
+                        name: winState.title,
+                        params: winState.appParams
+                    });
                 }
-            });
+            }
 
             const restoredWindows = this.windowManager.getAllWindows();
             state.windows.forEach((winState, index) => {
                 const restoredWin = restoredWindows[index];
                 if (restoredWin) {
+                    restoredWin.element.style.left = winState.x + 'px';
+                    restoredWin.element.style.top = winState.y + 'px';
+                    restoredWin.element.style.width = winState.width + 'px';
+                    restoredWin.element.style.height = winState.height + 'px';
                     restoredWin.element.style.zIndex = winState.zIndex;
                     if (winState.isMinimized) {
                         restoredWin.isMinimized = true;

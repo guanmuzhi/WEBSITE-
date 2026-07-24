@@ -658,7 +658,10 @@ class FileManager {
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                const content = await this.readFileAsText(file);
+                const fileType = this.getFileType(file.name);
+                const content = fileType === 'image' || fileType === 'video' || fileType === 'audio' 
+                    ? await this.readFileAsDataURL(file) 
+                    : await this.readFileAsText(file);
                 
                 let finalName = file.name;
                 const existing = this.currentDir.children.find(c => c.name === file.name);
@@ -701,11 +704,39 @@ class FileManager {
         });
     }
 
+    readFileAsDataURL(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                resolve(e.target.result);
+            };
+            reader.onerror = () => {
+                resolve('');
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
     downloadFile(name) {
         const file = this.currentDir.children?.find(c => c.name === name && c.type === 'file');
         if (!file) return;
 
-        const blob = new Blob([file.content || ''], { type: 'text/plain' });
+        let blob;
+        if (file.content && file.content.startsWith('data:')) {
+            const parts = file.content.split(',');
+            const mimeType = parts[0].split(':')[1].split(';')[0];
+            const data = parts[1];
+            const byteString = atob(data);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+            blob = new Blob([ab], { type: mimeType });
+        } else {
+            blob = new Blob([file.content || ''], { type: 'text/plain' });
+        }
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -716,6 +747,46 @@ class FileManager {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }, 100);
+    }
+
+    async downloadFolder(name) {
+        const folder = this.currentDir.children?.find(c => c.name === name && c.type === 'folder');
+        if (!folder) return;
+
+        const zip = new JSZip();
+        this.addFolderToZip(zip, folder, name);
+
+        const content = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(content);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name + '.zip';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
+    }
+
+    addFolderToZip(zip, folder, path) {
+        if (folder.children) {
+            folder.children.forEach(item => {
+                const itemPath = path + '/' + item.name;
+                if (item.type === 'folder') {
+                    this.addFolderToZip(zip, item, itemPath);
+                } else {
+                    let content;
+                    if (item.content && item.content.startsWith('data:')) {
+                        const parts = item.content.split(',');
+                        content = atob(parts[1]);
+                    } else {
+                        content = item.content || '';
+                    }
+                    zip.file(item.name, content);
+                }
+            });
+        }
     }
 
     getFileSize(file) {
@@ -813,10 +884,13 @@ class FileManager {
             const downloadBtn = document.createElement('button');
             downloadBtn.className = 'fm-action-btn';
             downloadBtn.textContent = '下载';
-            downloadBtn.style.display = item.type === 'file' ? 'block' : 'none';
             downloadBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.downloadFile(item.name);
+                if (item.type === 'file') {
+                    this.downloadFile(item.name);
+                } else {
+                    this.downloadFolder(item.name);
+                }
             });
             actions.appendChild(downloadBtn);
 
