@@ -9,6 +9,8 @@ class FileManager {
         this.currentDir = null;
         this.pathStack = [];
         this.authorizedUsers = new Set();
+        this.clipboard = null;
+        this.clipboardAction = null;
 
         this.filelistEl = document.getElementById('fm-filelist');
         this.pathEl = document.getElementById('fm-path');
@@ -209,6 +211,10 @@ class FileManager {
         document.getElementById('fm-viewer-close').addEventListener('click', () => {
             this.viewerEl.style.display = 'none';
         });
+        document.getElementById('fm-new-folder').addEventListener('click', () => this.createFolder());
+        document.getElementById('fm-new-file').addEventListener('click', () => this.createFile());
+        document.getElementById('fm-upload').addEventListener('click', () => this.uploadFile());
+        document.getElementById('fm-paste').addEventListener('click', () => this.pasteFile());
 
         document.querySelectorAll('.fm-sidebar-item').forEach(item => {
             item.addEventListener('click', () => {
@@ -363,6 +369,48 @@ class FileManager {
         });
     }
 
+    getOwnerOfCurrentPath() {
+        const path = this.getCurrentPath();
+        if (path.startsWith('/home/')) {
+            const parts = path.split('/');
+            if (parts.length >= 3) {
+                return parts[2];
+            }
+        }
+        return null;
+    }
+
+    async checkPermissionForAction() {
+        const owner = this.getOwnerOfCurrentPath();
+        if (!owner) return true;
+
+        const currentUser = this.getCurrentUsername();
+        if (owner === currentUser) return true;
+
+        if (this.authorizedUsers.has(owner)) return true;
+
+        const userInfo = this.getUserInfo(owner);
+        if (!userInfo || !userInfo.password) return true;
+
+        return await this.showPasswordDialog(owner);
+    }
+
+    async openFolder(folder) {
+        const path = this.getCurrentPath();
+        if (path === '/' || path === '/home') {
+            const allowed = await this.checkFolderPermission(folder.name);
+            if (!allowed) return;
+        } else {
+            const allowed = await this.checkPermissionForAction();
+            if (!allowed) return;
+        }
+
+        const currentPath = this.getCurrentPath();
+        this.loadFS();
+        const targetPath = currentPath === '/' ? `/${folder.name}` : `${currentPath}/${folder.name}`;
+        this.navigateToPath(targetPath);
+    }
+
     async checkFolderPermission(folderName) {
         const currentPath = this.getCurrentPath();
         if (currentPath !== '/home') return true;
@@ -376,16 +424,6 @@ class FileManager {
         if (!userInfo || !userInfo.password) return true;
 
         return await this.showPasswordDialog(folderName);
-    }
-
-    async openFolder(folder) {
-        const allowed = await this.checkFolderPermission(folder.name);
-        if (!allowed) return;
-
-        const currentPath = this.getCurrentPath();
-        this.loadFS();
-        const targetPath = currentPath === '/' ? `/${folder.name}` : `${currentPath}/${folder.name}`;
-        this.navigateToPath(targetPath);
     }
 
     getFileType(name) {
@@ -402,7 +440,10 @@ class FileManager {
         return 'other';
     }
 
-    openFile(file) {
+    async openFile(file) {
+        const allowed = await this.checkPermissionForAction();
+        if (!allowed) return;
+
         const filePath = this.getCurrentPath() === '/' ? `/${file.name}` : `${this.getCurrentPath()}/${file.name}`;
         const fileType = this.getFileType(file.name);
         let eventName = 'open-file-in-editor';
@@ -436,6 +477,9 @@ class FileManager {
     }
 
     async deleteFile(name) {
+        const allowed = await this.checkPermissionForAction();
+        if (!allowed) return;
+
         if (this.isProtected(name)) {
             await this.showAlert('无法删除此目录');
             return;
@@ -452,6 +496,9 @@ class FileManager {
     }
 
     async renameFile(oldName) {
+        const allowed = await this.checkPermissionForAction();
+        if (!allowed) return;
+
         if (this.isProtected(oldName)) {
             await this.showAlert('无法重命名此目录');
             return;
@@ -470,6 +517,205 @@ class FileManager {
             this.saveFS();
             this.render();
         }
+    }
+
+    async createFolder() {
+        const allowed = await this.checkPermissionForAction();
+        if (!allowed) return;
+
+        const name = await this.showPrompt('输入文件夹名称:', '新建文件夹');
+        if (!name) return;
+        if (!this.currentDir.children) this.currentDir.children = [];
+        const existing = this.currentDir.children.find(c => c.name === name && c.type === 'folder');
+        if (existing) {
+            await this.showAlert(`文件夹 "${name}" 已存在`);
+            return;
+        }
+        this.currentDir.children.push({
+            type: 'folder',
+            name: name,
+            children: []
+        });
+        this.saveFS();
+        this.render();
+    }
+
+    async createFile() {
+        const allowed = await this.checkPermissionForAction();
+        if (!allowed) return;
+
+        const name = await this.showPrompt('输入文件名称:', '新建文件.txt');
+        if (!name) return;
+        if (!this.currentDir.children) this.currentDir.children = [];
+        const existing = this.currentDir.children.find(c => c.name === name && c.type === 'file');
+        if (existing) {
+            await this.showAlert(`文件 "${name}" 已存在`);
+            return;
+        }
+        this.currentDir.children.push({
+            type: 'file',
+            name: name,
+            content: ''
+        });
+        this.saveFS();
+        this.render();
+    }
+
+    async copyFile(name) {
+        const allowed = await this.checkPermissionForAction();
+        if (!allowed) return;
+
+        if (!this.currentDir.children) return;
+        const node = this.currentDir.children.find(c => c.name === name);
+        if (!node) return;
+
+        this.clipboard = JSON.parse(JSON.stringify(node));
+        this.clipboardAction = 'copy';
+        await this.showAlert(`已复制 "${name}"`);
+    }
+
+    async cutFile(name) {
+        const allowed = await this.checkPermissionForAction();
+        if (!allowed) return;
+
+        if (!this.currentDir.children) return;
+        const node = this.currentDir.children.find(c => c.name === name);
+        if (!node) return;
+
+        this.clipboard = JSON.parse(JSON.stringify(node));
+        this.clipboardAction = 'cut';
+        await this.showAlert(`已剪切 "${name}"`);
+    }
+
+    async pasteFile() {
+        if (!this.clipboard) {
+            await this.showAlert('剪贴板为空');
+            return;
+        }
+
+        const allowed = await this.checkPermissionForAction();
+        if (!allowed) return;
+
+        const targetName = this.clipboard.name;
+        if (!this.currentDir.children) this.currentDir.children = [];
+        const existing = this.currentDir.children.find(c => c.name === targetName);
+        
+        let finalName = targetName;
+        if (existing) {
+            const ext = targetName.includes('.') ? targetName.substring(targetName.lastIndexOf('.')) : '';
+            const base = targetName.includes('.') ? targetName.substring(0, targetName.lastIndexOf('.')) : targetName;
+            let counter = 1;
+            while (this.currentDir.children.find(c => c.name === `${base}(${counter})${ext}`)) {
+                counter++;
+            }
+            finalName = `${base}(${counter})${ext}`;
+        }
+
+        const newItem = JSON.parse(JSON.stringify(this.clipboard));
+        newItem.name = finalName;
+        this.currentDir.children.push(newItem);
+
+        if (this.clipboardAction === 'cut') {
+            const sourcePath = this.clipboard._sourcePath || '/';
+            this.removeFromPath(sourcePath, this.clipboard.name);
+        }
+
+        this.saveFS();
+        this.render();
+        await this.showAlert(`已粘贴 "${finalName}"`);
+    }
+
+    removeFromPath(pathStr, name) {
+        const parts = pathStr.split('/').filter(p => p);
+        let node = this.root;
+        for (const part of parts) {
+            if (node.children) {
+                const child = node.children.find(c => c.name === part && c.type === 'folder');
+                if (child) node = child;
+            }
+        }
+        if (node.children) {
+            const index = node.children.findIndex(c => c.name === name);
+            if (index !== -1) {
+                node.children.splice(index, 1);
+            }
+        }
+    }
+
+    uploadFile() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.style.display = 'none';
+        input.addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            const allowed = await this.checkPermissionForAction();
+            if (!allowed) return;
+
+            if (!this.currentDir.children) this.currentDir.children = [];
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const content = await this.readFileAsText(file);
+                
+                let finalName = file.name;
+                const existing = this.currentDir.children.find(c => c.name === file.name);
+                if (existing) {
+                    const ext = file.name.includes('.') ? file.name.substring(file.name.lastIndexOf('.')) : '';
+                    const base = file.name.includes('.') ? file.name.substring(0, file.name.lastIndexOf('.')) : file.name;
+                    let counter = 1;
+                    while (this.currentDir.children.find(c => c.name === `${base}(${counter})${ext}`)) {
+                        counter++;
+                    }
+                    finalName = `${base}(${counter})${ext}`;
+                }
+
+                this.currentDir.children.push({
+                    type: 'file',
+                    name: finalName,
+                    content: content
+                });
+            }
+
+            this.saveFS();
+            this.render();
+            await this.showAlert(`已上传 ${files.length} 个文件`);
+        });
+        document.body.appendChild(input);
+        input.click();
+        setTimeout(() => document.body.removeChild(input), 100);
+    }
+
+    readFileAsText(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                resolve(e.target.result);
+            };
+            reader.onerror = () => {
+                resolve('');
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    downloadFile(name) {
+        const file = this.currentDir.children?.find(c => c.name === name && c.type === 'file');
+        if (!file) return;
+
+        const blob = new Blob([file.content || ''], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
     }
 
     getFileSize(file) {
@@ -528,6 +774,24 @@ class FileManager {
             const actions = document.createElement('div');
             actions.className = 'fm-file-actions';
 
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'fm-action-btn';
+            copyBtn.textContent = '复制';
+            copyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.copyFile(item.name);
+            });
+            actions.appendChild(copyBtn);
+
+            const cutBtn = document.createElement('button');
+            cutBtn.className = 'fm-action-btn';
+            cutBtn.textContent = '剪切';
+            cutBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.cutFile(item.name);
+            });
+            actions.appendChild(cutBtn);
+
             const renameBtn = document.createElement('button');
             renameBtn.className = 'fm-action-btn';
             renameBtn.textContent = '重命名';
@@ -546,6 +810,16 @@ class FileManager {
             });
             actions.appendChild(deleteBtn);
 
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'fm-action-btn';
+            downloadBtn.textContent = '下载';
+            downloadBtn.style.display = item.type === 'file' ? 'block' : 'none';
+            downloadBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.downloadFile(item.name);
+            });
+            actions.appendChild(downloadBtn);
+
             el.appendChild(actions);
 
             el.addEventListener('click', () => {
@@ -558,6 +832,11 @@ class FileManager {
 
             this.filelistEl.appendChild(el);
         });
+
+        const pasteBtn = document.getElementById('fm-paste');
+        if (pasteBtn) {
+            pasteBtn.style.display = this.clipboard ? 'block' : 'none';
+        }
     }
 }
 

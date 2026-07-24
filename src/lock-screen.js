@@ -126,6 +126,15 @@ class LockScreen {
             
             const userItem = document.createElement('div');
             userItem.className = 'lock-user-item' + (isCurrent ? ' lock-user-item-current' : '');
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'lock-user-item-delete';
+            deleteBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this._confirmDeleteUser(user.username);
+            });
+            
             userItem.innerHTML = `
                 <div class="lock-user-item-avatar">${(user.username.charAt(0) || '?').toUpperCase()}</div>
                 <div class="lock-user-item-info">
@@ -133,6 +142,10 @@ class LockScreen {
                     <div class="lock-user-item-status">${isCurrent ? '当前用户' : (user.password ? '需密码' : '无密码')}</div>
                 </div>
             `;
+            
+            if (!isCurrent && users.length > 1) {
+                userItem.appendChild(deleteBtn);
+            }
             
             if (!isCurrent) {
                 userItem.addEventListener('click', () => {
@@ -146,6 +159,58 @@ class LockScreen {
             
             this.userListEl.appendChild(userItem);
         });
+    }
+
+    _confirmDeleteUser(username) {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
+
+        const dialog = document.createElement('div');
+        dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
+
+        const title = document.createElement('div');
+        title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
+        title.textContent = '删除用户';
+        dialog.appendChild(title);
+
+        const msg = document.createElement('div');
+        msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:16px;';
+        msg.textContent = `确定要删除用户 "${username}" 吗？此操作无法撤销。`;
+        dialog.appendChild(msg);
+
+        const btnContainer = document.createElement('div');
+        btnContainer.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = '取消';
+        cancelBtn.style.cssText = 'padding:8px 16px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;';
+        cancelBtn.addEventListener('mouseenter', () => { cancelBtn.style.background = '#4d4d4d'; });
+        cancelBtn.addEventListener('mouseleave', () => { cancelBtn.style.background = '#3d3d3d'; });
+        cancelBtn.addEventListener('click', () => {
+            document.body.removeChild(overlay);
+        });
+        btnContainer.appendChild(cancelBtn);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '删除';
+        deleteBtn.style.cssText = 'padding:8px 16px;background:#c0392b;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
+        deleteBtn.addEventListener('mouseenter', () => { deleteBtn.style.background = '#a93226'; });
+        deleteBtn.addEventListener('mouseleave', () => { deleteBtn.style.background = '#c0392b'; });
+        deleteBtn.addEventListener('click', () => {
+            const result = this.userManager.deleteUser(username);
+            if (result.success) {
+                this.userManager.reload();
+                this._render();
+            }
+            document.body.removeChild(overlay);
+        });
+        btnContainer.appendChild(deleteBtn);
+
+        dialog.appendChild(btnContainer);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
+        setTimeout(() => deleteBtn.focus(), 50);
     }
 
     _toggleUserList() {
@@ -218,9 +283,9 @@ class LockScreen {
             this.onUserSwitch(username);
         }
         
+        this.userManager.setCurrentUser(username);
         this.userManager.reload();
-        this._render();
-        this.errorEl.textContent = '';
+        this.hide();
     }
 
     _showCreateUser() {

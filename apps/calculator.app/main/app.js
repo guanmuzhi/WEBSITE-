@@ -118,8 +118,12 @@ class Calculator {
     }
 
     update() {
-        this.expressionEl.textContent = '';
-        this.resultEl.textContent = this.current || '0';
+        this.expressionEl.textContent = this.current || '';
+        let display = this.current || '0';
+        if (display.length > 16) {
+            display = display.substring(0, 16) + '...';
+        }
+        this.resultEl.textContent = display;
     }
 }
 

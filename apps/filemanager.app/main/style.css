@@ -60,6 +60,13 @@ body {
     white-space: nowrap;
 }
 
+.fm-toolbar-divider {
+    width: 1px;
+    height: 24px;
+    background: #444;
+    margin: 0 8px;
+}
+
 /* Body */
 .fm-sidebar {
     position: absolute;

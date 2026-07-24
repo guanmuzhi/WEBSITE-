@@ -468,29 +468,36 @@ body {
 
 @media (max-width: 768px) {
     .desktop-icons {
-        padding: 30px;
-        gap: 30px;
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 20px;
+        gap: 15px;
+        background-color: rgba(30, 40, 50, 0.3);
     }
 
     .desktop-icon {
-        width: 100px;
-        min-height: 44px;
-        padding: 8px;
+        width: 70px;
+        min-height: auto;
+        padding: 5px;
     }
 
     .desktop-icon .icon-image {
-        width: 80px;
-        height: 80px;
-        margin-bottom: 12px;
-        border-radius: 12px;
+        width: 50px;
+        height: 50px;
+        margin-bottom: 5px;
+        border-radius: 10px;
     }
 
     .desktop-icon .icon-label {
-        font-size: 14px;
-        min-height: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        font-size: 11px;
+        min-height: auto;
+        display: block;
+    }
+
+    .windows-container {
+        left: 0;
     }
 
     .taskbar {
@@ -1059,4 +1066,28 @@ body {
     color: #666;
     font-size: 12px;
     margin-top: 2px;
+}
+
+.lock-screen .lock-user-item-delete {
+    width: 36px;
+    height: 36px;
+    background: rgba(231, 76, 60, 0.1);
+    border: none;
+    border-radius: 8px;
+    color: #e74c3c;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.lock-screen .lock-user-item-delete:hover {
+    background: rgba(231, 76, 60, 0.2);
+    color: #ec7063;
+}
+
+.lock-screen .lock-user-item-delete svg {
+    width: 16px;
+    height: 16px;
 }

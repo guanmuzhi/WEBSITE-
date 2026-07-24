@@ -1,0 +1,6 @@
+- [x] Checkpoint 1: 低分辨率下桌面图标水平排列，不堆叠
+- [x] Checkpoint 2: 计算器表达式正确显示
+- [x] Checkpoint 3: 计算器数字不溢出
+- [x] Checkpoint 4: 锁屏界面public用户可点击切换
+- [x] Checkpoint 5: 媒体查看器info.json文件存在
+- [x] Checkpoint 6: 媒体查看器窗口大小正确

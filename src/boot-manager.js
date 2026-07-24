@@ -29,11 +29,9 @@ class BootManager {
         this.printBootMessage();
 
         this.keyHandler = (e) => {
-            if (e.key === 's' || e.key === 'S') {
-                e.preventDefault();
-                e.stopPropagation();
-                this.stayInTerminal();
-            }
+            e.preventDefault();
+            e.stopPropagation();
+            this.stayInTerminal();
         };
         document.addEventListener('keydown', this.keyHandler, true);
 
@@ -45,7 +43,7 @@ class BootManager {
     printBootMessage() {
         this.terminal.print('WebOS 启动中...');
         this.terminal.print('');
-        this.terminal.print('进入图形界面，输入s停止');
+        this.terminal.print('按任意键停止启动，进入终端模式');
         this.terminal.print('');
     }
 
