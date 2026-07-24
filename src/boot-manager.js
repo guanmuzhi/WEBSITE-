@@ -53,22 +53,6 @@ class BootManager {
         this.bootCompleted = true;
         this.cleanup();
 
-        this.bootScreen.classList.add('fade-out');
-
-        setTimeout(() => {
-            this.bootScreen.style.display = 'none';
-            this.desktop.style.display = 'block';
-            this.desktop.classList.add('fade-in');
-            requestAnimationFrame(() => {
-                this.desktop.classList.add('visible');
-            });
-            this.initDesktop();
-            this._checkLockOnBoot();
-        }, 300);
-    }
-
-    _checkLockOnBoot() {
-        // 始终显示锁屏界面，默认public用户，总是显示用户列表
         this.userManager.setCurrentUser('public');
         this.userManager.reload();
 
@@ -84,7 +68,19 @@ class BootManager {
                 }
             }
         });
-        this.lockScreen.show({ showUserList: true });
+        this.lockScreen.showWithUserList();
+
+        this.bootScreen.classList.add('fade-out');
+
+        setTimeout(() => {
+            this.bootScreen.style.display = 'none';
+            this.desktop.style.display = 'block';
+            this.desktop.classList.add('fade-in');
+            requestAnimationFrame(() => {
+                this.desktop.classList.add('visible');
+            });
+            this.initDesktop();
+        }, 300);
     }
 
     stayInTerminal() {

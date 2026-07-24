@@ -371,6 +371,20 @@ class LockScreen {
         }
     }
 
+    showWithUserList() {
+        this._render();
+        if (this.passwordInput) {
+            this.passwordInput.value = '';
+        }
+        this.errorEl.textContent = '';
+        this.userListEl.style.display = 'block';
+        this.userListBtn.classList.add('active');
+        this.el.style.display = 'flex';
+        if (this.passwordInput) {
+            this.passwordInput.focus();
+        }
+    }
+
     hide() {
         this.el.style.display = 'none';
     }
