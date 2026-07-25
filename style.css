@@ -42,8 +42,6 @@ body {
     flex: 1;
     padding: 10px;
     overflow-y: auto;
-    position: relative;
-    padding-bottom: 40px;
 }
 
 .output {
@@ -55,16 +53,12 @@ body {
 }
 
 .input-line {
-    position: sticky;
-    bottom: 0;
-    left: 0;
-    right: 0;
     display: flex;
     align-items: center;
     padding: 8px 10px;
     background-color: #1e1e1e;
     border-top: 1px solid #333;
-    z-index: 10;
+    flex-shrink: 0;
 }
 
 .prompt {

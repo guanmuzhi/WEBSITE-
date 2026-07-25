@@ -16,12 +16,6 @@ class LockScreen {
         const lockContainer = document.createElement('div');
         lockContainer.className = 'lock-container';
 
-        const userListBtn = document.createElement('button');
-        userListBtn.className = 'lock-user-list-btn';
-        userListBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
-        userListBtn.addEventListener('click', () => this._toggleUserList());
-        lockContainer.appendChild(userListBtn);
-
         const avatar = document.createElement('div');
         avatar.className = 'lock-user-avatar';
         lockContainer.appendChild(avatar);
@@ -45,7 +39,6 @@ class LockScreen {
 
         const userList = document.createElement('div');
         userList.className = 'lock-user-list';
-        userList.style.display = 'none';
         lockContainer.appendChild(userList);
 
         overlay.appendChild(lockContainer);
@@ -53,7 +46,6 @@ class LockScreen {
 
         this.el = overlay;
         this.lockContainer = lockContainer;
-        this.userListBtn = userListBtn;
         this.avatarEl = avatar;
         this.usernameEl = username;
         this.subtitleEl = subtitle;
@@ -281,8 +273,6 @@ class LockScreen {
 
     _showRenameUser(username) {
         this.contentEl.innerHTML = '';
-        this.userListEl.style.display = 'none';
-        this.userListBtn.classList.remove('active');
 
         const title = document.createElement('div');
         title.className = 'lock-create-title';
@@ -358,21 +348,8 @@ class LockScreen {
         setTimeout(() => usernameInput.focus(), 50);
     }
 
-    _toggleUserList() {
-        const isHidden = this.userListEl.style.display === 'none';
-        this.userListEl.style.display = isHidden ? 'block' : 'none';
-        
-        if (isHidden) {
-            this.userListBtn.classList.add('active');
-        } else {
-            this.userListBtn.classList.remove('active');
-        }
-    }
-
     _showUserPassword(username) {
         this.contentEl.innerHTML = '';
-        this.userListEl.style.display = 'none';
-        this.userListBtn.classList.remove('active');
 
         const title = document.createElement('div');
         title.className = 'lock-switch-title';
@@ -435,8 +412,6 @@ class LockScreen {
 
     _showCreateUser() {
         this.contentEl.innerHTML = '';
-        this.userListEl.style.display = 'none';
-        this.userListBtn.classList.remove('active');
 
         const title = document.createElement('div');
         title.className = 'lock-create-title';
@@ -499,31 +474,15 @@ class LockScreen {
             this.passwordInput.value = '';
         }
         this.errorEl.textContent = '';
-        if (options.showUserList) {
-            this.userListEl.style.display = 'block';
-            this.userListBtn.classList.add('active');
-        } else {
-            this.userListEl.style.display = 'none';
-            this.userListBtn.classList.remove('active');
-        }
+        this.userListEl.style.display = 'block';
         this.el.style.display = 'flex';
-        if (this.passwordInput && !options.showUserList) {
+        if (this.passwordInput) {
             this.passwordInput.focus();
         }
     }
 
     showWithUserList() {
-        this._render();
-        if (this.passwordInput) {
-            this.passwordInput.value = '';
-        }
-        this.errorEl.textContent = '';
-        this.userListEl.style.display = 'block';
-        this.userListBtn.classList.add('active');
-        this.el.style.display = 'flex';
-        if (this.passwordInput) {
-            this.passwordInput.focus();
-        }
+        this.show();
     }
 
     hide() {
