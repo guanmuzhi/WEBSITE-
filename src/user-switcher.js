@@ -1,8 +1,8 @@
-import UserManager from './user-manager.js?v=2';
+import UserManager from './user-manager.js';
 
 class UserSwitcher {
     constructor(options = {}) {
-        this.userManager = new UserManager();
+        this.userManager = UserManager.getInstance();
         this.onSwitch = options.onSwitch || null;
         this.onLock = options.onLock || null;
         this.el = null;

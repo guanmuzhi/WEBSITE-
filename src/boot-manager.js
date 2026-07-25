@@ -1,7 +1,7 @@
-import WindowManager from './window-manager.js?v=10';
-import DesktopManager from './desktop.js?v=10';
-import UserManager from './user-manager.js?v=3';
-import LockScreen from './lock-screen.js?v=4';
+import WindowManager from './window-manager.js';
+import DesktopManager from './desktop.js';
+import UserManager from './user-manager.js';
+import LockScreen from './lock-screen.js';
 
 class BootManager {
     constructor(terminalClass) {
@@ -13,7 +13,7 @@ class BootManager {
         this.keyHandler = null;
         this.bootCompleted = false;
         this.stayedInTerminal = false;
-        this.userManager = new UserManager();
+        this.userManager = UserManager.getInstance();
         this.lockScreen = null;
         this.desktopManager = null;
     }

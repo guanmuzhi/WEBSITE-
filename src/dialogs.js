@@ -1,3 +1,5 @@
+import UserManager from './user-manager.js';
+
 class Dialogs {
     static showAlert(message, title = '提示') {
         return new Promise((resolve) => {
@@ -229,18 +231,12 @@ class Dialogs {
     }
 
     static getUserInfo(username) {
-        const usersData = localStorage.getItem('web-terminal-os-users');
-        if (!usersData) return null;
-        try {
-            const users = JSON.parse(usersData);
-            const user = users.find(u => u.username === username);
-            if (user) {
-                return { username: user.username, password: user.password };
-            }
-            return null;
-        } catch (e) {
-            return null;
+        const userManager = UserManager.getInstance();
+        const user = userManager.getUser(username);
+        if (user) {
+            return { username: user.username, password: user.password };
         }
+        return null;
     }
 }
 

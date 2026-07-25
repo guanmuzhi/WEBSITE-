@@ -1,5 +1,3 @@
-const STORAGE_KEY = 'web-terminal-os-data';
-
 const IMAGE_EXTENSIONS = {
     'jpg': 'image/jpeg',
     'jpeg': 'image/jpeg',
@@ -67,6 +65,8 @@ class MediaViewer {
         this.volume = 0.8;
         this.currentSpeed = 1;
         
+        this.storage = window.parent.StorageService.getInstance();
+        
         this.initEvents();
         this.checkUrlParam();
         this.updateVolumeDisplay();
@@ -119,30 +119,6 @@ class MediaViewer {
         }
     }
     
-    loadFS() {
-        const data = localStorage.getItem(STORAGE_KEY);
-        return data ? JSON.parse(data) : { type: 'folder', name: '/', children: [] };
-    }
-    
-    getNodeByPath(root, path) {
-        if (path === '/') return root;
-        const parts = path.split('/').filter(p => p);
-        let node = root;
-        for (const part of parts) {
-            if (node.children) {
-                const child = node.children.find(c => c.name === part);
-                if (child) {
-                    node = child;
-                } else {
-                    return null;
-                }
-            } else {
-                return null;
-            }
-        }
-        return node;
-    }
-    
     getExtension(filename) {
         const parts = filename.split('.');
         if (parts.length > 1) {
@@ -180,7 +156,7 @@ class MediaViewer {
         }
         const ext = this.getExtension(filename);
         const mimeType = this.getMimeType(ext);
-        return `data:${mimeType};base64,${content}`;
+        return 'data:' + mimeType + ';base64,' + content;
     }
     
     formatFileSize(bytes) {
@@ -195,7 +171,7 @@ class MediaViewer {
         if (isNaN(seconds)) return '00:00';
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        return mins.toString().padStart(2, '0') + ':' + secs.toString().padStart(2, '0');
     }
     
     showAlert(message) {
@@ -235,8 +211,7 @@ class MediaViewer {
     }
     
     showFilePicker() {
-        const root = this.loadFS();
-        const files = this.collectMediaFiles(root, '/');
+        const files = this.collectMediaFiles(this.storage.fs, '/');
         
         if (files.length === 0) {
             this.showAlert('未找到支持的媒体文件');
@@ -289,7 +264,7 @@ class MediaViewer {
         const files = [];
         if (node.children) {
             node.children.forEach(child => {
-                const childPath = currentPath === '/' ? `/${child.name}` : `${currentPath}/${child.name}`;
+                const childPath = currentPath === '/' ? '/' + child.name : currentPath + '/' + child.name;
                 if (child.type === 'folder') {
                     files.push(...this.collectMediaFiles(child, childPath));
                 } else {
@@ -304,40 +279,42 @@ class MediaViewer {
     }
     
     async openFileByPath(path) {
-        const root = this.loadFS();
-        const node = this.getNodeByPath(root, path);
+        const content = this.storage.readFile(path);
         
-        if (!node || node.type !== 'file') {
-            await this.showAlert(`文件 "${path}" 不存在`);
+        if (content === null) {
+            await this.showAlert('文件 "' + path + '" 不存在');
             return;
         }
         
-        const fileType = this.getFileType(node.name);
+        const fileName = path.split('/').pop();
+        const fileType = this.getFileType(fileName);
         if (!fileType) {
-            await this.showAlert(`不支持的文件格式: ${node.name}`);
+            await this.showAlert('不支持的文件格式: ' + fileName);
             return;
         }
         
         this.currentPath = path;
         this.currentType = fileType;
-        this.filenameEl.textContent = node.name;
+        this.filenameEl.textContent = fileName;
         
-        const ext = this.getExtension(node.name);
+        const ext = this.getExtension(fileName);
         const typeNames = { image: '图片', video: '视频', audio: '音频' };
-        this.fileInfoEl.textContent = `${typeNames[fileType]} · ${ext.toUpperCase()}`;
+        this.fileInfoEl.textContent = typeNames[fileType] + ' · ' + ext.toUpperCase();
         
-        this.statusSizeEl.textContent = `大小: ${this.formatFileSize((node.content || '').length * 0.75)}`;
-        this.statusFormatEl.textContent = `格式: ${ext.toUpperCase()}`;
+        this.statusSizeEl.textContent = '大小: ' + this.formatFileSize((content || '').length * 0.75);
+        this.statusFormatEl.textContent = '格式: ' + ext.toUpperCase();
         this.statusDimensionsEl.textContent = '尺寸: 未知';
         this.statusDurationEl.textContent = '时长: 未知';
         
+        const fileNode = { name: fileName, content: content };
+        
         if (fileType === 'image') {
-            this.showImageViewer(node);
+            this.showImageViewer(fileNode);
         } else {
-            this.showMediaPlayer(node, fileType);
+            this.showMediaPlayer(fileNode, fileType);
         }
         
-        document.title = `${node.name} - 媒体查看器`;
+        document.title = fileName + ' - 媒体查看器';
     }
     
     showImageViewer(node) {
@@ -360,8 +337,8 @@ class MediaViewer {
         this.image.onload = () => {
             this.loadingEl.style.display = 'none';
             
-            const dimensions = `${this.image.naturalWidth} × ${this.image.naturalHeight}`;
-            this.statusDimensionsEl.textContent = `尺寸: ${dimensions}`;
+            const dimensions = this.image.naturalWidth + ' × ' + this.image.naturalHeight;
+            this.statusDimensionsEl.textContent = '尺寸: ' + dimensions;
         };
         
         this.image.onerror = () => {
@@ -417,8 +394,8 @@ class MediaViewer {
     }
     
     updateZoom() {
-        this.imageWrapper.style.transform = `scale(${this.zoomLevel / 100})`;
-        this.zoomLevelEl.textContent = `${this.zoomLevel}%`;
+        this.imageWrapper.style.transform = 'scale(' + (this.zoomLevel / 100) + ')';
+        this.zoomLevelEl.textContent = this.zoomLevel + '%';
     }
     
     handleWheel(e) {
@@ -472,18 +449,17 @@ class MediaViewer {
         if (isNaN(this.player.duration)) return;
         
         const percent = (this.player.currentTime / this.player.duration) * 100;
-        this.progressFill.style.width = `${percent}%`;
+        this.progressFill.style.width = percent + '%';
         
         const current = this.formatTime(this.player.currentTime);
         const total = this.formatTime(this.player.duration);
-        this.timeDisplay.textContent = `${current} / ${total}`;
+        this.timeDisplay.textContent = current + ' / ' + total;
     }
     
     updateMetadata() {
         if (!isNaN(this.player.duration)) {
             const duration = this.formatTime(this.player.duration);
-            this.statusDurationEl.textContent = `时长: ${duration}`;
-            this.statusType.textContent = `类型: ${this.currentType === 'video' ? '视频' : '音频'}`;
+            this.statusDurationEl.textContent = '时长: ' + duration;
         }
     }
     
@@ -503,7 +479,7 @@ class MediaViewer {
     
     updateVolumeDisplay() {
         const displayVolume = this.player.muted ? 0 : this.player.volume;
-        this.volumeFill.style.width = `${displayVolume * 100}%`;
+        this.volumeFill.style.width = (displayVolume * 100) + '%';
         
         if (this.player.muted || displayVolume === 0) {
             this.volumeBtn.textContent = '🔇';

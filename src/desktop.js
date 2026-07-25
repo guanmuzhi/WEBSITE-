@@ -1,6 +1,7 @@
-import UserManager from './user-manager.js?v=3';
-import UserSwitcher from './user-switcher.js?v=2';
-import LockScreen from './lock-screen.js?v=5';
+import UserManager from './user-manager.js';
+import UserSwitcher from './user-switcher.js';
+import LockScreen from './lock-screen.js';
+import StorageService from './storage.js';
 
 class DesktopManager {
     constructor(options = {}) {
@@ -14,7 +15,8 @@ class DesktopManager {
         this.terminalWindows = new Map();
         this._isLoadingState = false;
         this.apps = [];
-        this.userManager = new UserManager();
+        this.userManager = UserManager.getInstance();
+        this.storage = StorageService.getInstance();
         this.userSwitcher = null;
         this.lockScreen = null;
     }
@@ -23,10 +25,10 @@ class DesktopManager {
         return window.innerWidth < 768;
     }
 
-    getStorageKey() {
+    getStateFilePath() {
         const user = this.userManager.getCurrentUser();
         const username = user ? user.username : 'default';
-        return `webos-gui-state-${username}`;
+        return `/home/${username}/.window-state.json`;
     }
 
     async init() {
@@ -66,10 +68,15 @@ class DesktopManager {
     }
 
     async switchUser(username) {
-        // 先保存当前用户状态（使用当前用户的存储键）
-        this.saveState();
+        const currentUser = this.userManager.getCurrentUser();
+        const currentUsername = currentUser ? currentUser.username : 'default';
 
-        // 关闭所有窗口
+        window._isSavingDisabled = true;
+        this._isLoadingState = true;
+
+        const currentStatePath = `/home/${currentUsername}/.window-state.json`;
+        this.saveStateToPath(currentStatePath);
+
         const windows = this.windowManager.getAllWindows();
         windows.forEach(win => {
             if (this.terminalWindows.has(win.id)) {
@@ -78,25 +85,95 @@ class DesktopManager {
             win.close();
         });
 
-        // 切换用户
         this.userManager.setCurrentUser(username);
-        this.userManager.reload();
         this.updateTaskbarUser();
 
-        // 重置窗口层级并加载新用户状态
         this.windowManager.zIndexCounter = 1;
+        this.storage.reload();
+        this.userManager.reload();
+
         await this.loadState();
 
         this.updateTaskbar();
 
-        // 确保桌面图标可见
         const desktopIcons = this.desktopEl.querySelector('.desktop-icons');
         if (desktopIcons) {
             desktopIcons.style.display = '';
         }
 
-        // 通知其他组件（如终端）用户已切换
         document.dispatchEvent(new CustomEvent('user-switched', { detail: { username } }));
+
+        setTimeout(() => {
+            this._isLoadingState = false;
+            window._isSavingDisabled = false;
+        }, 3000);
+    }
+
+    saveStateToPath(path) {
+        try {
+            const windows = this.windowManager.getAllWindows();
+            const state = {
+                windows: windows.map(win => {
+                    const winState = {
+                        id: win.id,
+                        title: win.title,
+                        windowType: win.windowType || 'default',
+                        x: parseInt(win.element.style.left) || 0,
+                        y: parseInt(win.element.style.top) || 0,
+                        width: parseInt(win.element.style.width) || 600,
+                        height: parseInt(win.element.style.height) || 400,
+                        isMinimized: win.isMinimized,
+                        zIndex: parseInt(win.element.style.zIndex) || 0
+                    };
+
+                    if (win.windowType === 'terminal' && this.terminalWindows.has(win.id)) {
+                        const terminal = this.terminalWindows.get(win.id);
+                        winState.currentPath = terminal.fs.getCurrentPath();
+                    }
+
+                    if (win.windowType === 'app') {
+                        winState.appPath = win.appPath;
+                        winState.appParams = win.appParams;
+                    }
+
+                    return winState;
+                })
+            };
+
+            state.windows.sort((a, b) => a.zIndex - b.zIndex);
+
+            const parts = path.split('/');
+            const fileName = parts.pop();
+            const folderPath = parts.join('/') || '/';
+
+            let node = this.storage.fs;
+            for (const part of folderPath.split('/').filter(p => p)) {
+                if (!node.children) node.children = [];
+                let child = node.children.find(c => c.name === part && c.type === 'folder');
+                if (!child) {
+                    child = { type: 'folder', name: part, children: [] };
+                    node.children.push(child);
+                }
+                node = child;
+            }
+
+            if (!node.children) node.children = [];
+            const existingIndex = node.children.findIndex(c => c.name === fileName && c.type === 'file');
+            const fileData = {
+                type: 'file',
+                name: fileName,
+                content: JSON.stringify(state)
+            };
+            if (existingIndex !== -1) {
+                node.children[existingIndex] = fileData;
+            } else {
+                node.children.push(fileData);
+            }
+
+            this.storage.saveFS();
+        } catch (e) {
+            console.warn('Failed to save GUI state:', e);
+        }
     }
 
     setupUserSwitchListener() {
@@ -342,8 +419,10 @@ class DesktopManager {
             title: app.name,
             icon: `/apps/${app.path}/icon.svg`,
             content: contentContainer,
-            width: isMobile ? window.innerWidth : (info.width || 380),
-            height: isMobile ? (window.innerHeight - 56) : (info.height || 580),
+            width: isMobile ? window.innerWidth : (app.width || info.width || 380),
+            height: isMobile ? (window.innerHeight - 56) : (app.height || info.height || 580),
+            x: isMobile ? 0 : (app.x || 0),
+            y: isMobile ? 0 : (app.y || 0),
             windowType: 'app',
             onMoveEnd: () => {
                 this.saveState();
@@ -451,7 +530,12 @@ class DesktopManager {
     }
 
     saveState() {
-        if (this._isLoadingState) return;
+        if (window._isSavingDisabled) {
+            return;
+        }
+        if (this._isLoadingState) {
+            return;
+        }
         try {
             const windows = this.windowManager.getAllWindows();
             const state = {
@@ -484,7 +568,36 @@ class DesktopManager {
 
             state.windows.sort((a, b) => a.zIndex - b.zIndex);
 
-            localStorage.setItem(this.getStorageKey(), JSON.stringify(state));
+            const path = this.getStateFilePath();
+            const parts = path.split('/');
+            const fileName = parts.pop();
+            const folderPath = parts.join('/') || '/';
+
+            let node = this.storage.fs;
+            for (const part of folderPath.split('/').filter(p => p)) {
+                if (!node.children) node.children = [];
+                let child = node.children.find(c => c.name === part && c.type === 'folder');
+                if (!child) {
+                    child = { type: 'folder', name: part, children: [] };
+                    node.children.push(child);
+                }
+                node = child;
+            }
+
+            if (!node.children) node.children = [];
+            const existingIndex = node.children.findIndex(c => c.name === fileName && c.type === 'file');
+            const fileData = {
+                type: 'file',
+                name: fileName,
+                content: JSON.stringify(state)
+            };
+            if (existingIndex !== -1) {
+                node.children[existingIndex] = fileData;
+            } else {
+                node.children.push(fileData);
+            }
+
+            this.storage.saveFS();
         } catch (e) {
             console.warn('Failed to save GUI state:', e);
         }
@@ -492,10 +605,11 @@ class DesktopManager {
 
     async loadState() {
         try {
-            const data = localStorage.getItem(this.getStorageKey());
+            this.storage.reload();
+            const data = this.storage.loadJSON(this.getStateFilePath());
             if (!data) return;
 
-            const state = JSON.parse(data);
+            const state = data;
             if (!state.windows || !Array.isArray(state.windows)) return;
 
             this._isLoadingState = true;
@@ -513,7 +627,11 @@ class DesktopManager {
                     await this.openAppByPath({
                         path: winState.appPath,
                         name: winState.title,
-                        params: winState.appParams
+                        params: winState.appParams,
+                        x: winState.x,
+                        y: winState.y,
+                        width: winState.width,
+                        height: winState.height
                     });
                 }
             }
@@ -538,10 +656,7 @@ class DesktopManager {
 
             const maxZIndex = state.windows.reduce((max, w) => Math.max(max, w.zIndex), 0);
             this.windowManager.zIndexCounter = maxZIndex + 1;
-
-            this._isLoadingState = false;
         } catch (e) {
-            this._isLoadingState = false;
             console.warn('Failed to load GUI state:', e);
         }
     }

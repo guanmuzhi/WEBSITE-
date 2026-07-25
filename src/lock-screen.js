@@ -1,8 +1,8 @@
-import UserManager from './user-manager.js?v=2';
+import UserManager from './user-manager.js';
 
 class LockScreen {
     constructor(options = {}) {
-        this.userManager = new UserManager();
+        this.userManager = UserManager.getInstance();
         this.onUnlock = options.onUnlock || null;
         this.onUserSwitch = options.onUserSwitch || null;
         this.el = null;
@@ -473,10 +473,6 @@ class LockScreen {
             const password = passwordInput.value.trim() || null;
             const result = this.userManager.createUser(username, password);
             if (result.success) {
-                this.userManager.reload();
-                if (typeof this.onUserSwitch === 'function') {
-                    this.onUserSwitch(username);
-                }
                 this._render();
             } else {
                 errorDiv.textContent = result.message;

@@ -1,12 +1,8 @@
-const STORAGE_KEY = 'web-terminal-os-data';
-
 const FOLDER_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="#f1c40f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
 const FILE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="#95a5a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
 
 class FileManager {
     constructor() {
-        this.root = null;
-        this.currentDir = null;
         this.pathStack = [];
         this.authorizedUsers = new Set();
         this.clipboard = null;
@@ -18,9 +14,26 @@ class FileManager {
         this.viewerTitleEl = document.getElementById('fm-viewer-title');
         this.viewerContentEl = document.getElementById('fm-viewer-content');
 
-        this.loadFS();
+        this.storage = window.parent.StorageService.getInstance();
+
         this.initEvents();
         this.render();
+    }
+
+    get root() {
+        return this.storage.fs;
+    }
+
+    get currentDir() {
+        if (this.pathStack.length === 0) return this.root;
+        let node = this.root;
+        for (const part of this.pathStack) {
+            if (node.children) {
+                const child = node.children.find(c => c.name === part && c.type === 'folder');
+                if (child) node = child;
+            }
+        }
+        return node;
     }
 
     showAlert(message) {
@@ -180,24 +193,12 @@ class FileManager {
     }
 
     loadFS() {
-        const data = localStorage.getItem(STORAGE_KEY);
-        if (data) {
-            try {
-                this.root = JSON.parse(data);
-                this.currentDir = this.root;
-                this.pathStack = [];
-            } catch (e) {
-                this.root = { type: 'folder', name: '/', children: [] };
-                this.currentDir = this.root;
-            }
-        } else {
-            this.root = { type: 'folder', name: '/', children: [] };
-            this.currentDir = this.root;
-        }
+        this.pathStack = [];
     }
 
     saveFS() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.root));
+        if (window.parent._isSavingDisabled) return;
+        this.storage.saveFS();
     }
 
     initEvents() {
@@ -232,7 +233,6 @@ class FileManager {
     navigateToPath(pathStr) {
         this.loadFS();
         if (!pathStr || pathStr === '/') {
-            this.currentDir = this.root;
             this.pathStack = [];
         } else {
             const parts = pathStr.split('/').filter(p => p);
@@ -247,7 +247,6 @@ class FileManager {
                     }
                 }
             }
-            this.currentDir = node;
             this.pathStack = parts;
         }
         this.render();
@@ -256,41 +255,24 @@ class FileManager {
     goUp() {
         if (this.pathStack.length === 0) return;
         this.pathStack.pop();
-        let node = this.root;
-        for (const part of this.pathStack) {
-            if (node.children) {
-                const child = node.children.find(c => c.name === part && c.type === 'folder');
-                if (child) node = child;
-            }
-        }
-        this.currentDir = node;
         this.render();
     }
 
     goRoot() {
         this.loadFS();
-        this.currentDir = this.root;
         this.pathStack = [];
         this.render();
     }
 
     getCurrentUsername() {
-        return localStorage.getItem('web-terminal-os-current-user') || 'public';
+        const userManager = window.parent.UserManager.getInstance();
+        const user = userManager.getCurrentUser();
+        return user ? user.username : 'public';
     }
 
     getUserInfo(username) {
-        const usersData = localStorage.getItem('web-terminal-os-users');
-        if (!usersData) return null;
-        try {
-            const users = JSON.parse(usersData);
-            const user = users.find(u => u.username === username);
-            if (user) {
-                return { username: user.username, password: user.password };
-            }
-            return null;
-        } catch (e) {
-            return null;
-        }
+        const userManager = window.parent.UserManager.getInstance();
+        return userManager.getUser(username);
     }
 
     showPasswordDialog(username) {

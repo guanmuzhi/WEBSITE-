@@ -1,42 +1,41 @@
-const USER_DATA_KEY = 'web-terminal-os-users';
+import StorageService from './storage.js';
+
 const CURRENT_USER_KEY = 'web-terminal-os-current-user';
-const FS_KEY = 'web-terminal-os-data';
+const USERS_FILE_PATH = '/etc/users.json';
 
 class UserManager {
+    static instance = null;
+
+    static getInstance() {
+        if (!UserManager.instance) {
+            UserManager.instance = new UserManager();
+        }
+        return UserManager.instance;
+    }
+
     constructor() {
+        if (UserManager.instance) {
+            return UserManager.instance;
+        }
+        this.storage = StorageService.getInstance();
         this.users = this.load();
         if (this.users.length === 0) {
             this.createDefaultUser();
         }
         this.ensureHomeDir();
+        UserManager.instance = this;
     }
 
     ensureHomeDir() {
-        const fs = this.loadFS();
-        if (!fs.children) fs.children = [];
-        let homeDir = fs.children.find(c => c.name === 'home' && c.type === 'folder');
-        if (!homeDir) {
-            homeDir = { type: 'folder', name: 'home', children: [] };
-            fs.children.push(homeDir);
-            this.saveFS(fs);
-        }
+        this.storage.createPath('/home');
+        
+        const homeDir = this.storage.getNodeByPath('/home');
+        if (!homeDir || !homeDir.children) return;
 
         this.users.forEach(user => {
-            const userDir = homeDir.children.find(c => c.name === user.username && c.type === 'folder');
-            if (!userDir) {
-                homeDir.children.push({ type: 'folder', name: user.username, children: [] });
-            }
+            const userDirPath = `/home/${user.username}`;
+            this.storage.createPath(userDirPath);
         });
-        this.saveFS(fs);
-    }
-
-    loadFS() {
-        const data = localStorage.getItem(FS_KEY);
-        return data ? JSON.parse(data) : { type: 'folder', name: '/', children: [] };
-    }
-
-    saveFS(fs) {
-        localStorage.setItem(FS_KEY, JSON.stringify(fs));
     }
 
     createDefaultUser() {
@@ -50,12 +49,12 @@ class UserManager {
     }
 
     load() {
-        const data = localStorage.getItem(USER_DATA_KEY);
-        return data ? JSON.parse(data) : [];
+        const data = this.storage.loadJSON(USERS_FILE_PATH);
+        return data ? data : [];
     }
 
     save() {
-        localStorage.setItem(USER_DATA_KEY, JSON.stringify(this.users));
+        this.storage.saveJSON(USERS_FILE_PATH, this.users);
     }
 
     createUser(username, password = null) {
@@ -76,24 +75,16 @@ class UserManager {
             password: password,
             createdAt: new Date().toISOString()
         });
+        
         this.save();
-        this.createUserDir(username);
+        this.storage.createPath(`/home/${username}`);
+        
         return { success: true, message: `用户 "${username}" 创建成功` };
     }
 
     createUserDir(username) {
-        const fs = this.loadFS();
-        if (!fs.children) fs.children = [];
-        let homeDir = fs.children.find(c => c.name === 'home' && c.type === 'folder');
-        if (!homeDir) {
-            homeDir = { type: 'folder', name: 'home', children: [] };
-            fs.children.push(homeDir);
-        }
-        const existingDir = homeDir.children.find(c => c.name === username && c.type === 'folder');
-        if (!existingDir) {
-            homeDir.children.push({ type: 'folder', name: username, children: [] });
-            this.saveFS(fs);
-        }
+        const userDirPath = `/home/${username}`;
+        this.storage.createPath(userDirPath);
     }
 
     deleteUser(username) {
@@ -114,14 +105,12 @@ class UserManager {
     }
 
     deleteUserDir(username) {
-        const fs = this.loadFS();
-        if (!fs.children) fs.children = [];
-        const homeDir = fs.children.find(c => c.name === 'home' && c.type === 'folder');
+        const homeDir = this.storage.getNodeByPath('/home');
         if (homeDir && homeDir.children) {
             const userDirIndex = homeDir.children.findIndex(c => c.name === username && c.type === 'folder');
             if (userDirIndex !== -1) {
                 homeDir.children.splice(userDirIndex, 1);
-                this.saveFS(fs);
+                this.storage.saveFS();
             }
         }
     }
@@ -160,14 +149,12 @@ class UserManager {
     }
 
     renameUserDir(oldUsername, newUsername) {
-        const fs = this.loadFS();
-        if (!fs.children) fs.children = [];
-        const homeDir = fs.children.find(c => c.name === 'home' && c.type === 'folder');
+        const homeDir = this.storage.getNodeByPath('/home');
         if (homeDir && homeDir.children) {
             const userDir = homeDir.children.find(c => c.name === oldUsername && c.type === 'folder');
             if (userDir) {
                 userDir.name = newUsername;
-                this.saveFS(fs);
+                this.storage.saveFS();
             }
         }
     }

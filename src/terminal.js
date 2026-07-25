@@ -1,5 +1,5 @@
 import UserManager from './user-manager.js?v=2';
-import FileSystem from './file-system.js?v=2';
+import FileSystem from './file-system.js';
 import ViEditor from './vi-editor.js?v=2';
 import AppManager from './app-manager.js?v=1';
 
@@ -13,7 +13,7 @@ const COMMANDS = [
 class Terminal {
     constructor(options = {}) {
         this.fs = new FileSystem();
-        this.userManager = new UserManager();
+        this.userManager = UserManager.getInstance();
         this.container = options.container || null;
         this.skipWelcome = options.skipWelcome || false;
         this.onTitleChange = options.onTitleChange || null;

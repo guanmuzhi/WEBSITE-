@@ -1,15 +1,31 @@
-const STORAGE_KEY = 'web-terminal-os-data';
+import StorageService from './storage.js';
+
 const CURRENT_DIR_KEY = 'web-terminal-os-cwd';
 
 class FileSystem {
     constructor() {
-        this.root = null;
-        this.currentDir = null;
+        this.storage = StorageService.getInstance();
+        this._currentDir = null;
         this.load();
     }
 
+    get root() {
+        return this.storage.fs;
+    }
+
+    set root(value) {
+    }
+
+    get currentDir() {
+        return this._currentDir || this.root;
+    }
+
+    set currentDir(value) {
+        this._currentDir = value;
+    }
+
     createDefaultStructure() {
-        this.root = {
+        this.storage.fs = {
             type: 'folder',
             name: '/',
             children: [
@@ -35,7 +51,7 @@ class FileSystem {
         }
 
         if (homeDir.children.find(c => c.name === username)) {
-            return { success: false, message: `用户目录 "/home/${username}" 已存在` };
+            return { success: false, message: '用户目录 "/home/' + username + '" 已存在' };
         }
 
         const children = username === 'public' ? [
@@ -57,7 +73,7 @@ class FileSystem {
             children: children
         });
         this.save();
-        return { success: true, message: `用户目录 "/home/${username}" 创建成功` };
+        return { success: true, message: '用户目录 "/home/' + username + '" 创建成功' };
     }
 
     deleteUserHome(username) {
@@ -68,12 +84,12 @@ class FileSystem {
 
         const userDirIndex = homeDir.children.findIndex(c => c.name === username);
         if (userDirIndex === -1) {
-            return { success: false, message: `用户目录 "/home/${username}" 不存在` };
+            return { success: false, message: '用户目录 "/home/' + username + '" 不存在' };
         }
 
         homeDir.children.splice(userDirIndex, 1);
         this.save();
-        return { success: true, message: `用户目录 "/home/${username}" 删除成功` };
+        return { success: true, message: '用户目录 "/home/' + username + '" 删除成功' };
     }
 
     getHomeDir(username) {
@@ -83,27 +99,19 @@ class FileSystem {
     }
 
     load() {
-        const data = localStorage.getItem(STORAGE_KEY);
         const cwdPath = localStorage.getItem(CURRENT_DIR_KEY);
         
-        if (data) {
-            try {
-                this.root = JSON.parse(data);
-                if (cwdPath) {
-                    this.currentDir = this.findNodeByPath(cwdPath);
-                } else {
-                    this.currentDir = this.root;
-                }
-            } catch (e) {
-                this.createDefaultStructure();
-            }
-        } else {
-            this.createDefaultStructure();
+        if (cwdPath) {
+            this._currentDir = this.findNodeByPath(cwdPath);
+        }
+        
+        if (!this._currentDir) {
+            this._currentDir = this.root;
         }
     }
 
     save() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.root));
+        this.storage.saveFS();
         localStorage.setItem(CURRENT_DIR_KEY, this.getCurrentPath());
     }
 
@@ -161,7 +169,7 @@ class FileSystem {
         if (!this.currentDir.children) this.currentDir.children = [];
         
         if (this.currentDir.children.find(c => c.name === name)) {
-            return { success: false, message: `文件夹 "${name}" 已存在` };
+            return { success: false, message: '文件夹 "' + name + '" 已存在' };
         }
         
         this.currentDir.children.push({
@@ -170,14 +178,14 @@ class FileSystem {
             children: []
         });
         this.save();
-        return { success: true, message: `文件夹 "${name}" 创建成功` };
+        return { success: true, message: '文件夹 "' + name + '" 创建成功' };
     }
 
     createFile(name, content = '', isBinary = false) {
         if (!this.currentDir.children) this.currentDir.children = [];
         
         if (this.currentDir.children.find(c => c.name === name)) {
-            return { success: false, message: `文件 "${name}" 已存在` };
+            return { success: false, message: '文件 "' + name + '" 已存在' };
         }
         
         this.currentDir.children.push({
@@ -187,7 +195,7 @@ class FileSystem {
             isBinary: isBinary
         });
         this.save();
-        return { success: true, message: `文件 "${name}" 创建成功` };
+        return { success: true, message: '文件 "' + name + '" 创建成功' };
     }
 
     deleteNode(name) {
@@ -197,12 +205,12 @@ class FileSystem {
         
         const index = this.currentDir.children.findIndex(c => c.name === name);
         if (index === -1) {
-            return { success: false, message: `找不到 "${name}"` };
+            return { success: false, message: '找不到 "' + name + '"' };
         }
         
         this.currentDir.children.splice(index, 1);
         this.save();
-        return { success: true, message: `已删除 "${name}"` };
+        return { success: true, message: '已删除 "' + name + '"' };
     }
 
     renameNode(oldName, newName) {
@@ -212,17 +220,17 @@ class FileSystem {
         
         const node = this.currentDir.children.find(c => c.name === oldName);
         if (!node) {
-            return { success: false, message: `找不到 "${oldName}"` };
+            return { success: false, message: '找不到 "' + oldName + '"' };
         }
         
         const existing = this.currentDir.children.find(c => c.name === newName);
         if (existing) {
-            return { success: false, message: `"${newName}" 已存在` };
+            return { success: false, message: '"' + newName + '" 已存在' };
         }
         
         node.name = newName;
         this.save();
-        return { success: true, message: `已将 "${oldName}" 重命名为 "${newName}"` };
+        return { success: true, message: '已将 "' + oldName + '" 重命名为 "' + newName + '"' };
     }
 
     intoFolder(name) {
@@ -232,10 +240,10 @@ class FileSystem {
         
         const folder = this.currentDir.children.find(c => c.name === name && c.type === 'folder');
         if (!folder) {
-            return { success: false, message: `找不到文件夹 "${name}"` };
+            return { success: false, message: '找不到文件夹 "' + name + '"' };
         }
         
-        this.currentDir = folder;
+        this._currentDir = folder;
         this.save();
         return { success: true, message: '' };
     }
@@ -246,7 +254,7 @@ class FileSystem {
             return { success: false, message: '已经在根目录' };
         }
         
-        this.currentDir = parent;
+        this._currentDir = parent;
         this.save();
         return { success: true, message: '' };
     }
@@ -258,7 +266,7 @@ class FileSystem {
         
         const file = this.currentDir.children.find(c => c.name === name && c.type === 'file');
         if (!file) {
-            return { success: false, message: `找不到文件 "${name}"` };
+            return { success: false, message: '找不到文件 "' + name + '"' };
         }
         
         return { success: true, message: '', content: file.content, file: file };
@@ -338,19 +346,19 @@ class FileSystem {
     moveFile(filename, targetPath) {
         const file = this.currentDir.children.find(c => c.name === filename && c.type === 'file');
         if (!file) {
-            return { success: false, message: `找不到文件 "${filename}"` };
+            return { success: false, message: '找不到文件 "' + filename + '"' };
         }
         
         const targetDir = this.resolvePath(targetPath);
         if (!targetDir) {
-            return { success: false, message: `找不到目标路径 "${targetPath}"` };
+            return { success: false, message: '找不到目标路径 "' + targetPath + '"' };
         }
         
         if (!targetDir.children) targetDir.children = [];
         
         const existing = targetDir.children.find(c => c.name === filename);
         if (existing) {
-            return { success: false, message: `目标目录中已存在 "${filename}"` };
+            return { success: false, message: '目标目录中已存在 "' + filename + '"' };
         }
         
         const index = this.currentDir.children.indexOf(file);
@@ -358,18 +366,18 @@ class FileSystem {
         targetDir.children.push(file);
         this.save();
         
-        return { success: true, message: `已将 "${filename}" 移动到 "${targetPath}"` };
+        return { success: true, message: '已将 "' + filename + '" 移动到 "' + targetPath + '"' };
     }
 
     copyFile(filename, targetPath = '.') {
         const file = this.currentDir.children.find(c => c.name === filename && c.type === 'file');
         if (!file) {
-            return { success: false, message: `找不到文件 "${filename}"` };
+            return { success: false, message: '找不到文件 "' + filename + '"' };
         }
         
         const targetDir = this.resolvePath(targetPath);
         if (!targetDir) {
-            return { success: false, message: `找不到目标路径 "${targetPath}"` };
+            return { success: false, message: '找不到目标路径 "' + targetPath + '"' };
         }
         
         if (!targetDir.children) targetDir.children = [];
@@ -385,7 +393,7 @@ class FileSystem {
         targetDir.children.push(copy);
         this.save();
         
-        return { success: true, message: `已将 "${filename}" 复制为 "${newName}"` };
+        return { success: true, message: '已将 "' + filename + '" 复制为 "' + newName + '"' };
     }
 
     generateCopyName(filename, targetDir) {
