@@ -1,0 +1,12 @@
+- [x] Checkpoint 1: 终端输入行始终显示在可视区域底部，滚动时自动跟随
+- [x] Checkpoint 2: 终端有大量输出时自动滚动到底部
+- [x] Checkpoint 3: 计算器布局响应式，按钮大小和字体随窗口大小自适应
+- [x] Checkpoint 4: 计算器小窗口下所有按钮仍可点击
+- [x] Checkpoint 5: 计算器长数字使用科学计数法显示而非省略号
+- [x] Checkpoint 6: 浏览器应用目录结构完整
+- [x] Checkpoint 7: 浏览器界面布局合理，导航按钮和地址栏清晰可见
+- [x] Checkpoint 8: 浏览器输入 URL 后页面正确加载
+- [x] Checkpoint 9: 浏览器前进、后退、刷新按钮正常工作
+- [x] Checkpoint 10: 浏览器无效 URL 显示错误提示
+- [x] Checkpoint 11: 桌面显示浏览器图标
+- [x] Checkpoint 12: 点击桌面浏览器图标可打开浏览器应用

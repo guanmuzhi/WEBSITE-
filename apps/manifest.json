@@ -18,5 +18,10 @@
     "id": "mediaviewer",
     "name": "媒体查看器",
     "path": "mediaviewer.app"
+  },
+  {
+    "id": "browser",
+    "name": "浏览器",
+    "path": "browser.app"
   }
 ]

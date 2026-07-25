@@ -20,32 +20,33 @@ body {
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: 8px;
+    padding: clamp(4px, 1vw, 8px);
     box-sizing: border-box;
 }
 
 .display {
     background: #1a1a1a;
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: clamp(4px, 1vw, 8px);
+    padding: clamp(8px, 2vw, 16px);
     text-align: right;
-    min-height: 80px;
+    min-height: clamp(60px, 12vh, 80px);
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
+    margin-bottom: clamp(4px, 1vw, 8px);
 }
 
 .expression {
     color: #888;
-    font-size: 13px;
-    min-height: 18px;
+    font-size: clamp(10px, 2vw, 13px);
+    min-height: clamp(14px, 2.5vh, 18px);
     word-break: break-all;
-    margin-bottom: 4px;
+    margin-bottom: clamp(2px, 0.5vw, 4px);
 }
 
 .result {
     color: #e0e0e0;
-    font-size: 32px;
+    font-size: clamp(18px, 5vw, 32px);
     font-weight: 300;
     line-height: 1.2;
     word-break: break-all;
@@ -55,13 +56,15 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: clamp(3px, 0.8vw, 6px);
 }
 
 .btn-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
+    gap: clamp(3px, 0.8vw, 6px);
+    flex: 1;
+    min-height: 0;
 }
 
 .btn-row:last-child {
@@ -70,15 +73,16 @@ body {
 
 .btn {
     border: none;
-    border-radius: 6px;
-    font-size: 15px;
+    border-radius: clamp(3px, 0.8vw, 6px);
+    font-size: clamp(10px, 2.5vw, 15px);
     font-weight: 400;
     cursor: pointer;
     transition: background 0.1s;
-    padding: 14px 0;
+    padding: clamp(8px, 3vh, 14px) 0;
     font-family: inherit;
     color: #e0e0e0;
     user-select: none;
+    min-height: clamp(30px, 6vh, 45px);
 }
 
 .btn:active {
@@ -95,7 +99,7 @@ body {
 
 .op {
     background: #3a3a3a;
-    font-size: 18px;
+    font-size: clamp(12px, 3vw, 18px);
 }
 
 .op:hover {
@@ -104,7 +108,7 @@ body {
 
 .func {
     background: #1f1f1f;
-    font-size: 12px;
+    font-size: clamp(8px, 1.8vw, 12px);
     color: #aaa;
 }
 
@@ -133,7 +137,7 @@ body {
 .equals {
     background: #e67e22;
     color: #fff;
-    font-size: 20px;
+    font-size: clamp(14px, 3.5vw, 20px);
 }
 
 .equals:hover {

@@ -120,8 +120,16 @@ class Calculator {
     update() {
         this.expressionEl.textContent = this.current || '';
         let display = this.current || '0';
-        if (display.length > 16) {
-            display = display.substring(0, 16) + '...';
+        if (/^-?\d+$/.test(display)) {
+            const num = parseInt(display);
+            if (Math.abs(num) > 999999999999 || (Math.abs(num) < 0.0000000001 && num !== 0)) {
+                display = num.toExponential(6);
+            }
+        } else if (/^-?\d+\.\d+$/.test(display)) {
+            const num = parseFloat(display);
+            if (Math.abs(num) > 999999999999 || (Math.abs(num) < 0.0000000001 && num !== 0)) {
+                display = num.toExponential(6);
+            }
         }
         this.resultEl.textContent = display;
     }
