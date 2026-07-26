@@ -282,22 +282,24 @@ class DesktopManager {
         }
 
         this.apps.forEach(app => {
-            const existingIcon = this.desktopEl.querySelector(`[data-app="${app.id}"]`);
-            if (existingIcon) return;
+            let iconEl = this.desktopEl.querySelector(`[data-app="${app.id}"]`);
             
-            const iconEl = document.createElement('div');
-            iconEl.className = 'desktop-icon';
-            iconEl.setAttribute('data-app', app.id);
-            iconEl.innerHTML = `
-                <div class="icon-image">
-                    <img src="/apps/${app.path}/icon.svg" alt="${app.name}" style="width:28px;height:28px;">
-                </div>
-                <div class="icon-label">${app.name}</div>
-            `;
+            if (!iconEl) {
+                iconEl = document.createElement('div');
+                iconEl.className = 'desktop-icon';
+                iconEl.setAttribute('data-app', app.id);
+                iconEl.innerHTML = `
+                    <div class="icon-image">
+                        <img src="/apps/${app.path}/icon.svg" alt="${app.name}" style="width:28px;height:28px;">
+                    </div>
+                    <div class="icon-label">${app.name}</div>
+                `;
+                desktopIcons.appendChild(iconEl);
+            }
+            
             iconEl.addEventListener('click', () => {
                 this.openAppByPath(app);
             });
-            desktopIcons.appendChild(iconEl);
         });
     }
 
@@ -305,6 +307,9 @@ class DesktopManager {
         const template = document.getElementById('terminal-template');
         const clone = template.content.cloneNode(true);
         const terminalContainer = document.createElement('div');
+        terminalContainer.style.flex = '1';
+        terminalContainer.style.display = 'flex';
+        terminalContainer.style.flexDirection = 'column';
         terminalContainer.appendChild(clone);
 
         const isMobile = this.isMobile();

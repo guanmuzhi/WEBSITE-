@@ -21,8 +21,8 @@ body {
 }
 
 .terminal {
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     background-color: #1e1e1e;
     overflow: hidden;
     display: flex;
@@ -361,12 +361,10 @@ body {
 .window-content .terminal-body {
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 10px;
 }
 
 .window-content .input-line {
     flex-shrink: 0;
-    position: static;
     border-top: none;
 }
 
