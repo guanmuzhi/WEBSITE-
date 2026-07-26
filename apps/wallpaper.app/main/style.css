@@ -1,0 +1,237 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #2d2d2d;
+    color: #ddd;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+.wallpaper-app {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+h2 {
+    color: #eee;
+    margin-bottom: 20px;
+    font-size: 20px;
+}
+
+.current-wallpaper {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #444;
+}
+
+.current-wallpaper h3 {
+    color: #ccc;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.preview-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.wallpaper-preview {
+    width: 100px;
+    height: 60px;
+    border-radius: 6px;
+    border: 2px solid #444;
+    background: #1a1a2e;
+}
+
+.preview-label {
+    font-size: 13px;
+    color: #aaa;
+}
+
+.wallpaper-sections {
+    flex: 1;
+}
+
+.section {
+    margin-bottom: 25px;
+}
+
+.section h3 {
+    color: #ccc;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.color-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.color-btn {
+    width: 40px;
+    height: 40px;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.color-btn:hover {
+    transform: scale(1.1);
+    border-color: #3498db;
+}
+
+.color-btn:active {
+    transform: scale(0.95);
+}
+
+.custom-color {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.custom-color label {
+    font-size: 13px;
+    color: #ccc;
+}
+
+.custom-color input[type="color"] {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.custom-color button {
+    padding: 8px 16px;
+    background: #3498db;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.custom-color button:hover {
+    background: #2980b9;
+}
+
+.gradient-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.gradient-btn {
+    height: 60px;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.gradient-btn:hover {
+    transform: scale(1.02);
+    border-color: #3498db;
+}
+
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.image-btn {
+    border: 2px solid transparent;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+    aspect-ratio: 16/9;
+}
+
+.image-btn:hover {
+    border-color: #3498db;
+    transform: scale(1.02);
+}
+
+.image-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.custom-image {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.custom-image label {
+    font-size: 13px;
+    color: #ccc;
+}
+
+.custom-image input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    background: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #ddd;
+    font-size: 13px;
+    outline: none;
+}
+
+.custom-image input[type="text"]:focus {
+    border-color: #3498db;
+}
+
+.custom-image button {
+    padding: 8px 16px;
+    background: #3498db;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.custom-image button:hover {
+    background: #2980b9;
+}
+
+.reset-btn {
+    padding: 10px 20px;
+    background: #e74c3c;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.reset-btn:hover {
+    background: #c0392b;
+}

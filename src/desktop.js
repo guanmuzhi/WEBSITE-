@@ -65,6 +65,42 @@ class DesktopManager {
         
         this.setupAppLaunchListeners();
         this.setupUserSwitchListener();
+        this.setupWallpaper();
+    }
+
+    setupWallpaper() {
+        this.loadWallpaper();
+        
+        document.addEventListener('wallpaper-changed', (e) => {
+            const { type, value } = e.detail;
+            this.applyWallpaper(type, value);
+        });
+    }
+
+    loadWallpaper() {
+        const saved = localStorage.getItem('webos-wallpaper');
+        if (saved) {
+            try {
+                const wallpaper = JSON.parse(saved);
+                this.applyWallpaper(wallpaper.type, wallpaper.value);
+            } catch (e) {
+                this.applyWallpaper('color', '#1a1a2e');
+            }
+        }
+    }
+
+    applyWallpaper(type, value) {
+        const desktop = document.getElementById('desktop');
+        if (!desktop) return;
+
+        if (type === 'color') {
+            desktop.style.background = value;
+            desktop.style.backgroundImage = 'none';
+        } else if (type === 'gradient') {
+            desktop.style.background = value;
+        } else if (type === 'image') {
+            desktop.style.background = `url(${value}) center/cover fixed`;
+        }
     }
 
     async switchUser(username) {

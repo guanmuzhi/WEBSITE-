@@ -23,5 +23,10 @@
     "id": "browser",
     "name": "浏览器",
     "path": "browser.app"
+  },
+  {
+    "id": "wallpaper",
+    "name": "壁纸设置",
+    "path": "wallpaper.app"
   }
 ]

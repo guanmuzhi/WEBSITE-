@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>壁纸设置</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="wallpaper-app">
+        <h2>壁纸设置</h2>
+        
+        <div class="current-wallpaper">
+            <h3>当前壁纸</h3>
+            <div class="preview-container">
+                <div id="current-preview" class="wallpaper-preview"></div>
+                <div id="current-label" class="preview-label">纯色背景</div>
+            </div>
+        </div>
+
+        <div class="wallpaper-sections">
+            <div class="section">
+                <h3>纯色壁纸</h3>
+                <div class="color-grid" id="color-grid">
+                    <button class="color-btn" data-color="#1a1a2e" style="background-color: #1a1a2e;"></button>
+                    <button class="color-btn" data-color="#16213e" style="background-color: #16213e;"></button>
+                    <button class="color-btn" data-color="#0f3460" style="background-color: #0f3460;"></button>
+                    <button class="color-btn" data-color="#1e3a5f" style="background-color: #1e3a5f;"></button>
+                    <button class="color-btn" data-color="#2d3436" style="background-color: #2d3436;"></button>
+                    <button class="color-btn" data-color="#2c3e50" style="background-color: #2c3e50;"></button>
+                    <button class="color-btn" data-color="#1a237e" style="background-color: #1a237e;"></button>
+                    <button class="color-btn" data-color="#4e342e" style="background-color: #4e342e;"></button>
+                    <button class="color-btn" data-color="#311b92" style="background-color: #311b92;"></button>
+                    <button class="color-btn" data-color="#1b5e20" style="background-color: #1b5e20;"></button>
+                    <button class="color-btn" data-color="#bf360c" style="background-color: #bf360c;"></button>
+                    <button class="color-btn" data-color="#006064" style="background-color: #006064;"></button>
+                </div>
+                <div class="custom-color">
+                    <label>自定义颜色:</label>
+                    <input type="color" id="custom-color" value="#1a1a2e">
+                    <button id="apply-custom">应用</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>渐变壁纸</h3>
+                <div class="gradient-grid" id="gradient-grid">
+                    <button class="gradient-btn" data-gradient="linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);"></button>
+                    <button class="gradient-btn" data-gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></button>
+                    <button class="gradient-btn" data-gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"></button>
+                    <button class="gradient-btn" data-gradient="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"></button>
+                    <button class="gradient-btn" data-gradient="linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);"></button>
+                    <button class="gradient-btn" data-gradient="linear-gradient(135deg, #fa709a 0%, #fee140 100%)" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);"></button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>图片壁纸</h3>
+                <div class="image-grid" id="image-grid">
+                    <button class="image-btn" data-image="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=beautiful%20mountains%20landscape%20sunset%20nature&image_size=landscape_16_9">
+                        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=beautiful%20mountains%20landscape%20sunset%20nature&image_size=landscape_16_9" alt="风景">
+                    </button>
+                    <button class="image-btn" data-image="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=abstract%20colorful%20geometric%20patterns%20art&image_size=landscape_16_9">
+                        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=abstract%20colorful%20geometric%20patterns%20art&image_size=landscape_16_9" alt="抽象">
+                    </button>
+                    <button class="image-btn" data-image="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=ocean%20beach%20waves%20sunset%20peaceful&image_size=landscape_16_9">
+                        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=ocean%20beach%20waves%20sunset%20peaceful&image_size=landscape_16_9" alt="海洋">
+                    </button>
+                    <button class="image-btn" data-image="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=city%20skyline%20night%20lights%20urban&image_size=landscape_16_9">
+                        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=city%20skyline%20night%20lights%20urban&image_size=landscape_16_9" alt="城市">
+                    </button>
+                </div>
+                <div class="custom-image">
+                    <label>图片URL:</label>
+                    <input type="text" id="image-url" placeholder="输入图片URL">
+                    <button id="apply-image">应用</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>重置</h3>
+                <button id="reset-btn" class="reset-btn">恢复默认壁纸</button>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
