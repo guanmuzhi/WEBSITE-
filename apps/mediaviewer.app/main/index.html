@@ -4,21 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>媒体查看器</title>
+    <link rel="stylesheet" href="/apps/common.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="viewer-container">
         <div class="toolbar">
             <div class="toolbar-left">
-                <button class="toolbar-btn" id="open-btn">打开</button>
+                <button class="btn" id="open-btn" title="打开文件">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                </button>
                 <span id="filename" class="filename">未打开文件</span>
                 <span id="file-info" class="file-info"></span>
             </div>
             <div class="toolbar-right">
                 <div class="zoom-controls" id="zoom-controls">
-                    <button class="zoom-btn" id="zoom-out">−</button>
+                    <button class="btn btn-sm" id="zoom-out" title="缩小">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                    </button>
                     <span class="zoom-level" id="zoom-level">100%</span>
-                    <button class="zoom-btn" id="zoom-in">+</button>
+                    <button class="btn btn-sm" id="zoom-in" title="放大">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -59,9 +74,23 @@
                 </div>
 
                 <div class="player-controls">
-                    <button class="control-btn" id="play-btn">▶</button>
-                    <button class="control-btn" id="prev-btn">⏮</button>
-                    <button class="control-btn" id="next-btn">⏭</button>
+                    <button class="btn btn-sm" id="play-btn" title="播放/暂停">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-sm" id="prev-btn" title="上一个">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="19 20 9 12 19 4 19 20"/>
+                            <line x1="5" y1="19" x2="5" y2="5"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-sm" id="next-btn" title="下一个">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5 4 15 12 5 20 5 4"/>
+                            <line x1="19" y1="5" x2="19" y2="19"/>
+                        </svg>
+                    </button>
                     
                     <div class="progress-container">
                         <div id="progress-bar" class="progress-bar">

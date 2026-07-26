@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>壁纸设置</title>
+    <link rel="stylesheet" href="/apps/common.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -38,7 +39,13 @@
                 <div class="custom-color">
                     <label>自定义颜色:</label>
                     <input type="color" id="custom-color" value="#1a1a2e">
-                    <button id="apply-custom">应用</button>
+                    <button class="btn btn-primary" id="apply-custom" title="应用">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="20" y1="6" x2="9" y2="17"/>
+                            <line x1="14" y1="6" x2="21" y2="13"/>
+                            <polygon points="21 13 9 23 9 17"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -73,13 +80,24 @@
                 <div class="custom-image">
                     <label>图片URL:</label>
                     <input type="text" id="image-url" placeholder="输入图片URL">
-                    <button id="apply-image">应用</button>
+                    <button class="btn btn-primary" id="apply-image" title="应用">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="20" y1="6" x2="9" y2="17"/>
+                            <line x1="14" y1="6" x2="21" y2="13"/>
+                            <polygon points="21 13 9 23 9 17"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
 
             <div class="section">
                 <h3>重置</h3>
-                <button id="reset-btn" class="reset-btn">恢复默认壁纸</button>
+                <button class="btn btn-danger" id="reset-btn" title="恢复默认壁纸">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 7v6h6"/>
+                        <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>

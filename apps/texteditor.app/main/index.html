@@ -4,17 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文本编辑器</title>
+    <link rel="stylesheet" href="/apps/common.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="editor-container">
         <div class="toolbar">
-            <button class="toolbar-btn" id="new-btn">新建</button>
-            <button class="toolbar-btn" id="open-btn">打开</button>
-            <button class="toolbar-btn" id="save-btn">保存</button>
-            <button class="toolbar-btn" id="save-as-btn">另存为</button>
+            <button class="btn" id="new-btn" title="新建">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <path d="M12 11v6"/>
+                    <path d="M9 14h6"/>
+                </svg>
+            </button>
+            <button class="btn" id="open-btn" title="打开">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+            </button>
+            <button class="btn" id="save-btn" title="保存">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                </svg>
+            </button>
+            <button class="btn" id="save-as-btn" title="另存为">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+            </button>
             <div class="toolbar-spacer"></div>
-            <input type="text" id="filename-input" placeholder="文件名..." class="filename-input">
+            <input type="text" id="filename-input" placeholder="文件名..." class="input">
         </div>
         <textarea id="editor-textarea" class="editor-textarea" placeholder="在此输入文本..."></textarea>
         <div class="status-bar">

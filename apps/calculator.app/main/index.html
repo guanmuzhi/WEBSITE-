@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>计算器</title>
+    <link rel="stylesheet" href="/apps/common.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -33,8 +34,19 @@
                 <button class="btn func" data-value="e">e</button>
             </div>
             <div class="btn-row">
-                <button class="btn clear" data-value="AC">AC</button>
-                <button class="btn delete" data-value="DEL">DEL</button>
+                <button class="btn clear" data-value="AC" title="清除">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                </button>
+                <button class="btn delete" data-value="DEL" title="删除">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/>
+                        <line x1="18" y1="9" x2="12" y2="15"/>
+                        <line x1="12" y1="9" x2="18" y2="15"/>
+                    </svg>
+                </button>
                 <button class="btn op" data-value="%">%</button>
                 <button class="btn op" data-value="/">÷</button>
             </div>
