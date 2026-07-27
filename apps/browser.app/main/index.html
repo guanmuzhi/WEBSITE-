@@ -28,9 +28,26 @@
                         <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
                     </svg>
                 </button>
+                <button class="nav-btn" id="new-tab-btn" title="新标签页">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="tabs-container" id="tabs-container">
+                <div class="tab active" data-tab="0">
+                    <span class="tab-title">新标签页</span>
+                    <button class="tab-close" data-tab="0">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <div class="address-bar-container">
-                <input type="text" id="address-input" class="address-bar" placeholder="输入网址或搜索..." value="https://www.baidu.com">
+                <input type="text" id="address-input" class="address-bar" placeholder="输入网址或搜索..." value="https://www.bing.com">
                 <button class="go-btn" id="go-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"/>
@@ -42,8 +59,25 @@
         <div class="status-bar">
             <span id="status-text">就绪</span>
         </div>
-        <div class="content-area">
-            <iframe id="browser-frame" src="about:blank"></iframe>
+        <div class="content-area" id="content-area">
+            <iframe id="browser-frame" src="about:blank" sandbox="allow-forms allow-scripts allow-same-origin allow-popups"></iframe>
+        </div>
+        <div class="iframe-error" id="iframe-error">
+            <div class="error-content">
+                <div class="error-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                </div>
+                <div class="error-title">无法加载此页面</div>
+                <div class="error-message" id="error-message">该网站不允许在iframe中显示</div>
+                <div class="error-actions">
+                    <button class="error-btn" id="retry-btn">重试</button>
+                    <button class="error-btn primary" id="open-external-btn">在新标签页打开</button>
+                </div>
+            </div>
         </div>
     </div>
     <script src="app.js"></script>

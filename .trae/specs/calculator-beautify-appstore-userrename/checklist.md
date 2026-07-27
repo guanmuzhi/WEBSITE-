@@ -13,4 +13,4 @@
 - [x] Checkpoint 11: 应用分类浏览功能正常
 - [x] Checkpoint 12: 应用商店已在manifest.json中注册
 - [x] Checkpoint 13: 开发服务器启动成功，所有功能正常运行
-- [ ] Checkpoint 14: 代码已成功推送到GitHub main分支
+- [x] Checkpoint 14: 代码已成功推送到GitHub main分支

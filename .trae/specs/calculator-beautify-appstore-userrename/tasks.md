@@ -65,7 +65,7 @@
   - `human-judgment` TR-4.2: 界面美观，无明显bug
 - **Notes**: 使用 npm run dev 启动服务器，浏览器访问 http://localhost:8080
 
-## [/] Task 5: GitHub推送
+## [x] Task 5: GitHub推送
 - **Priority**: medium
 - **Depends On**: Task 4
 - **Description**: 
