@@ -14,34 +14,34 @@ body {
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: 8px;
+    padding: 6px;
     box-sizing: border-box;
-    gap: 8px;
+    gap: 6px;
 }
 
 .display {
     background: #1a1a1a;
-    border-radius: 8px;
-    padding: 16px;
+    border-radius: 6px;
+    padding: 12px;
     text-align: right;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     flex-shrink: 0;
-    min-height: 100px;
+    min-height: 80px;
 }
 
 .expression {
     color: #888;
     font-size: 14px;
-    min-height: 20px;
+    min-height: 18px;
     word-break: break-all;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .result {
     color: #e0e0e0;
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 300;
     line-height: 1.2;
     word-break: break-all;
@@ -68,9 +68,9 @@ body {
 
 .calculator .btn {
     border: none;
-    border-radius: 8px;
-    font-size: 18px;
-    font-weight: 400;
+    border-radius: 6px;
+    font-size: 20px;
+    font-weight: 500;
     cursor: pointer;
     transition: background 0.15s;
     font-family: inherit;
@@ -80,16 +80,17 @@ body {
     align-items: center;
     justify-content: center;
     background: transparent;
-    min-height: 48px;
+    width: 100%;
+    height: 100%;
 }
 
 .calculator .btn:active {
-    opacity: 0.8;
+    opacity: 0.85;
 }
 
 .calculator .btn-icon {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
 }
 
 .num {
@@ -102,7 +103,7 @@ body {
 
 .op {
     background: #3a3a3a;
-    font-size: 22px;
+    font-size: 24px;
 }
 
 .op:hover {
@@ -111,7 +112,7 @@ body {
 
 .func {
     background: #1f1f1f;
-    font-size: 14px;
+    font-size: 15px;
     color: #aaa;
 }
 
@@ -140,7 +141,7 @@ body {
 .equals {
     background: #e67e22;
     color: #fff;
-    font-size: 24px;
+    font-size: 26px;
 }
 
 .equals:hover {
