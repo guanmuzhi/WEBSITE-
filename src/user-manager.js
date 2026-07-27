@@ -154,8 +154,29 @@ class UserManager {
             const userDir = homeDir.children.find(c => c.name === oldUsername && c.type === 'folder');
             if (userDir) {
                 userDir.name = newUsername;
+                this.migrateUserState(oldUsername, newUsername);
                 this.storage.saveFS();
             }
+        }
+    }
+
+    migrateUserState(oldUsername, newUsername) {
+        const sourcePath = `/home/${oldUsername}/.window-state.json`;
+        const targetPath = `/home/${newUsername}/.window-state.json`;
+        
+        const content = this.storage.readFile(sourcePath);
+        if (content) {
+            this.storage.writeFile(targetPath, content);
+            this.storage.deleteFile(sourcePath);
+        }
+        
+        const sourceWallpaper = `/home/${oldUsername}/.wallpaper.json`;
+        const targetWallpaper = `/home/${newUsername}/.wallpaper.json`;
+        
+        const wallpaperContent = this.storage.readFile(sourceWallpaper);
+        if (wallpaperContent) {
+            this.storage.writeFile(targetWallpaper, wallpaperContent);
+            this.storage.deleteFile(sourceWallpaper);
         }
     }
 

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用商店</title>
+    <link rel="stylesheet" href="/apps/common.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="appstore">
+        <div class="appstore-header">
+            <div class="appstore-title">应用商店</div>
+            <div class="appstore-search">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="search-input" placeholder="搜索应用...">
+            </div>
+        </div>
+
+        <div class="appstore-categories">
+            <button class="category-btn active" data-category="all">全部</button>
+            <button class="category-btn" data-category="productivity">生产力</button>
+            <button class="category-btn" data-category="media">媒体</button>
+            <button class="category-btn" data-category="system">系统工具</button>
+        </div>
+
+        <div class="appstore-content">
+            <div class="app-grid" id="app-grid">
+            </div>
+        </div>
+
+        <div class="appstore-footer">
+            <div class="footer-text">WebOS 应用商店</div>
+        </div>
+    </div>
+
+    <div class="app-modal" id="app-modal">
+        <div class="app-modal-content">
+            <button class="modal-close" id="modal-close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+            <div class="modal-icon" id="modal-icon"></div>
+            <div class="modal-title" id="modal-title"></div>
+            <div class="modal-developer" id="modal-developer"></div>
+            <div class="modal-version" id="modal-version"></div>
+            <div class="modal-description" id="modal-description"></div>
+            <div class="modal-stats">
+                <span class="stat-item">评分: <span class="star-rating">★★★★☆</span></span>
+                <span class="stat-item">下载量: 1,234</span>
+            </div>
+            <button class="modal-install" id="modal-install">安装</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

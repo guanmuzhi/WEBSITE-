@@ -28,5 +28,10 @@
     "id": "wallpaper",
     "name": "壁纸设置",
     "path": "wallpaper.app"
+  },
+  {
+    "id": "appstore",
+    "name": "应用商店",
+    "path": "appstore.app"
   }
 ]

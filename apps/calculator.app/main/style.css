@@ -1,12 +1,39 @@
+:root {
+    --primary-bg: #0f0f1a;
+    --secondary-bg: #1a1a2e;
+    --card-bg: #16213e;
+    --num-btn-bg: #2d2d44;
+    --num-btn-hover: #3d3d54;
+    --op-btn-bg: #4a3f8a;
+    --op-btn-hover: #5a4f9a;
+    --func-btn-bg: #1e1e32;
+    --func-btn-hover: #2e2e42;
+    --clear-btn-bg: #e74c3c;
+    --clear-btn-hover: #f75c4c;
+    --delete-btn-bg: #7f8c8d;
+    --delete-btn-hover: #95a5a6;
+    --equals-btn-bg: #e67e22;
+    --equals-btn-hover: #f39c12;
+    --text-primary: #ffffff;
+    --text-secondary: #aaa;
+    --text-muted: #666;
+    --border-radius: 12px;
+    --btn-radius: 10px;
+    --shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    --btn-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --btn-active-scale: 0.96;
+}
+
 body {
-    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
-    background: #0d0d0d;
+    font-family: 'SF Pro Display', 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+    background: linear-gradient(135deg, var(--primary-bg) 0%, #1a1a3a 50%, #0d0d20 100%);
     height: 100vh;
     width: 100vw;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .calculator {
@@ -14,51 +41,57 @@ body {
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: 6px;
+    padding: 12px;
     box-sizing: border-box;
-    gap: 6px;
+    gap: 12px;
+    background: rgba(20, 20, 40, 0.6);
+    backdrop-filter: blur(10px);
 }
 
 .display {
-    background: #1a1a1a;
-    border-radius: 6px;
-    padding: 12px;
+    background: linear-gradient(145deg, #0d0d1a, #14142a);
+    border-radius: var(--border-radius);
+    padding: 20px;
     text-align: right;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     flex-shrink: 0;
-    min-height: 80px;
+    min-height: 100px;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .expression {
-    color: #888;
-    font-size: 14px;
-    min-height: 18px;
+    color: var(--text-secondary);
+    font-size: clamp(14px, 2vmin, 18px);
+    min-height: 24px;
     word-break: break-all;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
+    opacity: 0.7;
 }
 
 .result {
-    color: #e0e0e0;
-    font-size: 28px;
+    color: var(--text-primary);
+    font-size: clamp(32px, 5vmin, 56px);
     font-weight: 300;
     line-height: 1.2;
     word-break: break-all;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
 .buttons {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     min-height: 0;
 }
 
 .btn-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
+    gap: 8px;
     flex: 1;
 }
 
@@ -68,86 +101,122 @@ body {
 
 .calculator .btn {
     border: none;
-    border-radius: 6px;
-    font-size: 20px;
+    border-radius: var(--btn-radius);
+    font-size: clamp(18px, 3vmin, 28px);
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     font-family: inherit;
-    color: #e0e0e0;
+    color: var(--text-primary);
     user-select: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: transparent;
     width: 100%;
     height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.calculator .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
 }
 
 .calculator .btn:active {
-    opacity: 0.85;
+    transform: scale(var(--btn-active-scale));
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .calculator .btn-icon {
-    width: 22px;
-    height: 22px;
+    width: clamp(18px, 3vmin, 28px);
+    height: clamp(18px, 3vmin, 28px);
 }
 
 .num {
-    background: #2a2a2a;
+    background: linear-gradient(145deg, var(--num-btn-bg), #252538);
+    box-shadow: var(--btn-shadow);
 }
 
 .num:hover {
-    background: #333;
+    background: linear-gradient(145deg, var(--num-btn-hover), #353548);
 }
 
 .op {
-    background: #3a3a3a;
-    font-size: 24px;
+    background: linear-gradient(145deg, var(--op-btn-bg), #3f357a);
+    box-shadow: var(--btn-shadow);
+    font-size: clamp(22px, 3.5vmin, 32px);
 }
 
 .op:hover {
-    background: #444;
+    background: linear-gradient(145deg, var(--op-btn-hover), #4f458a);
 }
 
 .func {
-    background: #1f1f1f;
-    font-size: 15px;
-    color: #aaa;
+    background: linear-gradient(145deg, var(--func-btn-bg), #151528);
+    box-shadow: var(--btn-shadow);
+    font-size: clamp(14px, 2.5vmin, 22px);
+    color: var(--text-secondary);
 }
 
 .func:hover {
-    background: #262626;
+    background: linear-gradient(145deg, var(--func-btn-hover), #252538);
+    color: var(--text-primary);
 }
 
 .clear {
-    background: #c0392b;
-    color: #fff;
+    background: linear-gradient(145deg, var(--clear-btn-bg), #c0392b);
+    box-shadow: var(--btn-shadow);
 }
 
 .clear:hover {
-    background: #d04436;
+    background: linear-gradient(145deg, var(--clear-btn-hover), #d04436);
 }
 
 .delete {
-    background: #7f8c8d;
-    color: #fff;
+    background: linear-gradient(145deg, var(--delete-btn-bg), #6f7c7d);
+    box-shadow: var(--btn-shadow);
 }
 
 .delete:hover {
-    background: #95a5a6;
+    background: linear-gradient(145deg, var(--delete-btn-hover), #859596);
 }
 
 .equals {
-    background: #e67e22;
-    color: #fff;
-    font-size: 26px;
+    background: linear-gradient(145deg, var(--equals-btn-bg), #d66e12);
+    box-shadow: var(--btn-shadow);
+    font-size: clamp(24px, 4vmin, 36px);
 }
 
 .equals:hover {
-    background: #f39c12;
+    background: linear-gradient(145deg, var(--equals-btn-hover), #e38c02);
 }
 
 .zero {
     grid-column: span 2;
+}
+
+@media (max-width: 480px) {
+    .calculator {
+        padding: 8px;
+        gap: 8px;
+    }
+    
+    .display {
+        padding: 16px;
+        min-height: 80px;
+    }
+    
+    .btn-row {
+        gap: 6px;
+    }
+    
+    .buttons {
+        gap: 6px;
+    }
 }
