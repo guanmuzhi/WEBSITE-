@@ -22,7 +22,7 @@ class LockScreen {
 
         const version = document.createElement('div');
         version.className = 'lock-version';
-        version.textContent = `WebOS v${window.WEBOS_VERSION || '1.0.0'}`;
+        version.textContent = 'WebOS v1.0.6';
         lockContainer.appendChild(version);
 
         const header = document.createElement('div');

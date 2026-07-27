@@ -19,33 +19,7 @@ class Browser {
         this.currentTabIndex = 0;
         this.tabIdCounter = 1;
         
-        this.blockedSites = [
-            'google.com',
-            'www.google.com',
-            'accounts.google.com',
-            'mail.google.com',
-            'docs.google.com',
-            'drive.google.com',
-            'maps.google.com',
-            'youtube.com',
-            'www.youtube.com',
-            'facebook.com',
-            'www.facebook.com',
-            'twitter.com',
-            'www.twitter.com',
-            'instagram.com',
-            'www.instagram.com',
-            'linkedin.com',
-            'www.linkedin.com',
-            'github.com',
-            'www.github.com',
-            'live.com',
-            'www.live.com',
-            'outlook.com',
-            'www.outlook.com',
-            'office.com',
-            'www.office.com'
-        ];
+        this.blockedSites = [];
         
         this.init();
     }
@@ -325,12 +299,12 @@ class Browser {
     onPageError() {
         const currentTab = this.tabs[this.currentTabIndex];
         if (currentTab && currentTab.url && currentTab.url !== 'about:blank') {
-            this.showError('无法加载此页面', currentTab.url);
+            this.showError('该网站不允许在嵌入式浏览器中显示', currentTab.url);
         }
     }
     
     showError(message, url) {
-        this.errorMessage.textContent = message;
+        this.errorMessage.textContent = message + '\n建议使用"在新标签页打开"功能';
         this.openExternalBtn.dataset.url = url || '';
         this.iframeError.classList.add('show');
         this.statusText.textContent = '加载失败';

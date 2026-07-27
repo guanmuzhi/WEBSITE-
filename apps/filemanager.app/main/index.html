@@ -62,8 +62,17 @@
                     <path d="M8 13H6c-.55 0-1-.45-1-1V3c0-.55.45-1 1-1h2"/>
                 </svg>
             </button>
-            <button class="btn" id="fm-network" title="网络共享">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        </div>
+        <div class="fm-sidebar">
+            <div class="fm-sidebar-title">导航</div>
+            <div class="fm-sidebar-item active" id="fm-sidebar-files">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                文件
+            </div>
+            <div class="fm-sidebar-item" id="fm-sidebar-network">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                     <path d="M12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
                     <line x1="12" y1="3" x2="12" y2="5"/>
                     <line x1="12" y1="19" x2="12" y2="21"/>
@@ -74,16 +83,19 @@
                     <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
                     <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
                 </svg>
-            </button>
-        </div>
-        <div class="fm-sidebar">
-            <div class="fm-sidebar-title">位置</div>
-            <div class="fm-sidebar-item" data-path="/">根目录</div>
-            <div class="fm-sidebar-item" data-path="/home">home</div>
-            <div class="fm-sidebar-item" data-path="/tmp">tmp</div>
+                网络共享
+            </div>
         </div>
         <div class="fm-main">
             <div class="fm-filelist" id="fm-filelist"></div>
+            <div class="fm-network-panel" id="fm-network-panel" style="display:none;">
+                <div class="fm-network-header">
+                    <h3>网络共享</h3>
+                    <p>搜索同一局域网内的WebOS用户</p>
+                </div>
+                <button class="fm-network-scan" id="fm-network-scan">搜索局域网用户</button>
+                <div class="fm-network-users" id="fm-network-users"></div>
+            </div>
         </div>
         <div class="fm-viewer" id="fm-viewer" style="display:none;">
             <div class="fm-viewer-header">

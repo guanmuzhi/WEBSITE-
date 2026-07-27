@@ -94,6 +94,9 @@ body {
     font-size: 13px;
     cursor: pointer;
     transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .fm-sidebar-item:hover {
@@ -247,4 +250,100 @@ body {
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-all;
+}
+
+/* Network Panel */
+.fm-network-panel {
+    padding: 24px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.fm-network-header {
+    margin-bottom: 24px;
+}
+
+.fm-network-header h3 {
+    color: #eee;
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.fm-network-header p {
+    color: #888;
+    font-size: 13px;
+}
+
+.fm-network-scan {
+    padding: 12px 24px;
+    background: #3498db;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-bottom: 24px;
+    align-self: flex-start;
+}
+
+.fm-network-scan:hover {
+    background: #2980b9;
+}
+
+.fm-network-scan:disabled {
+    background: #555;
+    cursor: not-allowed;
+}
+
+.fm-network-users {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.fm-network-user {
+    background: #2d2d2d;
+    border: 1px solid #3d3d3d;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.fm-network-user:hover {
+    background: #333;
+    border-color: #3498db;
+}
+
+.fm-network-user-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.fm-network-user-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: #eee;
+}
+
+.fm-network-user-ip {
+    font-size: 12px;
+    color: #888;
+}
+
+.fm-network-user-shared {
+    font-size: 13px;
+    color: #aaa;
+}
+
+.fm-network-empty {
+    text-align: center;
+    color: #666;
+    padding: 40px;
 }

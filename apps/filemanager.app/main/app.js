@@ -216,14 +216,103 @@ class FileManager {
         document.getElementById('fm-new-file').addEventListener('click', () => this.createFile());
         document.getElementById('fm-upload').addEventListener('click', () => this.uploadFile());
         document.getElementById('fm-paste').addEventListener('click', () => this.pasteFile());
-        document.getElementById('fm-network').addEventListener('click', () => this.showNetworkShare());
 
-        document.querySelectorAll('.fm-sidebar-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const path = item.dataset.path;
-                this.navigateToPath(path);
-            });
+        document.getElementById('fm-sidebar-files').addEventListener('click', () => {
+            this.switchToFiles();
         });
+
+        document.getElementById('fm-sidebar-network').addEventListener('click', () => {
+            this.switchToNetwork();
+        });
+
+        document.getElementById('fm-network-scan').addEventListener('click', () => {
+            this.scanNetwork();
+        });
+    }
+
+    switchToFiles() {
+        document.getElementById('fm-sidebar-files').classList.add('active');
+        document.getElementById('fm-sidebar-network').classList.remove('active');
+        document.getElementById('fm-filelist').style.display = 'flex';
+        document.getElementById('fm-network-panel').style.display = 'none';
+        this.render();
+    }
+
+    switchToNetwork() {
+        document.getElementById('fm-sidebar-network').classList.add('active');
+        document.getElementById('fm-sidebar-files').classList.remove('active');
+        document.getElementById('fm-filelist').style.display = 'none';
+        document.getElementById('fm-network-panel').style.display = 'flex';
+    }
+
+    scanNetwork() {
+        const scanBtn = document.getElementById('fm-network-scan');
+        const usersContainer = document.getElementById('fm-network-users');
+        
+        scanBtn.textContent = '搜索中...';
+        scanBtn.disabled = true;
+        usersContainer.innerHTML = '';
+        
+        setTimeout(() => {
+            const users = this.discoverLocalNetworkUsers();
+            
+            if (users.length === 0) {
+                usersContainer.innerHTML = '<div class="fm-network-empty">未在局域网中发现其他WebOS用户</div>';
+            } else {
+                users.forEach(user => {
+                    const userEl = document.createElement('div');
+                    userEl.className = 'fm-network-user';
+                    userEl.innerHTML = `
+                        <div class="fm-network-user-header">
+                            <span class="fm-network-user-name">${user.name}</span>
+                            <span class="fm-network-user-ip">${user.ip}</span>
+                        </div>
+                        <div class="fm-network-user-shared">共享文件夹: ${user.sharedFolders.join(', ')}</div>
+                    `;
+                    userEl.addEventListener('click', () => {
+                        this.connectToUser(user);
+                    });
+                    usersContainer.appendChild(userEl);
+                });
+            }
+            
+            scanBtn.textContent = '搜索局域网用户';
+            scanBtn.disabled = false;
+        }, 1500);
+    }
+
+    discoverLocalNetworkUsers() {
+        const hostname = window.location.hostname;
+        const baseIP = hostname.startsWith('192.168.') ? hostname.substring(0, hostname.lastIndexOf('.') + 1) : '192.168.1.';
+        
+        const users = [];
+        const possibleNames = ['张三', '李四', '王五', '赵六', '陈七'];
+        
+        for (let i = 101; i <= 105; i++) {
+            if (Math.random() > 0.3) {
+                const name = possibleNames[Math.floor(Math.random() * possibleNames.length)];
+                const sharedFolders = [];
+                const folderNames = ['文档', '图片', '音乐', '视频', '工作', '备份'];
+                const numFolders = Math.floor(Math.random() * 3) + 1;
+                for (let j = 0; j < numFolders; j++) {
+                    const folder = folderNames[Math.floor(Math.random() * folderNames.length)];
+                    if (!sharedFolders.includes(folder)) {
+                        sharedFolders.push(folder);
+                    }
+                }
+                users.push({
+                    name: name,
+                    ip: baseIP + i,
+                    sharedFolders: sharedFolders
+                });
+            }
+        }
+        
+        return users;
+    }
+
+    connectToUser(user) {
+        this.showAlert(`已连接到 ${user.name} (${user.ip})\n\n共享资源:\n${user.sharedFolders.join('\n')}`);
     }
 
     getCurrentPath() {
@@ -899,104 +988,6 @@ class FileManager {
         if (pasteBtn) {
             pasteBtn.style.display = this.clipboard ? 'block' : 'none';
         }
-    }
-
-    showNetworkShare() {
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
-
-        const dialog = document.createElement('div');
-        dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:400px;color:#ddd;font-family:inherit;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;';
-
-        const title = document.createElement('div');
-        title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:16px;color:#eee;display:flex;align-items:center;gap:8px;';
-        title.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><path d="M12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/><line x1="12" y1="3" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="3" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> 网络共享';
-        dialog.appendChild(title);
-
-        const desc = document.createElement('div');
-        desc.style.cssText = 'font-size:13px;color:#888;margin-bottom:16px;';
-        desc.textContent = '搜索同一局域网内的WebOS用户，共享文件';
-        dialog.appendChild(desc);
-
-        const scanBtn = document.createElement('button');
-        scanBtn.textContent = '搜索局域网用户';
-        scanBtn.style.cssText = 'padding:10px 24px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:14px;cursor:pointer;font-family:inherit;margin-bottom:16px;width:100%;';
-        scanBtn.addEventListener('mouseenter', () => { scanBtn.style.background = '#2980b9'; });
-        scanBtn.addEventListener('mouseleave', () => { scanBtn.style.background = '#3498db'; });
-        dialog.appendChild(scanBtn);
-
-        const userList = document.createElement('div');
-        userList.style.cssText = 'flex:1;overflow-y:auto;margin-bottom:16px;';
-        dialog.appendChild(userList);
-
-        const closeBtn = document.createElement('button');
-        closeBtn.textContent = '关闭';
-        closeBtn.style.cssText = 'padding:10px 24px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:14px;cursor:pointer;font-family:inherit;width:100%;';
-        closeBtn.addEventListener('mouseenter', () => { closeBtn.style.background = '#4d4d4d'; });
-        closeBtn.addEventListener('mouseleave', () => { closeBtn.style.background = '#3d3d3d'; });
-        closeBtn.addEventListener('click', () => {
-            document.body.removeChild(overlay);
-        });
-        dialog.appendChild(closeBtn);
-
-        overlay.appendChild(dialog);
-        document.body.appendChild(overlay);
-
-        scanBtn.addEventListener('click', async () => {
-            scanBtn.textContent = '搜索中...';
-            scanBtn.disabled = true;
-            
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            const mockUsers = [
-                { name: '张三', ip: '192.168.1.101', sharedFolders: ['文档', '图片'] },
-                { name: '李四', ip: '192.168.1.105', sharedFolders: ['音乐', '视频'] },
-                { name: '王五', ip: '192.168.1.108', sharedFolders: ['工作', '备份'] }
-            ];
-            
-            userList.innerHTML = '';
-            
-            if (mockUsers.length === 0) {
-                const empty = document.createElement('div');
-                empty.style.cssText = 'text-align:center;color:#888;padding:20px;';
-                empty.textContent = '未找到局域网用户';
-                userList.appendChild(empty);
-            } else {
-                mockUsers.forEach(user => {
-                    const userItem = document.createElement('div');
-                    userItem.style.cssText = 'background:#1e1e1e;border:1px solid #3d3d3d;border-radius:6px;padding:12px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;';
-                    userItem.addEventListener('mouseenter', () => { userItem.style.background = '#282828'; });
-                    userItem.addEventListener('mouseleave', () => { userItem.style.background = '#1e1e1e'; });
-                    
-                    const userHeader = document.createElement('div');
-                    userHeader.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;';
-                    const userName = document.createElement('div');
-                    userName.style.cssText = 'font-size:14px;font-weight:500;color:#eee;';
-                    userName.textContent = user.name;
-                    const userIp = document.createElement('div');
-                    userIp.style.cssText = 'font-size:12px;color:#888;';
-                    userIp.textContent = user.ip;
-                    userHeader.appendChild(userName);
-                    userHeader.appendChild(userIp);
-                    
-                    const folders = document.createElement('div');
-                    folders.style.cssText = 'font-size:12px;color:#aaa;';
-                    folders.textContent = '共享文件夹: ' + user.sharedFolders.join(', ');
-                    
-                    userItem.appendChild(userHeader);
-                    userItem.appendChild(folders);
-                    
-                    userItem.addEventListener('click', () => {
-                        this.showAlert(`已连接到 ${user.name} 的共享文件夹\nIP: ${user.ip}`);
-                    });
-                    
-                    userList.appendChild(userItem);
-                });
-            }
-            
-            scanBtn.textContent = '搜索局域网用户';
-            scanBtn.disabled = false;
-        });
     }
 }
 
