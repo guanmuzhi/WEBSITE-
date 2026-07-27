@@ -20,7 +20,11 @@ class LockScreen {
         const lockContainer = document.createElement('div');
         lockContainer.className = 'lock-container';
 
-        // 顶部：当前用户信息
+        const version = document.createElement('div');
+        version.className = 'lock-version';
+        version.textContent = `WebOS v${window.WEBOS_VERSION || '1.0.0'}`;
+        lockContainer.appendChild(version);
+
         const header = document.createElement('div');
         header.className = 'lock-header';
 

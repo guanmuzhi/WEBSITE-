@@ -8,7 +8,17 @@ document.addEventListener('DOMContentLoaded', () => {
     window.UserManager = UserManager;
     window._isSavingDisabled = false;
     
-    const bootManager = new BootManager(Terminal);
-    window._bootManager = bootManager;
-    bootManager.init();
+    fetch('/VERSION')
+        .then(response => response.text())
+        .then(version => {
+            window.WEBOS_VERSION = version.trim();
+        })
+        .catch(() => {
+            window.WEBOS_VERSION = '1.0.0';
+        })
+        .finally(() => {
+            const bootManager = new BootManager(Terminal);
+            window._bootManager = bootManager;
+            bootManager.init();
+        });
 });

@@ -39,8 +39,6 @@ class Browser {
             'www.linkedin.com',
             'github.com',
             'www.github.com',
-            'yahoo.com',
-            'www.yahoo.com',
             'live.com',
             'www.live.com',
             'outlook.com',

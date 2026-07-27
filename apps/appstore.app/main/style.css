@@ -40,6 +40,18 @@ body {
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
+    gap: 16px;
+}
+
+.update-badge {
+    background: #e74c3c;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    min-width: 24px;
+    text-align: center;
 }
 
 .appstore-title {
@@ -156,11 +168,25 @@ body {
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    position: relative;
 }
 
 .app-card-icon svg {
     width: 40px;
     height: 40px;
+}
+
+.update-indicator {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #2ecc71;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .app-card-name {
@@ -175,7 +201,24 @@ body {
     font-size: 12px;
     color: var(--text-muted);
     text-align: center;
+    margin-bottom: 8px;
+}
+
+.app-card-stats {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
     margin-bottom: 12px;
+}
+
+.star-rating {
+    color: #f39c12;
+    font-size: 12px;
+}
+
+.download-count {
+    font-size: 12px;
+    color: var(--text-muted);
 }
 
 .app-card-description {
@@ -206,6 +249,14 @@ body {
 .app-card-install:hover {
     background: var(--primary-hover);
     transform: scale(1.02);
+}
+
+.app-card-install.update {
+    background: #f39c12;
+}
+
+.app-card-install.update:hover {
+    background: #e67e22;
 }
 
 .app-card-install.installed {
