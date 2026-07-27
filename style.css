@@ -203,6 +203,27 @@ body {
     backdrop-filter: blur(4px);
     box-sizing: border-box;
     z-index: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) rgba(0,0,0,0.2);
+}
+
+.desktop-icons::-webkit-scrollbar {
+    width: 6px;
+}
+
+.desktop-icons::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.2);
+}
+
+.desktop-icons::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+}
+
+.desktop-icons::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.3);
 }
 
 .desktop-icon {
@@ -460,155 +481,7 @@ body {
     opacity: 1;
 }
 
-@media (max-width: 768px) {
-    .desktop-icons {
-        width: 100%;
-        height: auto;
-        flex-direction: row;
-        flex-wrap: wrap;
-        padding: 20px;
-        gap: 15px;
-        background-color: rgba(30, 40, 50, 0.3);
-    }
 
-    .desktop-icon {
-        width: 70px;
-        min-height: auto;
-        padding: 5px;
-    }
-
-    .desktop-icon .icon-image {
-        width: 50px;
-        height: 50px;
-        margin-bottom: 5px;
-        border-radius: 10px;
-    }
-
-    .desktop-icon .icon-label {
-        font-size: 11px;
-        min-height: auto;
-        display: block;
-    }
-
-    .windows-container {
-        left: 0;
-    }
-
-    .taskbar {
-        height: 56px;
-        padding: 0 16px;
-    }
-
-    .taskbar-items {
-        gap: 8px;
-    }
-
-    .taskbar-item {
-        padding: 10px 20px;
-        font-size: 14px;
-        border-radius: 6px;
-        min-height: 44px;
-        display: flex;
-        align-items: center;
-    }
-
-    .taskbar-clock {
-        font-size: 15px;
-        padding: 0 16px;
-    }
-
-    .windows-container {
-        bottom: 56px;
-    }
-
-    .window {
-        width: 100%;
-        height: calc(100% - 56px);
-        top: 0;
-        left: 0;
-        min-width: 0;
-        min-height: 0;
-        border-radius: 0;
-        border: none;
-    }
-
-    .window-resize-handle {
-        width: 28px;
-        height: 28px;
-    }
-
-    .window-resize-handle::after {
-        width: 14px;
-        height: 14px;
-        right: 5px;
-        bottom: 5px;
-        border-width: 3px;
-    }
-
-    .window-titlebar {
-        height: 44px;
-        padding: 0 12px;
-    }
-
-    .window-title {
-        font-size: 15px;
-    }
-
-    .window-controls {
-        gap: 10px;
-    }
-
-    .window-btn {
-        width: 20px;
-        height: 20px;
-        min-width: 44px;
-        min-height: 44px;
-        position: relative;
-    }
-
-    .window-btn::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-    }
-
-    .btn-minimize::before {
-        background-color: #f1c40f;
-    }
-
-    .btn-close::before {
-        background-color: #e74c3c;
-    }
-
-    .window-btn {
-        background-color: transparent;
-    }
-
-    .output {
-        font-size: 15px;
-    }
-
-    .prompt {
-        font-size: 15px;
-    }
-
-    .command-input {
-        font-size: 15px;
-    }
-
-    .terminal-body {
-        padding: 12px;
-    }
-
-    .input-line {
-        padding: 10px 12px;
-    }
-}
 
 /* User Switcher */
 .user-switcher {
@@ -771,116 +644,87 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
     display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 99999;
-    animation: fadeIn 0.3s ease-out;
+    animation: lockFadeIn 0.3s ease-out;
+    overflow-y: auto;
+    padding: 20px;
 }
 
-@keyframes fadeIn {
+@keyframes lockFadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
 }
 
 .lock-screen .lock-container {
-    background: rgba(30, 30, 30, 0.85);
-    border-radius: 16px;
-    padding: 40px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    width: 360px;
+    background: rgba(20, 20, 35, 0.9);
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    width: 380px;
     max-width: 90vw;
-}
-
-.lock-screen .lock-user-list-btn {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    width: 36px;
-    height: 36px;
-    background: rgba(255, 255, 255, 0.05);
-    border: none;
-    border-radius: 8px;
-    color: #888;
-    cursor: pointer;
+    max-height: 90vh;
+    overflow-y: auto;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
+    flex-direction: column;
 }
 
-.lock-screen .lock-user-list-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-}
-
-.lock-screen .lock-user-list-btn.active {
-    background: rgba(52, 152, 219, 0.2);
-    color: #3498db;
-}
-
-.lock-screen .lock-user-list-btn svg {
-    width: 18px;
-    height: 18px;
+.lock-screen .lock-header {
+    text-align: center;
+    margin-bottom: 24px;
 }
 
 .lock-screen .lock-user-avatar {
-    width: 80px;
-    height: 80px;
+    width: 72px;
+    height: 72px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 20px;
-    font-size: 32px;
+    margin: 0 auto 12px;
+    font-size: 28px;
     font-weight: 600;
     color: #fff;
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
 }
 
 .lock-screen .lock-username {
     color: #f5f5f5;
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 600;
     text-align: center;
-    margin-bottom: 8px;
-}
-
-.lock-screen .lock-subtitle {
-    color: #666;
-    font-size: 14px;
-    text-align: center;
-    margin-bottom: 28px;
 }
 
 .lock-screen .lock-content {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    gap: 10px;
 }
 
 .lock-screen .lock-password-input {
     width: 100%;
-    padding: 14px 18px;
+    padding: 12px 16px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     color: #fff;
-    font-size: 15px;
+    font-size: 14px;
     text-align: center;
-    margin-bottom: 16px;
     transition: all 0.2s;
+    box-sizing: border-box;
 }
 
 .lock-screen .lock-password-input:focus {
     outline: none;
-    border-color: #3498db;
-    background: rgba(255, 255, 255, 0.08);
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
 }
 
 .lock-screen .lock-password-input::placeholder {
@@ -889,21 +733,21 @@ body {
 
 .lock-screen .lock-unlock-btn {
     width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    padding: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
     border-radius: 10px;
     color: #fff;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 .lock-screen .lock-unlock-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .lock-screen .lock-unlock-btn:active {
@@ -913,21 +757,24 @@ body {
 .lock-screen .lock-error {
     color: #e74c3c;
     font-size: 13px;
-    margin-top: 12px;
     height: 18px;
     text-align: center;
 }
 
 .lock-screen .lock-create-user-btn {
-    padding: 10px 24px;
+    width: 100%;
+    padding: 10px;
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: #888;
-    font-size: 14px;
+    border-radius: 10px;
+    color: #aaa;
+    font-size: 13px;
     cursor: pointer;
-    margin-top: 16px;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
 .lock-screen .lock-create-user-btn:hover {
@@ -941,7 +788,7 @@ body {
     color: #f5f5f5;
     font-size: 18px;
     font-weight: 500;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     text-align: center;
 }
 
@@ -950,47 +797,53 @@ body {
     padding: 12px 16px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
+    border-radius: 10px;
     color: #fff;
     font-size: 14px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     transition: all 0.2s;
+    box-sizing: border-box;
 }
 
 .lock-screen .lock-create-input:focus {
     outline: none;
-    border-color: #3498db;
-    background: rgba(255, 255, 255, 0.08);
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
 }
 
 .lock-screen .lock-create-input::placeholder {
     color: #555;
 }
 
-.lock-screen .lock-create-cancel-btn,
-.lock-screen .lock-switch-cancel-btn {
-    padding: 10px 24px;
+.lock-screen .lock-btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.lock-screen .lock-cancel-btn {
+    flex: 1;
+    padding: 10px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: #888;
+    border-radius: 10px;
+    color: #aaa;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
 }
 
-.lock-screen .lock-create-cancel-btn:hover,
-.lock-screen .lock-switch-cancel-btn:hover {
+.lock-screen .lock-cancel-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     color: #fff;
 }
 
-.lock-screen .lock-create-btn,
-.lock-screen .lock-switch-confirm-btn {
-    padding: 10px 24px;
-    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+.lock-screen .lock-confirm-btn {
+    flex: 1;
+    padding: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     color: #fff;
     font-size: 14px;
     font-weight: 500;
@@ -998,26 +851,35 @@ body {
     transition: all 0.2s;
 }
 
-.lock-screen .lock-create-btn:hover,
-.lock-screen .lock-switch-confirm-btn:hover {
+.lock-screen .lock-confirm-btn:hover {
     opacity: 0.9;
 }
 
-.lock-screen .lock-user-list {
+.lock-screen .lock-user-list-header {
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
     margin-top: 20px;
+    margin-bottom: 10px;
     padding-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.lock-screen .lock-user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .lock-screen .lock-user-item {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 12px 16px;
+    gap: 12px;
+    padding: 10px 14px;
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s;
-    margin-bottom: 8px;
 }
 
 .lock-screen .lock-user-item:hover {
@@ -1025,63 +887,73 @@ body {
 }
 
 .lock-screen .lock-user-item-current {
-    background: rgba(52, 152, 219, 0.1);
+    background: rgba(102, 126, 234, 0.1);
     cursor: default;
 }
 
 .lock-screen .lock-user-item-current:hover {
-    background: rgba(52, 152, 219, 0.1);
+    background: rgba(102, 126, 234, 0.1);
 }
 
 .lock-screen .lock-user-item-avatar {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: #fff;
+    flex-shrink: 0;
 }
 
 .lock-screen .lock-user-item-info {
     flex: 1;
+    min-width: 0;
 }
 
 .lock-screen .lock-user-item-name {
     color: #f5f5f5;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
 }
 
 .lock-screen .lock-user-item-status {
     color: #666;
-    font-size: 12px;
+    font-size: 11px;
     margin-top: 2px;
 }
 
-.lock-screen .lock-user-item-delete {
-    width: 36px;
-    height: 36px;
-    background: rgba(231, 76, 60, 0.1);
+.lock-screen .lock-user-item-delete,
+.lock-screen .lock-user-item-rename {
+    width: 28px;
+    height: 28px;
+    background: transparent;
     border: none;
-    border-radius: 8px;
-    color: #e74c3c;
+    border-radius: 6px;
+    color: #888;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.lock-screen .lock-user-item-rename:hover {
+    background: rgba(102, 126, 234, 0.2);
+    color: #667eea;
 }
 
 .lock-screen .lock-user-item-delete:hover {
     background: rgba(231, 76, 60, 0.2);
-    color: #ec7063;
+    color: #e74c3c;
 }
 
-.lock-screen .lock-user-item-delete svg {
-    width: 16px;
-    height: 16px;
+.lock-screen .lock-user-item-delete svg,
+.lock-screen .lock-user-item-rename svg {
+    width: 14px;
+    height: 14px;
 }

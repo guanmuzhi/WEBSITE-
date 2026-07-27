@@ -1,4 +1,4 @@
-import UserManager from './user-manager.js';
+import UserManager from './user-manager.js?v=14';
 
 class UserSwitcher {
     constructor(options = {}) {

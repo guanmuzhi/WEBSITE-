@@ -1,7 +1,7 @@
-import UserManager from './user-manager.js';
-import UserSwitcher from './user-switcher.js';
-import LockScreen from './lock-screen.js';
-import StorageService from './storage.js';
+import UserManager from './user-manager.js?v=14';
+import UserSwitcher from './user-switcher.js?v=14';
+import LockScreen from './lock-screen.js?v=14';
+import StorageService from './storage.js?v=14';
 
 class DesktopManager {
     constructor(options = {}) {
@@ -36,14 +36,24 @@ class DesktopManager {
         this.taskbarClockEl = this.desktopEl.querySelector('.taskbar-clock');
         this.taskbarUserNameEl = this.desktopEl.querySelector('#taskbar-user-name');
 
-        this.lockScreen = new LockScreen({
-            onUnlock: () => {
+        if (window._bootManager && window._bootManager.lockScreen) {
+            this.lockScreen = window._bootManager.lockScreen;
+            this.lockScreen.onUnlock = () => {
                 this.updateTaskbarUser();
-            },
-            onUserSwitch: (username) => {
+            };
+            this.lockScreen.onUserSwitch = (username) => {
                 this.switchUser(username);
-            }
-        });
+            };
+        } else {
+            this.lockScreen = new LockScreen({
+                onUnlock: () => {
+                    this.updateTaskbarUser();
+                },
+                onUserSwitch: (username) => {
+                    this.switchUser(username);
+                }
+            });
+        }
 
         this.userSwitcher = new UserSwitcher({
             onSwitch: (username) => {

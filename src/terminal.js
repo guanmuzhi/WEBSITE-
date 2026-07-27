@@ -1,7 +1,7 @@
-import UserManager from './user-manager.js?v=2';
-import FileSystem from './file-system.js';
-import ViEditor from './vi-editor.js?v=2';
-import AppManager from './app-manager.js?v=1';
+import UserManager from './user-manager.js?v=14';
+import FileSystem from './file-system.js?v=14';
+import ViEditor from './vi-editor.js?v=14';
+import AppManager from './app-manager.js?v=14';
 
 const HISTORY_KEY = 'web-terminal-os-history';
 

@@ -1,4 +1,4 @@
-import UserManager from './user-manager.js';
+import UserManager from './user-manager.js?v=14';
 
 class LockScreen {
     constructor(options = {}) {
@@ -10,32 +10,44 @@ class LockScreen {
     }
 
     _create() {
+        // 移除已有的锁定屏幕
+        const existing = document.querySelector('.lock-screen');
+        if (existing) existing.remove();
+
         const overlay = document.createElement('div');
         overlay.className = 'lock-screen';
 
         const lockContainer = document.createElement('div');
         lockContainer.className = 'lock-container';
 
+        // 顶部：当前用户信息
+        const header = document.createElement('div');
+        header.className = 'lock-header';
+
         const avatar = document.createElement('div');
         avatar.className = 'lock-user-avatar';
-        lockContainer.appendChild(avatar);
+        header.appendChild(avatar);
 
         const username = document.createElement('div');
         username.className = 'lock-username';
-        lockContainer.appendChild(username);
+        header.appendChild(username);
 
-        const subtitle = document.createElement('div');
-        subtitle.className = 'lock-subtitle';
-        subtitle.textContent = '点击解锁或切换用户';
-        lockContainer.appendChild(subtitle);
+        lockContainer.appendChild(header);
 
+        // 中部：解锁区域
         const content = document.createElement('div');
         content.className = 'lock-content';
         lockContainer.appendChild(content);
 
         const error = document.createElement('div');
         error.className = 'lock-error';
-        lockContainer.appendChild(error);
+        content.appendChild(error);
+
+        // 底部：用户列表
+        const userListHeader = document.createElement('div');
+        userListHeader.className = 'lock-user-list-header';
+        userListHeader.textContent = '切换用户';
+        lockContainer.appendChild(userListHeader);
 
         const userList = document.createElement('div');
         userList.className = 'lock-user-list';
@@ -48,7 +60,6 @@ class LockScreen {
         this.lockContainer = lockContainer;
         this.avatarEl = avatar;
         this.usernameEl = username;
-        this.subtitleEl = subtitle;
         this.contentEl = content;
         this.errorEl = error;
         this.userListEl = userList;
@@ -59,6 +70,7 @@ class LockScreen {
 
     _render() {
         this.contentEl.innerHTML = '';
+        this.contentEl.appendChild(this.errorEl);
         this.errorEl.textContent = '';
 
         const user = this.userManager.getCurrentUser();
@@ -100,7 +112,7 @@ class LockScreen {
 
         const createUserBtn = document.createElement('button');
         createUserBtn.className = 'lock-create-user-btn';
-        createUserBtn.textContent = '+ 创建新用户';
+        createUserBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg> 创建新用户';
         createUserBtn.addEventListener('click', () => this._showCreateUser());
         this.contentEl.appendChild(createUserBtn);
 
@@ -119,39 +131,49 @@ class LockScreen {
             const userItem = document.createElement('div');
             userItem.className = 'lock-user-item' + (isCurrent ? ' lock-user-item-current' : '');
             
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'lock-user-item-delete';
-            deleteBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-            deleteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this._confirmDeleteUser(user.username);
-            });
+            const avatar = document.createElement('div');
+            avatar.className = 'lock-user-item-avatar';
+            avatar.textContent = (user.username.charAt(0) || '?').toUpperCase();
+            userItem.appendChild(avatar);
 
-            const renameBtn = document.createElement('button');
-            renameBtn.className = 'lock-user-item-rename';
-            renameBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
-            renameBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this._showRenameUser(user.username);
-            });
-            
-            userItem.innerHTML = `
-                <div class="lock-user-item-avatar">${(user.username.charAt(0) || '?').toUpperCase()}</div>
-                <div class="lock-user-item-info">
-                    <div class="lock-user-item-name">${user.username}</div>
-                    <div class="lock-user-item-status">${isCurrent ? '当前用户' : (user.password ? '需密码' : '无密码')}</div>
-                </div>
-            `;
-            
-            if (!isCurrent && users.length > 1) {
-                userItem.appendChild(deleteBtn);
-            }
+            const info = document.createElement('div');
+            info.className = 'lock-user-item-info';
+
+            const name = document.createElement('div');
+            name.className = 'lock-user-item-name';
+            name.textContent = user.username;
+            info.appendChild(name);
+
+            const status = document.createElement('div');
+            status.className = 'lock-user-item-status';
+            status.textContent = isCurrent ? '当前用户' : (user.password ? '需密码' : '无密码');
+            info.appendChild(status);
+
+            userItem.appendChild(info);
 
             if (isCurrent) {
+                const renameBtn = document.createElement('button');
+                renameBtn.className = 'lock-user-item-rename';
+                renameBtn.title = '重命名';
+                renameBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+                renameBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this._showRenameUser(user.username);
+                });
                 userItem.appendChild(renameBtn);
-            }
-            
-            if (!isCurrent) {
+            } else {
+                if (users.length > 1) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'lock-user-item-delete';
+                    deleteBtn.title = '删除';
+                    deleteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this._confirmDeleteUser(user.username);
+                    });
+                    userItem.appendChild(deleteBtn);
+                }
+
                 userItem.addEventListener('click', () => {
                     if (user.password) {
                         this._showUserPassword(user.username);
@@ -170,7 +192,7 @@ class LockScreen {
         const needsPassword = user && user.password;
 
         const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:100000;';
 
         const dialog = document.createElement('div');
         dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
@@ -304,14 +326,17 @@ class LockScreen {
         errorDiv.className = 'lock-error';
         this.contentEl.appendChild(errorDiv);
 
+        const btnRow = document.createElement('div');
+        btnRow.className = 'lock-btn-row';
+
         const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'lock-create-cancel-btn';
+        cancelBtn.className = 'lock-cancel-btn';
         cancelBtn.textContent = '取消';
         cancelBtn.addEventListener('click', () => this._render());
-        this.contentEl.appendChild(cancelBtn);
+        btnRow.appendChild(cancelBtn);
 
         const renameBtn = document.createElement('button');
-        renameBtn.className = 'lock-create-btn';
+        renameBtn.className = 'lock-confirm-btn';
         renameBtn.textContent = '重命名';
         renameBtn.addEventListener('click', () => {
             const newUsername = usernameInput.value.trim();
@@ -327,7 +352,9 @@ class LockScreen {
                 errorDiv.textContent = result.message;
             }
         });
-        this.contentEl.appendChild(renameBtn);
+        btnRow.appendChild(renameBtn);
+
+        this.contentEl.appendChild(btnRow);
 
         usernameInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && passwordInput) {
@@ -371,19 +398,24 @@ class LockScreen {
         errorDiv.className = 'lock-error';
         this.contentEl.appendChild(errorDiv);
 
+        const btnRow = document.createElement('div');
+        btnRow.className = 'lock-btn-row';
+
         const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'lock-switch-cancel-btn';
+        cancelBtn.className = 'lock-cancel-btn';
         cancelBtn.textContent = '取消';
         cancelBtn.addEventListener('click', () => this._render());
-        this.contentEl.appendChild(cancelBtn);
+        btnRow.appendChild(cancelBtn);
 
         const confirmBtn = document.createElement('button');
-        confirmBtn.className = 'lock-switch-confirm-btn';
+        confirmBtn.className = 'lock-confirm-btn';
         confirmBtn.textContent = '确认切换';
         confirmBtn.addEventListener('click', () => {
             this._verifyAndSwitch(username, input.value, errorDiv);
         });
-        this.contentEl.appendChild(confirmBtn);
+        btnRow.appendChild(confirmBtn);
+
+        this.contentEl.appendChild(btnRow);
 
         input.focus();
     }
@@ -434,14 +466,17 @@ class LockScreen {
         errorDiv.className = 'lock-error';
         this.contentEl.appendChild(errorDiv);
 
+        const btnRow = document.createElement('div');
+        btnRow.className = 'lock-btn-row';
+
         const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'lock-create-cancel-btn';
+        cancelBtn.className = 'lock-cancel-btn';
         cancelBtn.textContent = '取消';
         cancelBtn.addEventListener('click', () => this._render());
-        this.contentEl.appendChild(cancelBtn);
+        btnRow.appendChild(cancelBtn);
 
         const createBtn = document.createElement('button');
-        createBtn.className = 'lock-create-btn';
+        createBtn.className = 'lock-confirm-btn';
         createBtn.textContent = '创建';
         createBtn.addEventListener('click', () => {
             const username = usernameInput.value.trim();
@@ -453,7 +488,9 @@ class LockScreen {
                 errorDiv.textContent = result.message;
             }
         });
-        this.contentEl.appendChild(createBtn);
+        btnRow.appendChild(createBtn);
+
+        this.contentEl.appendChild(btnRow);
 
         usernameInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') passwordInput.focus();

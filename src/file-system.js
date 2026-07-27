@@ -1,4 +1,4 @@
-import StorageService from './storage.js';
+import StorageService from './storage.js?v=14';
 
 const CURRENT_DIR_KEY = 'web-terminal-os-cwd';
 

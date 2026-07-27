@@ -1,4 +1,4 @@
-import StorageService from './storage.js';
+import StorageService from './storage.js?v=14';
 
 const CURRENT_USER_KEY = 'web-terminal-os-current-user';
 const USERS_FILE_PATH = '/etc/users.json';

@@ -175,13 +175,24 @@ body {
 }
 
 .fm-action-btn {
-    padding: 2px 8px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
     background: #3d3d3d;
     border: none;
     border-radius: 3px;
     color: #ccc;
-    font-size: 11px;
+    font-size: 0;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fm-action-btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
 }
 
 .fm-action-btn:hover {
