@@ -54,9 +54,7 @@ class AppStore {
             category: 'productivity',
             icon: `/apps/${app.path}/icon.svg`,
             installed: true,
-            hasUpdate: false,
-            downloads: Math.floor(Math.random() * 10000) + 1000,
-            rating: parseFloat((Math.random() * 1.5 + 3.5).toFixed(1))
+            hasUpdate: false
         };
 
         try {
@@ -84,9 +82,7 @@ class AppStore {
                 category: 'productivity',
                 icon: '/apps/calculator.app/icon.svg',
                 installed: true,
-                hasUpdate: false,
-                downloads: 5000,
-                rating: 4.5
+                hasUpdate: false
             },
             {
                 id: 'filemanager',
@@ -98,9 +94,7 @@ class AppStore {
                 category: 'system',
                 icon: '/apps/filemanager.app/icon.svg',
                 installed: true,
-                hasUpdate: false,
-                downloads: 8000,
-                rating: 4.7
+                hasUpdate: false
             },
             {
                 id: 'browser',
@@ -112,9 +106,7 @@ class AppStore {
                 category: 'productivity',
                 icon: '/apps/browser.app/icon.svg',
                 installed: true,
-                hasUpdate: false,
-                downloads: 10000,
-                rating: 4.4
+                hasUpdate: false
             }
         ];
     }
@@ -197,8 +189,6 @@ class AppStore {
         card.className = 'app-card';
         card.addEventListener('click', () => this.showAppDetail(app));
 
-        const stars = '★'.repeat(Math.floor(app.rating)) + '☆'.repeat(5 - Math.floor(app.rating));
-        
         card.innerHTML = `
             <div class="app-card-icon">
                 <img src="${app.icon}" alt="${app.name}" onerror="this.style.display='none'">
@@ -206,10 +196,6 @@ class AppStore {
             </div>
             <div class="app-card-name">${app.name}</div>
             <div class="app-card-developer">${app.developer}</div>
-            <div class="app-card-stats">
-                <span class="star-rating">${stars}</span>
-                <span class="download-count">${this.formatNumber(app.downloads)} 下载</span>
-            </div>
             <div class="app-card-description">${app.description}</div>
             <button class="app-card-install ${app.installed ? (app.hasUpdate ? 'update' : 'installed') : ''}" onclick="event.stopPropagation();">
                 ${app.installed ? (app.hasUpdate ? '更新' : '已安装') : '安装'}
@@ -217,15 +203,6 @@ class AppStore {
         `;
 
         return card;
-    }
-
-    formatNumber(num) {
-        if (num >= 10000) {
-            return (num / 10000).toFixed(1) + '万';
-        } else if (num >= 1000) {
-            return (num / 1000).toFixed(1) + 'k';
-        }
-        return num.toString();
     }
 
     showAppDetail(app) {
@@ -251,10 +228,7 @@ class AppStore {
 
         const statsContainer = document.querySelector('.modal-stats');
         if (statsContainer) {
-            statsContainer.innerHTML = `
-                <span class="stat-item">评分: <span class="star-rating">${'★'.repeat(Math.floor(app.rating)) + '☆'.repeat(5 - Math.floor(app.rating))}</span></span>
-                <span class="stat-item">下载量: ${this.formatNumber(app.downloads)}</span>
-            `;
+            statsContainer.style.display = 'none';
         }
 
         this.modalInstall.textContent = app.installed ? (app.hasUpdate ? '更新' : '已安装') : '安装';
@@ -270,37 +244,47 @@ class AppStore {
 
     handleInstallAction(app) {
         if (!app) return;
-
-        if (app.installed && !app.hasUpdate) {
-            window.parent.openApp(app.id);
-            this.closeModal();
-            return;
-        }
-
-        this.modalInstall.textContent = app.hasUpdate ? '更新中...' : '安装中...';
-        this.modalInstall.disabled = true;
-
-        setTimeout(() => {
+        
+        if (app.installed) {
             if (app.hasUpdate) {
+                this.showAlert('应用更新成功');
                 app.version = app.latestVersion;
                 app.hasUpdate = false;
-                this.modalInstall.textContent = '已更新';
                 this.checkUpdates();
             } else {
-                app.installed = true;
-                this.modalInstall.textContent = '已安装';
+                this.showAlert('应用已安装');
             }
-            
-            this.modalInstall.classList.remove('update');
-            this.modalInstall.classList.add('installed');
-            this.modalInstall.disabled = false;
-            
-            this.renderApps();
+        } else {
+            this.showAlert(`${app.name} 安装成功`);
+            app.installed = true;
+        }
+        
+        this.renderApps();
+        this.closeModal();
+    }
 
-            setTimeout(() => {
-                this.closeModal();
-            }, 1000);
-        }, 1500);
+    showAlert(message) {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
+        
+        const dialog = document.createElement('div');
+        dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
+        
+        const msg = document.createElement('div');
+        msg.style.cssText = 'font-size:14px;color:#ccc;margin-bottom:16px;';
+        msg.textContent = message;
+        dialog.appendChild(msg);
+        
+        const okBtn = document.createElement('button');
+        okBtn.textContent = '确定';
+        okBtn.style.cssText = 'padding:8px 24px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
+        okBtn.addEventListener('click', () => {
+            document.body.removeChild(overlay);
+        });
+        dialog.appendChild(okBtn);
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
     }
 }
 
