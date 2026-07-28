@@ -347,3 +347,53 @@ body {
     color: #666;
     padding: 40px;
 }
+
+.fm-network-hint {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #555;
+}
+
+.fm-network-local {
+    background: #1a3a5a;
+    border: 1px solid #2a5a8a;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.fm-network-local-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.fm-network-local-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #eee;
+}
+
+.fm-network-local-badge {
+    background: #2ecc71;
+    color: #fff;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.fm-network-local-info {
+    font-size: 13px;
+    color: #bbb;
+    line-height: 1.8;
+}
+
+.fm-network-divider {
+    color: #666;
+    font-size: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #3d3d3d;
+    margin-bottom: 12px;
+}

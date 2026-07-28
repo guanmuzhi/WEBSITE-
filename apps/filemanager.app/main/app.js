@@ -245,74 +245,177 @@ class FileManager {
         document.getElementById('fm-network-panel').style.display = 'flex';
     }
 
-    scanNetwork() {
+    async scanNetwork() {
         const scanBtn = document.getElementById('fm-network-scan');
         const usersContainer = document.getElementById('fm-network-users');
         
         scanBtn.textContent = '搜索中...';
         scanBtn.disabled = true;
-        usersContainer.innerHTML = '';
-        
-        setTimeout(() => {
-            const users = this.discoverLocalNetworkUsers();
-            
-            if (users.length === 0) {
-                usersContainer.innerHTML = '<div class="fm-network-empty">未在局域网中发现其他WebOS用户</div>';
-            } else {
-                users.forEach(user => {
-                    const userEl = document.createElement('div');
-                    userEl.className = 'fm-network-user';
-                    userEl.innerHTML = `
-                        <div class="fm-network-user-header">
-                            <span class="fm-network-user-name">${user.name}</span>
-                            <span class="fm-network-user-ip">${user.ip}</span>
-                        </div>
-                        <div class="fm-network-user-shared">共享文件夹: ${user.sharedFolders.join(', ')}</div>
-                    `;
-                    userEl.addEventListener('click', () => {
-                        this.connectToUser(user);
-                    });
-                    usersContainer.appendChild(userEl);
-                });
-            }
-            
-            scanBtn.textContent = '搜索局域网用户';
-            scanBtn.disabled = false;
-        }, 1500);
-    }
+        usersContainer.innerHTML = '<div class="fm-network-empty">正在搜索局域网...</div>';
 
-    discoverLocalNetworkUsers() {
-        const hostname = window.location.hostname;
-        const baseIP = hostname.startsWith('192.168.') ? hostname.substring(0, hostname.lastIndexOf('.') + 1) : '192.168.1.';
+        const localIP = await this.getLocalIP();
+        const myInfo = await this.collectMyInfo(localIP);
         
-        const users = [];
-        const possibleNames = ['张三', '李四', '王五', '赵六', '陈七'];
+        const users = await this.discoverNetworkUsers(myInfo);
         
-        for (let i = 101; i <= 105; i++) {
-            if (Math.random() > 0.3) {
-                const name = possibleNames[Math.floor(Math.random() * possibleNames.length)];
-                const sharedFolders = [];
-                const folderNames = ['文档', '图片', '音乐', '视频', '工作', '备份'];
-                const numFolders = Math.floor(Math.random() * 3) + 1;
-                for (let j = 0; j < numFolders; j++) {
-                    const folder = folderNames[Math.floor(Math.random() * folderNames.length)];
-                    if (!sharedFolders.includes(folder)) {
-                        sharedFolders.push(folder);
-                    }
-                }
-                users.push({
-                    name: name,
-                    ip: baseIP + i,
-                    sharedFolders: sharedFolders
+        usersContainer.innerHTML = '';
+
+        const localInfoEl = document.createElement('div');
+        localInfoEl.className = 'fm-network-local';
+        localInfoEl.innerHTML = `
+            <div class="fm-network-local-header">
+                <span class="fm-network-local-title">本机</span>
+                <span class="fm-network-local-badge">在线</span>
+            </div>
+            <div class="fm-network-local-info">
+                <div>用户名: ${myInfo.username}</div>
+                <div>IP地址: ${myInfo.ip}</div>
+                <div>共享文件夹: ${myInfo.sharedFolders.length > 0 ? myInfo.sharedFolders.join(', ') : '无'}</div>
+            </div>
+        `;
+        usersContainer.appendChild(localInfoEl);
+
+        if (users.length === 0) {
+            const emptyEl = document.createElement('div');
+            emptyEl.className = 'fm-network-empty';
+            emptyEl.innerHTML = '未在局域网中发现其他WebOS用户<br><span class="fm-network-hint">提示: 在同一局域网的其他设备上打开WebOS即可被发现</span>';
+            usersContainer.appendChild(emptyEl);
+        } else {
+            const divider = document.createElement('div');
+            divider.className = 'fm-network-divider';
+            divider.textContent = `发现 ${users.length} 个用户`;
+            usersContainer.appendChild(divider);
+
+            users.forEach(user => {
+                const userEl = document.createElement('div');
+                userEl.className = 'fm-network-user';
+                userEl.innerHTML = `
+                    <div class="fm-network-user-header">
+                        <span class="fm-network-user-name">${user.username}</span>
+                        <span class="fm-network-user-ip">${user.ip}</span>
+                    </div>
+                    <div class="fm-network-user-shared">共享文件夹: ${user.sharedFolders.length > 0 ? user.sharedFolders.join(', ') : '无'}</div>
+                `;
+                userEl.addEventListener('click', () => {
+                    this.connectToUser(user);
                 });
-            }
+                usersContainer.appendChild(userEl);
+            });
         }
         
-        return users;
+        scanBtn.textContent = '搜索局域网用户';
+        scanBtn.disabled = false;
+    }
+
+    async getLocalIP() {
+        return new Promise((resolve) => {
+            try {
+                const rtc = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                });
+                let found = false;
+                rtc.createDataChannel('');
+                rtc.onicecandidate = (e) => {
+                    if (e.candidate && !found) {
+                        const candidate = e.candidate.candidate;
+                        const ipMatch = candidate.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+                        if (ipMatch && !ipMatch[1].startsWith('0.')) {
+                            found = true;
+                            rtc.close();
+                            resolve(ipMatch[1]);
+                        }
+                    }
+                };
+                rtc.createOffer().then(offer => rtc.setLocalDescription(offer));
+                setTimeout(() => {
+                    if (!found) {
+                        rtc.close();
+                        resolve(window.location.hostname || '127.0.0.1');
+                    }
+                }, 3000);
+            } catch (e) {
+                resolve(window.location.hostname || '127.0.0.1');
+            }
+        });
+    }
+
+    async collectMyInfo(localIP) {
+        let username = 'WebOS用户';
+        try {
+            const userManager = window.parent.UserManager;
+            if (userManager) {
+                const instance = userManager.getInstance();
+                const currentUser = instance.getCurrentUser();
+                if (currentUser && currentUser.name) {
+                    username = currentUser.name;
+                }
+            }
+        } catch (e) {}
+
+        let sharedFolders = [];
+        try {
+            const root = this.storage.fs;
+            if (root && root.children) {
+                sharedFolders = root.children
+                    .filter(c => c.type === 'folder')
+                    .map(c => c.name);
+            }
+        } catch (e) {}
+
+        return {
+            id: 'local-' + localIP,
+            username: username,
+            ip: localIP,
+            sharedFolders: sharedFolders,
+            timestamp: Date.now()
+        };
+    }
+
+    async discoverNetworkUsers(myInfo) {
+        return new Promise((resolve) => {
+            const discovered = new Map();
+            let channel = null;
+
+            try {
+                channel = new BroadcastChannel('webos-network-share');
+            } catch (e) {
+                resolve([]);
+                return;
+            }
+
+            channel.onmessage = (e) => {
+                const data = e.data;
+                if (data && data.type === 'webos-presence' && data.info && data.info.id !== myInfo.id) {
+                    if (Date.now() - data.info.timestamp < 10000) {
+                        discovered.set(data.info.id, data.info);
+                    }
+                }
+            };
+
+            channel.postMessage({
+                type: 'webos-presence-request',
+                info: myInfo
+            });
+
+            setTimeout(() => {
+                channel.postMessage({
+                    type: 'webos-presence',
+                    info: myInfo
+                });
+            }, 500);
+
+            setTimeout(() => {
+                channel.close();
+                resolve(Array.from(discovered.values()));
+            }, 2500);
+        });
     }
 
     connectToUser(user) {
-        this.showAlert(`已连接到 ${user.name} (${user.ip})\n\n共享资源:\n${user.sharedFolders.join('\n')}`);
+        const folderList = user.sharedFolders.length > 0 
+            ? user.sharedFolders.map(f => `  - ${f}`).join('\n')
+            : '  无共享文件夹';
+        this.showAlert(`已连接到 ${user.username} (${user.ip})\n\n共享资源:\n${folderList}`);
     }
 
     getCurrentPath() {
