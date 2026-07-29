@@ -48,10 +48,10 @@ class AppStore {
             id: app.id,
             name: app.name,
             developer: 'WebOS',
-            version: '1.0.0',
-            latestVersion: '1.0.0',
-            description: `使用 ${app.name} 应用`,
-            category: 'productivity',
+            version: app.version || '1.0.0',
+            latestVersion: app.version || '1.0.0',
+            description: app.description || `使用 ${app.name} 应用`,
+            category: app.category || 'productivity',
             icon: `/apps/${app.path}/icon.svg`,
             installed: true,
             hasUpdate: false
@@ -226,11 +226,6 @@ class AppStore {
         
         this.modalDescription.textContent = app.description;
 
-        const statsContainer = document.querySelector('.modal-stats');
-        if (statsContainer) {
-            statsContainer.style.display = 'none';
-        }
-
         this.modalInstall.textContent = app.installed ? (app.hasUpdate ? '更新' : '已安装') : '安装';
         this.modalInstall.className = `modal-install ${app.installed ? (app.hasUpdate ? 'update' : 'installed') : ''}`;
 
@@ -244,47 +239,37 @@ class AppStore {
 
     handleInstallAction(app) {
         if (!app) return;
-        
-        if (app.installed) {
+
+        if (app.installed && !app.hasUpdate) {
+            window.parent.openApp(app.id);
+            this.closeModal();
+            return;
+        }
+
+        this.modalInstall.textContent = app.hasUpdate ? '更新中...' : '安装中...';
+        this.modalInstall.disabled = true;
+
+        setTimeout(() => {
             if (app.hasUpdate) {
-                this.showAlert('应用更新成功');
                 app.version = app.latestVersion;
                 app.hasUpdate = false;
+                this.modalInstall.textContent = '已更新';
                 this.checkUpdates();
             } else {
-                this.showAlert('应用已安装');
+                app.installed = true;
+                this.modalInstall.textContent = '已安装';
             }
-        } else {
-            this.showAlert(`${app.name} 安装成功`);
-            app.installed = true;
-        }
-        
-        this.renderApps();
-        this.closeModal();
-    }
+            
+            this.modalInstall.classList.remove('update');
+            this.modalInstall.classList.add('installed');
+            this.modalInstall.disabled = false;
+            
+            this.renderApps();
 
-    showAlert(message) {
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
-        
-        const dialog = document.createElement('div');
-        dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
-        
-        const msg = document.createElement('div');
-        msg.style.cssText = 'font-size:14px;color:#ccc;margin-bottom:16px;';
-        msg.textContent = message;
-        dialog.appendChild(msg);
-        
-        const okBtn = document.createElement('button');
-        okBtn.textContent = '确定';
-        okBtn.style.cssText = 'padding:8px 24px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
-        okBtn.addEventListener('click', () => {
-            document.body.removeChild(overlay);
-        });
-        dialog.appendChild(okBtn);
-        
-        overlay.appendChild(dialog);
-        document.body.appendChild(overlay);
+            setTimeout(() => {
+                this.closeModal();
+            }, 1000);
+        }, 1500);
     }
 }
 

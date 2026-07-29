@@ -114,7 +114,12 @@ class Browser {
         const tab = this.tabs[index];
         
         this.addressInput.value = tab.url;
-        this.browserFrame.src = tab.url;
+        
+        if (tab.url && tab.url !== 'about:blank') {
+            this.browserFrame.src = '/proxy?url=' + encodeURIComponent(tab.url);
+        } else {
+            this.browserFrame.src = 'about:blank';
+        }
         
         if (tab.history.length > 0) {
             tab.historyIndex = tab.history.length - 1;
@@ -242,7 +247,9 @@ class Browser {
         
         this.updateTabsUI();
         
-        this.browserFrame.src = url;
+        // Use proxy to bypass X-Frame-Options restrictions
+        const proxyUrl = '/proxy?url=' + encodeURIComponent(url);
+        this.browserFrame.src = proxyUrl;
         
         this.updateNavButtons();
     }
@@ -254,7 +261,7 @@ class Browser {
             const url = currentTab.history[currentTab.historyIndex];
             currentTab.url = url;
             this.addressInput.value = url;
-            this.browserFrame.src = url;
+            this.browserFrame.src = '/proxy?url=' + encodeURIComponent(url);
             this.updateNavButtons();
         }
     }
@@ -266,7 +273,7 @@ class Browser {
             const url = currentTab.history[currentTab.historyIndex];
             currentTab.url = url;
             this.addressInput.value = url;
-            this.browserFrame.src = url;
+            this.browserFrame.src = '/proxy?url=' + encodeURIComponent(url);
             this.updateNavButtons();
         }
     }
@@ -274,7 +281,8 @@ class Browser {
     refresh() {
         const currentTab = this.tabs[this.currentTabIndex];
         if (currentTab.history.length > 0) {
-            this.browserFrame.src = currentTab.history[currentTab.historyIndex];
+            const url = currentTab.history[currentTab.historyIndex];
+            this.browserFrame.src = '/proxy?url=' + encodeURIComponent(url);
             this.statusText.textContent = '正在刷新...';
         }
     }

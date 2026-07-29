@@ -10,6 +10,7 @@ class LockScreen {
     }
 
     _create() {
+        // 移除已有的锁定屏幕
         const existing = document.querySelector('.lock-screen');
         if (existing) existing.remove();
 
@@ -21,7 +22,7 @@ class LockScreen {
 
         const version = document.createElement('div');
         version.className = 'lock-version';
-        version.textContent = 'WebOS v1.0.8';
+        version.textContent = 'WebOS v1.0.9';
         lockContainer.appendChild(version);
 
         const header = document.createElement('div');
@@ -37,6 +38,7 @@ class LockScreen {
 
         lockContainer.appendChild(header);
 
+        // 中部：解锁区域
         const content = document.createElement('div');
         content.className = 'lock-content';
         lockContainer.appendChild(content);
@@ -45,6 +47,7 @@ class LockScreen {
         error.className = 'lock-error';
         content.appendChild(error);
 
+        // 底部：用户列表
         const userListHeader = document.createElement('div');
         userListHeader.className = 'lock-user-list-header';
         userListHeader.textContent = '切换用户';
