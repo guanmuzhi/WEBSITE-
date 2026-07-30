@@ -203,6 +203,39 @@ body {
     height: 16px;
 }
 
+.bookmarks-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    background: rgba(15, 15, 30, 0.9);
+    border-bottom: 1px solid #3d3d5c;
+    flex-shrink: 0;
+    overflow-x: auto;
+}
+
+.bookmark-link {
+    padding: 4px 10px;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 4px;
+    color: #bbb;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+.bookmark-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.bookmark-link:active {
+    background: rgba(52, 152, 219, 0.3);
+}
+
 .status-bar {
     height: 24px;
     background: rgba(20, 20, 40, 0.9);
@@ -236,7 +269,6 @@ body {
     right: 0;
     bottom: 0;
     background: rgba(13, 13, 26, 0.95);
-    display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10;
@@ -276,6 +308,12 @@ body {
 .error-message {
     font-size: 14px;
     color: #888;
+    margin-bottom: 8px;
+}
+
+.error-hint {
+    font-size: 12px;
+    color: #555;
     margin-bottom: 24px;
 }
 
