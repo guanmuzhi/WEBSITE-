@@ -35,19 +35,9 @@
                     </svg>
                 </button>
             </div>
-            <div class="tabs-container" id="tabs-container">
-                <div class="tab active" data-tab="0">
-                    <span class="tab-title">新标签页</span>
-                    <button class="tab-close" data-tab="0">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"/>
-                            <line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
+            <div class="tabs-container" id="tabs-container"></div>
             <div class="address-bar-container">
-                <input type="text" id="address-input" class="address-bar" placeholder="输入网址或搜索..." value="https://www.bing.com">
+                <input type="text" id="address-input" class="address-bar" placeholder="输入网址或搜索...">
                 <button class="go-btn" id="go-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"/>
@@ -56,11 +46,12 @@
                 </button>
             </div>
         </div>
+        <div class="bookmarks-bar" id="bookmarks-bar"></div>
         <div class="status-bar">
             <span id="status-text">就绪</span>
         </div>
         <div class="content-area" id="content-area">
-            <iframe id="browser-frame" src="about:blank" sandbox="allow-forms allow-scripts allow-same-origin allow-popups"></iframe>
+            <iframe id="browser-frame" src="about:blank" sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-modals"></iframe>
         </div>
         <div class="iframe-error" id="iframe-error">
             <div class="error-content">
@@ -71,11 +62,12 @@
                         <line x1="9" y1="9" x2="15" y2="15"/>
                     </svg>
                 </div>
-                <div class="error-title">无法加载此页面</div>
-                <div class="error-message" id="error-message">该网站不允许在iframe中显示</div>
+                <div class="error-title">无法嵌入显示此页面</div>
+                <div class="error-message" id="error-message">该网站不允许在嵌入式浏览器中显示</div>
+                <div class="error-hint">大多数主流网站（Apple、Google、GitHub 等）设置了 X-Frame-Options 或 CSP 安全策略，禁止被 iframe 嵌入。这是浏览器安全限制，纯前端无法绕过。</div>
                 <div class="error-actions">
                     <button class="error-btn" id="retry-btn">重试</button>
-                    <button class="error-btn primary" id="open-external-btn">在新标签页打开</button>
+                    <button class="error-btn primary" id="open-external-btn">在新窗口打开</button>
                 </div>
             </div>
         </div>

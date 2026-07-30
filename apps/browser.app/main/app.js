@@ -14,12 +14,21 @@ class Browser {
         this.errorMessage = document.getElementById('error-message');
         this.retryBtn = document.getElementById('retry-btn');
         this.openExternalBtn = document.getElementById('open-external-btn');
+        this.bookmarksBar = document.getElementById('bookmarks-bar');
         
         this.tabs = [];
         this.currentTabIndex = 0;
         this.tabIdCounter = 1;
+        this.loadTimeout = null;
+        this.lastUrl = null;
         
-        this.blockedSites = [];
+        this.bookmarks = [
+            { name: 'Wikipedia', url: 'https://www.wikipedia.org' },
+            { name: 'Example', url: 'https://example.com' },
+            { name: 'MDN Web Docs', url: 'https://developer.mozilla.org' },
+            { name: 'JSONPlaceholder', url: 'https://jsonplaceholder.typicode.com' },
+            { name: 'HTTPBin', url: 'https://httpbin.org' }
+        ];
         
         this.init();
     }
@@ -40,10 +49,6 @@ class Browser {
             this.onPageLoad();
         });
         
-        this.browserFrame.addEventListener('error', () => {
-            this.onPageError();
-        });
-        
         this.retryBtn.addEventListener('click', () => {
             this.hideError();
             this.refresh();
@@ -52,13 +57,30 @@ class Browser {
         this.openExternalBtn.addEventListener('click', () => {
             const currentTab = this.tabs[this.currentTabIndex];
             if (currentTab && currentTab.url && currentTab.url !== 'about:blank') {
-                window.open(currentTab.url, '_blank');
+                window.open(currentTab.url, '_blank', 'noopener,noreferrer');
             }
             this.hideError();
         });
         
+        this.renderBookmarks();
         this.addNewTab('about:blank', '新标签页');
         this.updateNavButtons();
+    }
+    
+    renderBookmarks() {
+        if (!this.bookmarksBar) return;
+        this.bookmarksBar.innerHTML = '';
+        this.bookmarks.forEach(bm => {
+            const link = document.createElement('button');
+            link.className = 'bookmark-link';
+            link.textContent = bm.name;
+            link.title = bm.url;
+            link.addEventListener('click', () => {
+                this.addressInput.value = bm.url;
+                this.navigate();
+            });
+            this.bookmarksBar.appendChild(link);
+        });
     }
     
     addNewTab(url, title) {
@@ -113,16 +135,13 @@ class Browser {
         this.currentTabIndex = index;
         const tab = this.tabs[index];
         
-        this.addressInput.value = tab.url;
+        this.addressInput.value = tab.url === 'about:blank' ? '' : tab.url;
         
         if (tab.url && tab.url !== 'about:blank') {
-            this.browserFrame.src = '/proxy?url=' + encodeURIComponent(tab.url);
+            this.loadUrl(tab.url);
         } else {
+            this.browserFrame.removeAttribute('srcdoc');
             this.browserFrame.src = 'about:blank';
-        }
-        
-        if (tab.history.length > 0) {
-            tab.historyIndex = tab.history.length - 1;
         }
         
         this.updateTabsUI();
@@ -139,6 +158,7 @@ class Browser {
             this.tabs[0].history = [];
             this.tabs[0].historyIndex = -1;
             this.addressInput.value = '';
+            this.browserFrame.removeAttribute('srcdoc');
             this.browserFrame.src = 'about:blank';
             this.updateTabsUI();
             this.updateNavButtons();
@@ -183,7 +203,7 @@ class Browser {
         
         let trimmedUrl = url.trim();
         
-        if (/^(https?:\/\/|ftp:\/\/)/i.test(trimmedUrl)) {
+        if (/^(https?:\/\/)/i.test(trimmedUrl)) {
             return trimmedUrl;
         }
         
@@ -191,31 +211,13 @@ class Browser {
             return 'https://' + trimmedUrl;
         }
         
-        if (/^[a-z0-9]+$/i.test(trimmedUrl)) {
-            return 'https://' + trimmedUrl + '.com';
-        }
-        
         return 'https://www.bing.com/search?q=' + encodeURIComponent(trimmedUrl);
-    }
-    
-    isSiteBlocked(url) {
-        try {
-            const hostname = new URL(url).hostname.toLowerCase();
-            return this.blockedSites.includes(hostname);
-        } catch {
-            return false;
-        }
     }
     
     navigate() {
         const url = this.validateUrl(this.addressInput.value);
         if (!url) {
             this.statusText.textContent = '请输入有效的网址';
-            return;
-        }
-        
-        if (this.isSiteBlocked(url)) {
-            this.showError('该网站不允许在iframe中显示', url);
             return;
         }
         
@@ -246,12 +248,50 @@ class Browser {
         }
         
         this.updateTabsUI();
-        
-        // Use proxy to bypass X-Frame-Options restrictions
-        const proxyUrl = '/proxy?url=' + encodeURIComponent(url);
-        this.browserFrame.src = proxyUrl;
-        
+        this.loadUrl(url);
         this.updateNavButtons();
+    }
+    
+    loadUrl(url) {
+        this.hideError();
+        this.statusText.textContent = '正在加载...';
+        this.lastUrl = url;
+        
+        if (this.loadTimeout) {
+            clearTimeout(this.loadTimeout);
+        }
+        
+        // Clear any previous srcdoc and set the new URL
+        this.browserFrame.removeAttribute('srcdoc');
+        this.browserFrame.src = url;
+        
+        // Shorter timeout - if load doesn't complete in 3s, show error.
+        // Most iframe blocks (X-Frame-Options) manifest as either a quick
+        // blank load or a navigation that never completes.
+        this.loadTimeout = setTimeout(() => {
+            this.handleLoadFailure(url);
+        }, 3000);
+    }
+    
+    handleLoadFailure(url) {
+        // Check if iframe actually loaded content
+        let hasContent = false;
+        try {
+            const doc = this.browserFrame.contentDocument;
+            if (doc && doc.body && doc.body.innerHTML.length > 100) {
+                hasContent = true;
+            }
+        } catch (e) {
+            // Cross-origin access throws SecurityError - page likely loaded
+            hasContent = true;
+        }
+        
+        if (!hasContent) {
+            this.showError(
+                '该网站设置了安全策略（X-Frame-Options / CSP frame-ancestors），禁止在嵌入式浏览器中显示。',
+                url
+            );
+        }
     }
     
     goBack() {
@@ -261,7 +301,7 @@ class Browser {
             const url = currentTab.history[currentTab.historyIndex];
             currentTab.url = url;
             this.addressInput.value = url;
-            this.browserFrame.src = '/proxy?url=' + encodeURIComponent(url);
+            this.loadUrl(url);
             this.updateNavButtons();
         }
     }
@@ -273,7 +313,7 @@ class Browser {
             const url = currentTab.history[currentTab.historyIndex];
             currentTab.url = url;
             this.addressInput.value = url;
-            this.browserFrame.src = '/proxy?url=' + encodeURIComponent(url);
+            this.loadUrl(url);
             this.updateNavButtons();
         }
     }
@@ -282,13 +322,44 @@ class Browser {
         const currentTab = this.tabs[this.currentTabIndex];
         if (currentTab.history.length > 0) {
             const url = currentTab.history[currentTab.historyIndex];
-            this.browserFrame.src = '/proxy?url=' + encodeURIComponent(url);
-            this.statusText.textContent = '正在刷新...';
+            this.loadUrl(url);
         }
     }
     
     onPageLoad() {
         const currentTab = this.tabs[this.currentTabIndex];
+        const url = currentTab ? currentTab.url : null;
+        
+        // Detect iframe blocked by X-Frame-Options: same-origin blank document
+        let blocked = false;
+        try {
+            const doc = this.browserFrame.contentDocument;
+            if (doc && (!doc.body || doc.body.innerHTML.trim() === '')) {
+                blocked = true;
+            }
+        } catch (e) {
+            // Cross-origin throws - page actually loaded successfully
+        }
+        
+        if (blocked) {
+            if (url && url !== 'about:blank') {
+                if (this.loadTimeout) {
+                    clearTimeout(this.loadTimeout);
+                    this.loadTimeout = null;
+                }
+                this.showError(
+                    '该网站设置了安全策略（X-Frame-Options / CSP frame-ancestors），禁止在嵌入式浏览器中显示。',
+                    url
+                );
+                return;
+            }
+        }
+        
+        // Page loaded successfully
+        if (this.loadTimeout) {
+            clearTimeout(this.loadTimeout);
+            this.loadTimeout = null;
+        }
         
         try {
             if (this.browserFrame.contentDocument && this.browserFrame.contentDocument.title) {
@@ -296,23 +367,15 @@ class Browser {
                 this.updateTabsUI();
             }
         } catch (e) {
-            console.log('无法获取页面标题:', e);
+            // Cross-origin - can't access title
         }
         
         this.statusText.textContent = '就绪';
         this.updateNavButtons();
-        this.hideError();
-    }
-    
-    onPageError() {
-        const currentTab = this.tabs[this.currentTabIndex];
-        if (currentTab && currentTab.url && currentTab.url !== 'about:blank') {
-            this.showError('该网站不允许在嵌入式浏览器中显示', currentTab.url);
-        }
     }
     
     showError(message, url) {
-        this.errorMessage.textContent = message + '\n建议使用"在新标签页打开"功能';
+        this.errorMessage.textContent = message;
         this.openExternalBtn.dataset.url = url || '';
         this.iframeError.classList.add('show');
         this.statusText.textContent = '加载失败';
