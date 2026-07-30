@@ -42,6 +42,16 @@ class Browser {
             }
         });
         
+        // Hijack window.open so same-origin iframe popups open as internal tabs
+        this._originalWindowOpen = window.open.bind(window);
+        window.open = (url, target, features) => {
+            if (url && typeof url === 'string' && (target === '_blank' || !target)) {
+                this.openNewTabWithUrl(url);
+                return null;
+            }
+            return this._originalWindowOpen(url, target, features);
+        };
+        
         this.browserFrame.addEventListener('load', () => {
             this.onPageLoad();
         });
@@ -54,7 +64,7 @@ class Browser {
         this.openExternalBtn.addEventListener('click', () => {
             const currentTab = this.tabs[this.currentTabIndex];
             if (currentTab && currentTab.url && currentTab.url !== 'about:blank') {
-                window.open(currentTab.url, '_blank', 'noopener,noreferrer');
+                this._originalWindowOpen(currentTab.url, '_blank', 'noopener,noreferrer');
             }
             this.hideError();
         });
@@ -62,6 +72,12 @@ class Browser {
         this.renderBookmarks();
         this.addNewTab('about:blank', '新标签页');
         this.updateNavButtons();
+    }
+    
+    openNewTabWithUrl(url) {
+        const validatedUrl = this.validateUrl(url);
+        if (!validatedUrl) return;
+        this.addNewTab(validatedUrl, validatedUrl);
     }
     
     renderBookmarks() {
@@ -304,7 +320,24 @@ class Browser {
             clearTimeout(this._loadCheckTimeout);
         }
 
-        // If we can access cross-origin document, it means same-origin — check title
+        // Try to intercept window.open inside the iframe (same-origin only)
+        try {
+            const childWindow = this.browserFrame.contentWindow;
+            if (childWindow && childWindow.open) {
+                const origOpen = childWindow.open.bind(childWindow);
+                childWindow.open = (w, t, f) => {
+                    if (w && typeof w === 'string' && (t === '_blank' || !t)) {
+                        this.openNewTabWithUrl(w);
+                        return null;
+                    }
+                    return origOpen(w, t, f);
+                };
+            }
+        } catch (e) {
+            // Cross-origin - can't touch iframe's window
+        }
+
+        // Update tab title for same-origin pages
         try {
             if (this.browserFrame.contentDocument && this.browserFrame.contentDocument.title) {
                 currentTab.title = this.browserFrame.contentDocument.title;
