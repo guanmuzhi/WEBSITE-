@@ -42,6 +42,17 @@ class Browser {
             }
         });
         
+        // Hijack window.open to intercept target="_blank" links from iframe
+        this._originalWindowOpen = window.open.bind(window);
+        window.open = (url, target, features) => {
+            if (url && typeof url === 'string' && (target === '_blank' || !target)) {
+                // Open in new tab inside browser instead of real window
+                this.openNewTabWithUrl(url);
+                return null;
+            }
+            return this._originalWindowOpen(url, target, features);
+        };
+        
         this.browserFrame.addEventListener('load', () => {
             this.onPageLoad();
         });
@@ -54,7 +65,7 @@ class Browser {
         this.openExternalBtn.addEventListener('click', () => {
             const currentTab = this.tabs[this.currentTabIndex];
             if (currentTab && currentTab.url && currentTab.url !== 'about:blank') {
-                window.open(currentTab.url, '_blank', 'noopener,noreferrer');
+                this._originalWindowOpen(currentTab.url, '_blank', 'noopener,noreferrer');
             }
             this.hideError();
         });
@@ -62,6 +73,12 @@ class Browser {
         this.renderBookmarks();
         this.addNewTab('about:blank', '新标签页');
         this.updateNavButtons();
+    }
+    
+    openNewTabWithUrl(url) {
+        const validatedUrl = this.validateUrl(url);
+        if (!validatedUrl) return;
+        this.addNewTab(validatedUrl, validatedUrl);
     }
     
     renderBookmarks() {
