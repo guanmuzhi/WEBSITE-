@@ -22,9 +22,7 @@ class Browser {
         this.lastUrl = null;
         
         this.bookmarks = [
-            { name: 'Wikipedia', url: 'https://www.wikipedia.org' },
             { name: 'Example', url: 'https://example.com' },
-            { name: 'MDN Web Docs', url: 'https://developer.mozilla.org' },
             { name: 'JSONPlaceholder', url: 'https://jsonplaceholder.typicode.com' },
             { name: 'HTTPBin', url: 'https://httpbin.org' }
         ];
@@ -252,6 +250,10 @@ class Browser {
     }
     
     loadUrl(url) {
+        if (this._loadCheckTimeout) {
+            clearTimeout(this._loadCheckTimeout);
+            this._loadCheckTimeout = null;
+        }
         this.hideError();
         this.statusText.textContent = '正在加载...';
         this.lastUrl = url;
@@ -297,41 +299,51 @@ class Browser {
         const currentTab = this.tabs[this.currentTabIndex];
         const url = currentTab ? currentTab.url : null;
 
-        // Detect iframe blocked by X-Frame-Options: same-origin blank document
-        let blocked = false;
-        try {
-            const doc = this.browserFrame.contentDocument;
-            if (doc && (!doc.body || doc.body.innerHTML.trim() === '')) {
-                blocked = true;
-            }
-        } catch (e) {
-            // Cross-origin throws - page actually loaded successfully
+        // Clear any previous delayed check
+        if (this._loadCheckTimeout) {
+            clearTimeout(this._loadCheckTimeout);
         }
 
-        if (blocked) {
-            if (url && url !== 'about:blank') {
-                this.showError(
-                    '该网站设置了安全策略（X-Frame-Options / CSP frame-ancestors），禁止在嵌入式浏览器中显示。',
-                    url
-                );
-                return;
-            }
-        }
-
-        // Page loaded successfully - hide any previous error overlay
-        this.hideError();
-
+        // If we can access cross-origin document, it means same-origin — check title
         try {
             if (this.browserFrame.contentDocument && this.browserFrame.contentDocument.title) {
                 currentTab.title = this.browserFrame.contentDocument.title;
                 this.updateTabsUI();
             }
         } catch (e) {
-            // Cross-origin - can't access title
+            // Cross-origin - can't access title, but page likely loaded fine
         }
 
-        this.statusText.textContent = '就绪';
-        this.updateNavButtons();
+        // Delay the blank-document check to let SPA / slow pages render
+        this._loadCheckTimeout = setTimeout(() => {
+            // Only check if we're still on the same URL
+            if (this.lastUrl !== url) return;
+
+            let blocked = false;
+            try {
+                const doc = this.browserFrame.contentDocument;
+                if (doc && (!doc.body || doc.body.innerHTML.trim() === '')) {
+                    blocked = true;
+                }
+            } catch (e) {
+                // Cross-origin throws — page actually loaded successfully
+                blocked = false;
+            }
+
+            if (blocked && url && url !== 'about:blank') {
+                this.showError(
+                    '该网站设置了安全策略（X-Frame-Options / CSP frame-ancestors），禁止在嵌入式浏览器中显示。',
+                    url
+                );
+                this.statusText.textContent = '加载失败';
+            } else {
+                this.hideError();
+                this.statusText.textContent = '就绪';
+            }
+            this.updateNavButtons();
+        }, 1200);
+
+        this.statusText.textContent = '正在加载...';
     }
     
     showError(message, url) {
