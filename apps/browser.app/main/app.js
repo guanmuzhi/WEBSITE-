@@ -19,7 +19,6 @@ class Browser {
         this.tabs = [];
         this.currentTabIndex = 0;
         this.tabIdCounter = 1;
-        this.loadTimeout = null;
         this.lastUrl = null;
         
         this.bookmarks = [
@@ -256,42 +255,10 @@ class Browser {
         this.hideError();
         this.statusText.textContent = '正在加载...';
         this.lastUrl = url;
-        
-        if (this.loadTimeout) {
-            clearTimeout(this.loadTimeout);
-        }
-        
+
         // Clear any previous srcdoc and set the new URL
         this.browserFrame.removeAttribute('srcdoc');
         this.browserFrame.src = url;
-        
-        // Shorter timeout - if load doesn't complete in 3s, show error.
-        // Most iframe blocks (X-Frame-Options) manifest as either a quick
-        // blank load or a navigation that never completes.
-        this.loadTimeout = setTimeout(() => {
-            this.handleLoadFailure(url);
-        }, 3000);
-    }
-    
-    handleLoadFailure(url) {
-        // Check if iframe actually loaded content
-        let hasContent = false;
-        try {
-            const doc = this.browserFrame.contentDocument;
-            if (doc && doc.body && doc.body.innerHTML.length > 100) {
-                hasContent = true;
-            }
-        } catch (e) {
-            // Cross-origin access throws SecurityError - page likely loaded
-            hasContent = true;
-        }
-        
-        if (!hasContent) {
-            this.showError(
-                '该网站设置了安全策略（X-Frame-Options / CSP frame-ancestors），禁止在嵌入式浏览器中显示。',
-                url
-            );
-        }
     }
     
     goBack() {
@@ -329,7 +296,7 @@ class Browser {
     onPageLoad() {
         const currentTab = this.tabs[this.currentTabIndex];
         const url = currentTab ? currentTab.url : null;
-        
+
         // Detect iframe blocked by X-Frame-Options: same-origin blank document
         let blocked = false;
         try {
@@ -340,13 +307,9 @@ class Browser {
         } catch (e) {
             // Cross-origin throws - page actually loaded successfully
         }
-        
+
         if (blocked) {
             if (url && url !== 'about:blank') {
-                if (this.loadTimeout) {
-                    clearTimeout(this.loadTimeout);
-                    this.loadTimeout = null;
-                }
                 this.showError(
                     '该网站设置了安全策略（X-Frame-Options / CSP frame-ancestors），禁止在嵌入式浏览器中显示。',
                     url
@@ -354,13 +317,10 @@ class Browser {
                 return;
             }
         }
-        
-        // Page loaded successfully
-        if (this.loadTimeout) {
-            clearTimeout(this.loadTimeout);
-            this.loadTimeout = null;
-        }
-        
+
+        // Page loaded successfully - hide any previous error overlay
+        this.hideError();
+
         try {
             if (this.browserFrame.contentDocument && this.browserFrame.contentDocument.title) {
                 currentTab.title = this.browserFrame.contentDocument.title;
@@ -369,7 +329,7 @@ class Browser {
         } catch (e) {
             // Cross-origin - can't access title
         }
-        
+
         this.statusText.textContent = '就绪';
         this.updateNavButtons();
     }
