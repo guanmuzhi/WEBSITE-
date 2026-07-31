@@ -225,9 +225,7 @@ class FileManager {
             this.switchToNetwork();
         });
 
-        document.getElementById('fm-network-scan').addEventListener('click', () => {
-            this.scanNetwork();
-        });
+        this.initLANDropEvents();
     }
 
     switchToFiles() {
@@ -243,112 +241,534 @@ class FileManager {
         document.getElementById('fm-sidebar-files').classList.remove('active');
         document.getElementById('fm-filelist').style.display = 'none';
         document.getElementById('fm-network-panel').style.display = 'flex';
-        // Auto-load network info on first switch
-        const usersContainer = document.getElementById('fm-network-users');
-        if (!usersContainer.hasChildNodes()) {
-            this.scanNetwork();
-        }
+        this.initLANDrop();
     }
 
-    async scanNetwork() {
-        const scanBtn = document.getElementById('fm-network-scan');
-        const usersContainer = document.getElementById('fm-network-users');
-        
-        scanBtn.textContent = '搜索中...';
-        scanBtn.disabled = true;
-        usersContainer.innerHTML = '<div class="fm-network-empty">正在获取本机信息...</div>';
+    // ===== LAN Drop =====
 
-        const localIP = await this.getLocalIP();
-        const myInfo = await this.collectMyInfo(localIP);
-        
-        usersContainer.innerHTML = '';
-
-        const localInfoEl = document.createElement('div');
-        localInfoEl.className = 'fm-network-local';
-        localInfoEl.innerHTML = `
-            <div class="fm-network-local-header">
-                <span class="fm-network-local-title">本机</span>
-                <span class="fm-network-local-badge">在线</span>
-            </div>
-            <div class="fm-network-local-info">
-                <div>用户名: ${myInfo.username}</div>
-                <div>IP地址: ${myInfo.ip}</div>
-                <div>共享文件夹: ${myInfo.sharedFolders.length > 0 ? myInfo.sharedFolders.join(', ') : '无'}</div>
-            </div>
-        `;
-        usersContainer.appendChild(localInfoEl);
-
-        const tipsEl = document.createElement('div');
-        tipsEl.className = 'fm-network-empty';
-        tipsEl.innerHTML = '<div class="fm-network-hint-title">网络共享说明</div><div class="fm-network-hint-text">• Web端应用受浏览器安全限制，无法直接扫描局域网设备</div><div class="fm-network-hint-text">• 如需与其他设备共享文件，请使用同一浏览器的多个标签页</div><div class="fm-network-hint-text">• 真实局域网发现需要服务端支持</div>';
-        usersContainer.appendChild(tipsEl);
-        
-        scanBtn.textContent = '刷新信息';
-        scanBtn.disabled = false;
-    }
-
-    async getLocalIP() {
-        return new Promise((resolve) => {
-            try {
-                const rtc = new RTCPeerConnection({
-                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-                });
-                let found = false;
-                rtc.createDataChannel('');
-                rtc.onicecandidate = (e) => {
-                    if (e.candidate && !found) {
-                        const candidate = e.candidate.candidate;
-                        const ipMatch = candidate.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
-                        if (ipMatch && !ipMatch[1].startsWith('0.')) {
-                            found = true;
-                            rtc.close();
-                            resolve(ipMatch[1]);
-                        }
-                    }
-                };
-                rtc.createOffer().then(offer => rtc.setLocalDescription(offer));
-                setTimeout(() => {
-                    if (!found) {
-                        rtc.close();
-                        resolve(window.location.hostname || '127.0.0.1');
-                    }
-                }, 3000);
-            } catch (e) {
-                resolve(window.location.hostname || '127.0.0.1');
-            }
+    initLANDropEvents() {
+        document.getElementById('fm-landrop-mode-send').addEventListener('click', () => this.switchLANDropMode('send'));
+        document.getElementById('fm-landrop-mode-recv').addEventListener('click', () => this.switchLANDropMode('recv'));
+        document.getElementById('fm-landrop-pick').addEventListener('click', () => {
+            document.getElementById('fm-landrop-file-input').click();
         });
+        document.getElementById('fm-landrop-file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) this.onSendFilePicked(file);
+            e.target.value = '';
+        });
+        document.getElementById('fm-landrop-copy-offer').addEventListener('click', () => this.onCopyOffer());
+        document.getElementById('fm-landrop-confirm-answer').addEventListener('click', () => this.onConfirmAnswer());
+        document.getElementById('fm-landrop-gen-answer').addEventListener('click', () => this.onGenAnswer());
+        document.getElementById('fm-landrop-copy-answer').addEventListener('click', () => this.onCopyAnswer());
+        document.getElementById('fm-landrop-save-fs').addEventListener('click', () => this.saveReceivedToFS());
+        document.getElementById('fm-landrop-download').addEventListener('click', () => this.downloadReceived());
     }
 
-    async collectMyInfo(localIP) {
-        let username = 'WebOS用户';
+    initLANDrop() {
+        if (this.landropInited) return;
+        this.landropInited = true;
+
+        let name = 'WebOS用户';
         try {
             const userManager = window.parent.UserManager;
             if (userManager) {
                 const instance = userManager.getInstance();
                 const currentUser = instance.getCurrentUser();
-                if (currentUser && currentUser.name) {
-                    username = currentUser.name;
-                }
+                if (currentUser && currentUser.name) name = currentUser.name;
             }
         } catch (e) {}
 
-        let sharedFolders = [];
+        this.myId = 'dev-' + Math.random().toString(36).slice(2, 10);
+        this.myName = name;
+        this.devices = new Map();
+        this.role = null;
+        this.pendingFile = null;
+        this.pc = null;
+        this.channel = null;
+        this.sendingFile = null;
+        this.sentSize = 0;
+        this.recvMeta = null;
+        this.recvChunks = null;
+        this.recvSize = 0;
+        this.recvDone = false;
+        this.receivedBlob = null;
+        this.receivedFileName = null;
+
+        this.switchLANDropMode('send');
+
         try {
-            const root = this.storage.fs;
-            if (root && root.children) {
-                sharedFolders = root.children
-                    .filter(c => c.type === 'folder')
-                    .map(c => c.name);
+            this.bc = new BroadcastChannel('landrop');
+            this.bc.onmessage = (e) => this.handleBCMessage(e.data);
+            this.bc.postMessage({ type: 'hello', id: this.myId, name: this.myName });
+        } catch (err) {
+            this.bc = null;
+        }
+
+        window.addEventListener('beforeunload', () => this.cleanupLANDrop());
+        window.addEventListener('pagehide', () => this.cleanupLANDrop());
+        this.renderDevices();
+    }
+
+    cleanupLANDrop() {
+        try {
+            if (this.bc) {
+                this.bc.postMessage({ type: 'bye', id: this.myId });
+                this.bc.close();
+                this.bc = null;
             }
         } catch (e) {}
+        try {
+            if (this.pc) this.pc.close();
+        } catch (e) {}
+    }
 
-        return {
-            id: 'local-' + localIP,
-            username: username,
-            ip: localIP,
-            sharedFolders: sharedFolders,
-            timestamp: Date.now()
+    handleBCMessage(msg) {
+        if (!msg) return;
+        switch (msg.type) {
+            case 'hello':
+                if (msg.id === this.myId) return;
+                this.devices.set(msg.id, { id: msg.id, name: msg.name });
+                if (this.bc) this.bc.postMessage({ type: 'presence', id: this.myId, name: this.myName });
+                this.renderDevices();
+                break;
+            case 'presence':
+                if (msg.id === this.myId) return;
+                this.devices.set(msg.id, { id: msg.id, name: msg.name });
+                this.renderDevices();
+                break;
+            case 'bye':
+                if (msg.id === this.myId) return;
+                this.devices.delete(msg.id);
+                this.renderDevices();
+                break;
+            case 'offer':
+                if (msg.target === this.myId) this.handleIncomingOffer(msg.from, msg.offer);
+                break;
+            case 'answer':
+                if (msg.target === this.myId) this.handleIncomingAnswer(msg.from, msg.answer);
+                break;
+        }
+    }
+
+    renderDevices() {
+        const container = document.getElementById('fm-landrop-devices');
+        if (!container) return;
+        if (!this.devices || this.devices.size === 0) {
+            container.innerHTML = '<div class="fm-landrop-empty">未发现同浏览器设备。在另一个标签页打开本应用即可自动发现。</div>';
+            return;
+        }
+        container.innerHTML = '';
+        this.devices.forEach((dev) => {
+            const el = document.createElement('div');
+            el.className = 'fm-landrop-device';
+            const initial = (dev.name || '?').charAt(0).toUpperCase();
+            el.innerHTML =
+                '<div class="fm-landrop-device-icon">' + this.escapeHtml(initial) + '</div>' +
+                '<div class="fm-landrop-device-name">' + this.escapeHtml(dev.name) + '</div>' +
+                '<div class="fm-landrop-device-hint">点击发送文件</div>';
+            el.addEventListener('click', () => this.connectToDevice(dev.id, dev.name));
+            container.appendChild(el);
+        });
+    }
+
+    escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, (c) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
+    switchLANDropMode(mode) {
+        this.landropMode = mode;
+        document.getElementById('fm-landrop-mode-send').classList.toggle('active', mode === 'send');
+        document.getElementById('fm-landrop-mode-recv').classList.toggle('active', mode === 'recv');
+        document.getElementById('fm-landrop-send').style.display = mode === 'send' ? 'block' : 'none';
+        document.getElementById('fm-landrop-recv').style.display = mode === 'recv' ? 'block' : 'none';
+    }
+
+    // --- SDP encoding ---
+    encodeSDP(sdp) {
+        return btoa(encodeURIComponent(JSON.stringify(sdp)));
+    }
+
+    decodeSDP(code) {
+        return JSON.parse(decodeURIComponent(atob(code)));
+    }
+
+    waitForIce(pc) {
+        return new Promise((resolve) => {
+            if (pc.iceGatheringState === 'complete') { resolve(); return; }
+            const check = () => {
+                if (pc.iceGatheringState === 'complete') {
+                    pc.removeEventListener('icegatheringstatechange', check);
+                    resolve();
+                }
+            };
+            pc.addEventListener('icegatheringstatechange', check);
+            setTimeout(() => {
+                pc.removeEventListener('icegatheringstatechange', check);
+                resolve();
+            }, 3000);
+        });
+    }
+
+    resetConnection() {
+        try { if (this.channel) this.channel.close(); } catch (e) {}
+        try { if (this.pc) this.pc.close(); } catch (e) {}
+        this.pc = null;
+        this.channel = null;
+        this.role = null;
+        this.recvMeta = null;
+        this.recvChunks = null;
+        this.recvSize = 0;
+        this.recvDone = false;
+        this.sentSize = 0;
+        this.sendingFile = null;
+        this.receivedBlob = null;
+        this.receivedFileName = null;
+        const actions = document.getElementById('fm-landrop-recv-actions');
+        if (actions) actions.style.display = 'none';
+    }
+
+    setupChannel(channel) {
+        channel.binaryType = 'arraybuffer';
+        channel.onopen = () => this.onChannelOpen(channel);
+        channel.onmessage = (e) => this.onChannelMessage(channel, e.data);
+        channel.onclose = () => this.onChannelClose();
+        channel.onerror = () => this.onChannelClose();
+    }
+
+    // Sender: create offer, returns Base64-encoded connection code
+    async createSenderConnection() {
+        this.resetConnection();
+        this.role = 'sender';
+        const pc = new RTCPeerConnection({ iceServers: [] });
+        const channel = pc.createDataChannel('file', { ordered: true });
+        this.setupChannel(channel);
+        this.pc = pc;
+        this.channel = channel;
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await this.waitForIce(pc);
+        return this.encodeSDP(pc.localDescription);
+    }
+
+    // Receiver: accept offer code, returns Base64-encoded answer code
+    async acceptSenderConnection(offerCode) {
+        this.resetConnection();
+        this.role = 'receiver';
+        const pc = new RTCPeerConnection({ iceServers: [] });
+        pc.ondatachannel = (e) => {
+            this.channel = e.channel;
+            this.setupChannel(e.channel);
         };
+        this.pc = pc;
+        const offer = this.decodeSDP(offerCode);
+        await pc.setRemoteDescription(offer);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        await this.waitForIce(pc);
+        return this.encodeSDP(pc.localDescription);
+    }
+
+    // Sender: paste answer code to complete handshake
+    async acceptAnswer(answerCode) {
+        if (!this.pc) throw new Error('未建立连接');
+        const answer = this.decodeSDP(answerCode);
+        await this.pc.setRemoteDescription(answer);
+    }
+
+    onChannelOpen(channel) {
+        if (this.role === 'sender' && this.pendingFile) {
+            this.showSendStatus('连接已建立，开始发送...');
+            this.sendFile(this.pendingFile);
+        } else if (this.role === 'receiver') {
+            this.showRecvStatus('连接已建立，等待接收文件...');
+        }
+    }
+
+    onChannelClose() {
+        if (this.role === 'sender') this.showSendStatus('连接已关闭');
+        else if (this.role === 'receiver') this.showRecvStatus('连接已关闭');
+    }
+
+    onChannelMessage(channel, data) {
+        if (typeof data === 'string') {
+            let msg;
+            try { msg = JSON.parse(data); } catch (e) { return; }
+            if (msg.type === 'file-meta') {
+                this.recvMeta = msg;
+                this.recvChunks = [];
+                this.recvSize = 0;
+                this.recvDone = false;
+                this.receivedBlob = null;
+                this.receivedFileName = msg.name;
+                const actions = document.getElementById('fm-landrop-recv-actions');
+                if (actions) actions.style.display = 'none';
+                this.showRecvProgress();
+                this.showRecvStatus('正在接收：' + msg.name);
+            }
+        } else {
+            if (!this.recvMeta || this.recvDone) return;
+            this.recvChunks.push(data);
+            this.recvSize += data.byteLength;
+            this.updateRecvProgress();
+            if (this.recvSize >= this.recvMeta.size) this.finishReceive();
+        }
+    }
+
+    // --- manual send flow ---
+    async onSendFilePicked(file) {
+        this.pendingFile = file;
+        document.getElementById('fm-landrop-offer-code').value = '';
+        document.getElementById('fm-landrop-answer-input').value = '';
+        document.getElementById('fm-landrop-send-progress').style.display = 'none';
+        this.showSendStatus('正在生成连接码...');
+        try {
+            const offerCode = await this.createSenderConnection();
+            document.getElementById('fm-landrop-offer-code').value = offerCode;
+            this.showSendStatus('连接码已生成，请发送给接收方并等待应答码');
+        } catch (e) {
+            this.showSendStatus('生成连接码失败：' + e.message);
+        }
+    }
+
+    async onCopyOffer() {
+        const code = document.getElementById('fm-landrop-offer-code').value;
+        if (!code) { await this.showAlert('暂无连接码'); return; }
+        await this.copyText(code);
+        this.showSendStatus('连接码已复制到剪贴板');
+    }
+
+    async onConfirmAnswer() {
+        const code = document.getElementById('fm-landrop-answer-input').value.trim();
+        if (!code) { await this.showAlert('请粘贴应答码'); return; }
+        if (!this.pc) { await this.showAlert('请先生成连接码'); return; }
+        try {
+            await this.acceptAnswer(code);
+            this.showSendStatus('应答码已确认，等待连接建立...');
+        } catch (e) {
+            await this.showAlert('应答码无效：' + e.message);
+        }
+    }
+
+    // --- manual receive flow ---
+    async onGenAnswer() {
+        const code = document.getElementById('fm-landrop-offer-input').value.trim();
+        if (!code) { await this.showAlert('请粘贴连接码'); return; }
+        document.getElementById('fm-landrop-answer-code').value = '';
+        document.getElementById('fm-landrop-recv-progress').style.display = 'none';
+        const actions = document.getElementById('fm-landrop-recv-actions');
+        if (actions) actions.style.display = 'none';
+        this.showRecvStatus('正在生成应答码...');
+        try {
+            const answerCode = await this.acceptSenderConnection(code);
+            document.getElementById('fm-landrop-answer-code').value = answerCode;
+            this.showRecvStatus('应答码已生成，请回传给发送方');
+        } catch (e) {
+            this.showRecvStatus('连接码无效：' + e.message);
+        }
+    }
+
+    async onCopyAnswer() {
+        const code = document.getElementById('fm-landrop-answer-code').value;
+        if (!code) { await this.showAlert('暂无应答码'); return; }
+        await this.copyText(code);
+        this.showRecvStatus('应答码已复制到剪贴板');
+    }
+
+    // --- auto connect via BroadcastChannel ---
+    async connectToDevice(deviceId, deviceName) {
+        if (!this.pendingFile) {
+            await this.showAlert('请先在「发送文件」模式中选择要发送的文件');
+            this.switchLANDropMode('send');
+            return;
+        }
+        if (!this.bc) { await this.showAlert('BroadcastChannel 不可用'); return; }
+        this.showSendStatus('正在向 ' + deviceName + ' 发起连接...');
+        try {
+            const offerCode = await this.createSenderConnection();
+            this.bc.postMessage({ type: 'offer', target: deviceId, from: this.myId, offer: offerCode });
+            this.showSendStatus('连接码已发送给 ' + deviceName + '，等待应答...');
+        } catch (e) {
+            this.showSendStatus('发起连接失败：' + e.message);
+        }
+    }
+
+    async handleIncomingOffer(fromId, offerCode) {
+        this.showRecvStatus('收到连接请求，正在应答...');
+        try {
+            const answerCode = await this.acceptSenderConnection(offerCode);
+            if (this.bc) this.bc.postMessage({ type: 'answer', target: fromId, from: this.myId, answer: answerCode });
+            this.showRecvStatus('已应答，等待连接建立...');
+        } catch (e) {
+            this.showRecvStatus('处理连接请求失败：' + e.message);
+        }
+    }
+
+    async handleIncomingAnswer(fromId, answerCode) {
+        if (!this.pc) return;
+        try {
+            await this.acceptAnswer(answerCode);
+            this.showSendStatus('收到应答，等待连接建立...');
+        } catch (e) {
+            this.showSendStatus('应答码无效：' + e.message);
+        }
+    }
+
+    // --- file chunked transfer ---
+    async sendFile(file) {
+        if (!this.channel || this.channel.readyState !== 'open') {
+            this.showSendStatus('连接未就绪');
+            return;
+        }
+        this.sendingFile = file;
+        this.sentSize = 0;
+        this.showSendProgress();
+        const meta = { type: 'file-meta', name: file.name, size: file.size, mime: file.type || 'application/octet-stream' };
+        this.channel.send(JSON.stringify(meta));
+        const chunkSize = 16384;
+        const buffer = await file.arrayBuffer();
+        let offset = 0;
+        let count = 0;
+        while (offset < buffer.byteLength) {
+            if (!this.channel || this.channel.readyState !== 'open') {
+                this.showSendStatus('连接已断开');
+                return;
+            }
+            if (this.channel.bufferedAmount > 8 * 1024 * 1024) {
+                await new Promise(r => setTimeout(r, 20));
+                continue;
+            }
+            const end = Math.min(offset + chunkSize, buffer.byteLength);
+            this.channel.send(buffer.slice(offset, end));
+            offset = end;
+            this.sentSize = offset;
+            count++;
+            this.updateSendProgress();
+            if (count % 16 === 0) await new Promise(r => setTimeout(r, 0));
+        }
+        this.showSendStatus('发送完成：' + file.name);
+    }
+
+    finishReceive() {
+        if (this.recvDone) return;
+        this.recvDone = true;
+        const blob = new Blob(this.recvChunks, { type: (this.recvMeta.mime || 'application/octet-stream') });
+        this.receivedBlob = blob;
+        this.receivedFileName = this.recvMeta.name;
+        const el = document.getElementById('fm-landrop-recv-progress');
+        if (el) {
+            const fill = el.querySelector('.fm-landrop-progress-fill');
+            const text = el.querySelector('.fm-landrop-progress-text');
+            if (fill) fill.style.width = '100%';
+            if (text) text.textContent = '接收完成：' + this.receivedFileName + '（' + this.formatSize(this.recvMeta.size) + '）';
+        }
+        const actions = document.getElementById('fm-landrop-recv-actions');
+        if (actions) actions.style.display = 'flex';
+        this.showRecvStatus('文件接收完成，可选择保存或下载');
+    }
+
+    saveReceivedToFS() {
+        if (!this.receivedBlob) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const dataURL = reader.result;
+            if (!this.currentDir.children) this.currentDir.children = [];
+            let name = this.receivedFileName || 'received';
+            const existing = this.currentDir.children.find(c => c.name === name && c.type === 'file');
+            if (existing) {
+                const dot = name.lastIndexOf('.');
+                const base = dot > 0 ? name.substring(0, dot) : name;
+                const ext = dot > 0 ? name.substring(dot) : '';
+                let i = 1;
+                while (this.currentDir.children.find(c => c.name === base + '(' + i + ')' + ext)) i++;
+                name = base + '(' + i + ')' + ext;
+            }
+            this.currentDir.children.push({ type: 'file', name: name, content: dataURL });
+            this.saveFS();
+            this.showRecvStatus('已保存到当前目录：' + name);
+        };
+        reader.onerror = () => this.showRecvStatus('保存失败：读取文件出错');
+        reader.readAsDataURL(this.receivedBlob);
+    }
+
+    downloadReceived() {
+        if (!this.receivedBlob) return;
+        const url = URL.createObjectURL(this.receivedBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = this.receivedFileName || 'received';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    }
+
+    // --- progress / status UI ---
+    showSendStatus(text) {
+        const el = document.getElementById('fm-landrop-send-status');
+        if (el) el.textContent = text;
+    }
+
+    showRecvStatus(text) {
+        const el = document.getElementById('fm-landrop-recv-status');
+        if (el) el.textContent = text;
+    }
+
+    showSendProgress() {
+        const el = document.getElementById('fm-landrop-send-progress');
+        el.style.display = 'block';
+        el.innerHTML = '<div class="fm-landrop-progress-text"></div><div class="fm-landrop-progress-bar"><div class="fm-landrop-progress-fill"></div></div>';
+        this.updateSendProgress();
+    }
+
+    updateSendProgress() {
+        const el = document.getElementById('fm-landrop-send-progress');
+        if (!el || !this.sendingFile) return;
+        const pct = this.sendingFile.size > 0 ? Math.min(100, Math.floor(this.sentSize * 100 / this.sendingFile.size)) : 100;
+        const text = el.querySelector('.fm-landrop-progress-text');
+        const fill = el.querySelector('.fm-landrop-progress-fill');
+        if (text) text.textContent = '发送中：' + this.formatSize(this.sentSize) + ' / ' + this.formatSize(this.sendingFile.size) + '（' + pct + '%）';
+        if (fill) fill.style.width = pct + '%';
+    }
+
+    showRecvProgress() {
+        const el = document.getElementById('fm-landrop-recv-progress');
+        el.style.display = 'block';
+        el.innerHTML = '<div class="fm-landrop-progress-text"></div><div class="fm-landrop-progress-bar"><div class="fm-landrop-progress-fill"></div></div>';
+        this.updateRecvProgress();
+    }
+
+    updateRecvProgress() {
+        const el = document.getElementById('fm-landrop-recv-progress');
+        if (!el || !this.recvMeta) return;
+        const pct = this.recvMeta.size > 0 ? Math.min(100, Math.floor(this.recvSize * 100 / this.recvMeta.size)) : 100;
+        const text = el.querySelector('.fm-landrop-progress-text');
+        const fill = el.querySelector('.fm-landrop-progress-fill');
+        if (text) text.textContent = '接收中：' + this.formatSize(this.recvSize) + ' / ' + this.formatSize(this.recvMeta.size) + '（' + pct + '%）';
+        if (fill) fill.style.width = pct + '%';
+    }
+
+    formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+        return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+    }
+
+    async copyText(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch (e) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch (e2) {}
+            document.body.removeChild(ta);
+        }
     }
 
     getCurrentPath() {

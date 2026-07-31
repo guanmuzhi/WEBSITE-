@@ -252,161 +252,260 @@ body {
     word-break: break-all;
 }
 
-/* Network Panel */
+/* LAN Drop Panel */
 .fm-network-panel {
     padding: 24px;
     height: 100%;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
 }
 
-.fm-network-header {
-    margin-bottom: 24px;
+.fm-landrop-header {
+    margin-bottom: 20px;
 }
 
-.fm-network-header h3 {
+.fm-landrop-header h3 {
     color: #eee;
     font-size: 18px;
     font-weight: 500;
     margin-bottom: 8px;
 }
 
-.fm-network-header p {
+.fm-landrop-header p {
     color: #888;
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 1.6;
 }
 
-.fm-network-scan {
-    padding: 12px 24px;
-    background: #3498db;
-    border: none;
-    border-radius: 6px;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s;
-    margin-bottom: 24px;
-    align-self: flex-start;
+.fm-landrop-modes {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
 }
 
-.fm-network-scan:hover {
-    background: #2980b9;
-}
-
-.fm-network-scan:disabled {
-    background: #555;
-    cursor: not-allowed;
-}
-
-.fm-network-users {
+.fm-landrop-mode {
     flex: 1;
-    overflow-y: auto;
-}
-
-.fm-network-user {
+    padding: 10px 16px;
     background: #2d2d2d;
     border: 1px solid #3d3d3d;
     border-radius: 6px;
-    padding: 16px;
-    margin-bottom: 12px;
+    color: #ccc;
+    font-size: 13px;
+    font-family: inherit;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s;
 }
 
-.fm-network-user:hover {
+.fm-landrop-mode:hover {
     background: #333;
+    border-color: #4d4d4d;
+}
+
+.fm-landrop-mode.active {
+    background: #3498db;
     border-color: #3498db;
+    color: #fff;
 }
 
-.fm-network-user-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.fm-network-user-name {
-    font-size: 15px;
-    font-weight: 500;
-    color: #eee;
-}
-
-.fm-network-user-ip {
-    font-size: 12px;
-    color: #888;
-}
-
-.fm-network-user-shared {
-    font-size: 13px;
-    color: #aaa;
-}
-
-.fm-network-empty {
-    text-align: left;
-    color: #666;
-    padding: 16px;
-}
-
-.fm-network-hint-title {
-    font-size: 13px;
-    font-weight: 500;
-    color: #888;
-    margin-bottom: 12px;
-}
-
-.fm-network-hint-text {
-    font-size: 12px;
-    color: #555;
-    line-height: 1.8;
-}
-
-.fm-network-hint {
-    display: block;
-    margin-top: 8px;
-    font-size: 12px;
-    color: #555;
-}
-
-.fm-network-local {
-    background: #1a3a5a;
-    border: 1px solid #2a5a8a;
-    border-radius: 6px;
+.fm-landrop-section {
+    background: #2d2d2d;
+    border: 1px solid #3d3d3d;
+    border-radius: 8px;
     padding: 16px;
     margin-bottom: 16px;
 }
 
-.fm-network-local-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.fm-landrop-filebtn {
+    width: 100%;
+    padding: 12px;
+    background: #3498db;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
     margin-bottom: 12px;
 }
 
-.fm-network-local-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: #eee;
+.fm-landrop-filebtn:hover {
+    background: #2980b9;
 }
 
-.fm-network-local-badge {
-    background: #2ecc71;
+.fm-landrop-status {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 12px;
+    min-height: 16px;
+    line-height: 1.5;
+    word-break: break-all;
+}
+
+.fm-landrop-field {
+    margin-bottom: 16px;
+}
+
+.fm-landrop-field:last-child {
+    margin-bottom: 0;
+}
+
+.fm-landrop-field label {
+    display: block;
+    font-size: 12px;
+    color: #aaa;
+    margin-bottom: 6px;
+}
+
+.fm-landrop-code {
+    width: 100%;
+    min-height: 64px;
+    max-height: 140px;
+    padding: 10px 12px;
+    background: #1e1e1e;
+    border: 1px solid #3d3d3d;
+    border-radius: 4px;
+    color: #ddd;
+    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+    overflow: auto;
+    word-break: break-all;
+}
+
+.fm-landrop-code:focus {
+    border-color: #3498db;
+}
+
+.fm-landrop-code[readonly] {
+    color: #999;
+    background: #1a1a1a;
+}
+
+.fm-landrop-action {
+    margin-top: 8px;
+    padding: 8px 14px;
+    background: #3d3d3d;
+    border: none;
+    border-radius: 4px;
+    color: #ccc;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.fm-landrop-action:hover {
+    background: #4d4d4d;
+}
+
+.fm-landrop-action.primary {
+    background: #27ae60;
     color: #fff;
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 10px;
 }
 
-.fm-network-local-info {
-    font-size: 13px;
-    color: #bbb;
-    line-height: 1.8;
+.fm-landrop-action.primary:hover {
+    background: #229954;
 }
 
-.fm-network-divider {
+.fm-landrop-progress {
+    margin-top: 12px;
+}
+
+.fm-landrop-progress-text {
+    font-size: 12px;
+    color: #ccc;
+    margin-bottom: 6px;
+    word-break: break-all;
+}
+
+.fm-landrop-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #1e1e1e;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.fm-landrop-progress-fill {
+    height: 100%;
+    background: #3498db;
+    width: 0%;
+    transition: width 0.15s;
+    border-radius: 4px;
+}
+
+.fm-landrop-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.fm-landrop-divider {
     color: #666;
     font-size: 12px;
-    padding: 8px 0;
-    border-bottom: 1px solid #3d3d3d;
-    margin-bottom: 12px;
+    text-align: center;
+    padding: 12px 0;
+    border-top: 1px solid #3d3d3d;
+    margin-top: 8px;
+}
+
+.fm-landrop-devices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fm-landrop-device {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: #2d2d2d;
+    border: 1px solid #3d3d3d;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.fm-landrop-device:hover {
+    background: #333;
+    border-color: #3498db;
+}
+
+.fm-landrop-device-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #34495e;
+    color: #ecf0f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.fm-landrop-device-name {
+    flex: 1;
+    color: #eee;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fm-landrop-device-hint {
+    font-size: 11px;
+    color: #666;
+}
+
+.fm-landrop-empty {
+    color: #555;
+    font-size: 12px;
+    padding: 16px;
+    text-align: center;
 }
