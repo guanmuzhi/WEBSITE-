@@ -408,7 +408,7 @@ class FileManager {
             setTimeout(() => {
                 pc.removeEventListener('icegatheringstatechange', check);
                 resolve();
-            }, 3000);
+            }, 5000);
         });
     }
 
@@ -442,7 +442,7 @@ class FileManager {
     async createSenderConnection() {
         this.resetConnection();
         this.role = 'sender';
-        const pc = new RTCPeerConnection({ iceServers: [] });
+        const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });
         const channel = pc.createDataChannel('file', { ordered: true });
         this.setupChannel(channel);
         this.pc = pc;
@@ -457,7 +457,7 @@ class FileManager {
     async acceptSenderConnection(offerCode) {
         this.resetConnection();
         this.role = 'receiver';
-        const pc = new RTCPeerConnection({ iceServers: [] });
+        const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });
         pc.ondatachannel = (e) => {
             this.channel = e.channel;
             this.setupChannel(e.channel);
