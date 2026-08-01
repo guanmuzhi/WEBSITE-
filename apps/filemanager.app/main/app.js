@@ -257,6 +257,11 @@ class FileManager {
             if (file) this.onSendFilePicked(file);
             e.target.value = '';
         });
+        document.getElementById('fm-landrop-pick-fs').addEventListener('click', () => this.openFSPicker());
+        document.getElementById('fm-fs-picker-close').addEventListener('click', () => this.closeFSPicker());
+        document.getElementById('fm-fs-picker-overlay').addEventListener('click', (e) => {
+            if (e.target.id === 'fm-fs-picker-overlay') this.closeFSPicker();
+        });
         document.getElementById('fm-landrop-copy-offer').addEventListener('click', () => this.onCopyOffer());
         document.getElementById('fm-landrop-confirm-answer').addEventListener('click', () => this.onConfirmAnswer());
         document.getElementById('fm-landrop-gen-answer').addEventListener('click', () => this.onGenAnswer());
@@ -355,7 +360,7 @@ class FileManager {
         const container = document.getElementById('fm-landrop-devices');
         if (!container) return;
         if (!this.devices || this.devices.size === 0) {
-            container.innerHTML = '<div class="fm-landrop-empty">未发现同浏览器设备。在另一个标签页打开本应用即可自动发现。</div>';
+            container.innerHTML = '<div class="fm-landrop-empty">暂无同浏览器标签页。在另一个标签页打开文件管理器即可自动发现。<br>跨设备传输请使用上方连接码交换。</div>';
             return;
         }
         container.innerHTML = '';
@@ -514,6 +519,75 @@ class FileManager {
             this.recvSize += data.byteLength;
             this.updateRecvProgress();
             if (this.recvSize >= this.recvMeta.size) this.finishReceive();
+        }
+    }
+
+    // --- file system picker ---
+    collectFSFiles(node, path, results) {
+        if (!node) return;
+        if (!node.children) return;
+        for (const child of node.children) {
+            const childPath = path + '/' + child.name;
+            if (child.type === 'file') {
+                results.push({ name: child.name, path: childPath, content: child.content });
+            } else if (child.type === 'folder' && child.children) {
+                this.collectFSFiles(child, childPath, results);
+            }
+        }
+    }
+
+    openFSPicker() {
+        const overlay = document.getElementById('fm-fs-picker-overlay');
+        const list = document.getElementById('fm-fs-picker-list');
+        if (!overlay || !list) return;
+
+        const files = [];
+        this.collectFSFiles(this.storage.fs, '', files);
+
+        if (files.length === 0) {
+            list.innerHTML = '<div style="padding:24px;text-align:center;color:#666;">文件系统中暂无文件</div>';
+        } else {
+            list.innerHTML = '';
+            files.forEach((f) => {
+                const item = document.createElement('div');
+                item.className = 'fm-fs-picker-item';
+                let sizeStr = '';
+                if (f.content && f.content.startsWith('data:')) {
+                    const base64 = f.content.split(',')[1] || '';
+                    sizeStr = this.formatSize(Math.ceil(base64.length * 0.75));
+                }
+                item.innerHTML = '<span class="fm-fs-picker-name">' + this.escapeHtml(f.name) + '</span>' +
+                    '<span class="fm-fs-picker-path">' + this.escapeHtml(f.path) + '</span>' +
+                    '<span class="fm-fs-picker-size">' + sizeStr + '</span>';
+                item.addEventListener('click', () => {
+                    this.closeFSPicker();
+                    this.pickFSFile(f);
+                });
+                list.appendChild(item);
+            });
+        }
+
+        overlay.style.display = 'flex';
+    }
+
+    closeFSPicker() {
+        const overlay = document.getElementById('fm-fs-picker-overlay');
+        if (overlay) overlay.style.display = 'none';
+    }
+
+    async pickFSFile(fileObj) {
+        try {
+            const dataURL = fileObj.content;
+            if (!dataURL || !dataURL.startsWith('data:')) {
+                this.showSendStatus('无法读取文件内容');
+                return;
+            }
+            const res = await fetch(dataURL);
+            const blob = await res.blob();
+            const file = new File([blob], fileObj.name, { type: blob.type || 'application/octet-stream' });
+            this.onSendFilePicked(file);
+        } catch (e) {
+            this.showSendStatus('读取文件失败：' + e.message);
         }
     }
 

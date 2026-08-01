@@ -98,7 +98,10 @@
                     <button class="fm-landrop-mode" id="fm-landrop-mode-recv">接收文件</button>
                 </div>
                 <div class="fm-landrop-section" id="fm-landrop-send">
-                    <button class="fm-landrop-filebtn" id="fm-landrop-pick">选择要发送的文件</button>
+                    <div class="fm-landrop-pick-row">
+                        <button class="fm-landrop-filebtn" id="fm-landrop-pick">从本地选择文件</button>
+                        <button class="fm-landrop-filebtn" id="fm-landrop-pick-fs">从文件系统选择</button>
+                    </div>
                     <input type="file" id="fm-landrop-file-input" style="display:none;">
                     <div class="fm-landrop-status" id="fm-landrop-send-status"></div>
                     <div class="fm-landrop-field">
@@ -131,8 +134,17 @@
                         <button class="fm-landrop-action" id="fm-landrop-download">下载</button>
                     </div>
                 </div>
-                <div class="fm-landrop-divider">—— 同浏览器设备 ——</div>
+                <div class="fm-landrop-divider">—— 同浏览器标签页 ——</div>
                 <div class="fm-landrop-devices" id="fm-landrop-devices"></div>
+            </div>
+        </div>
+        <div class="fm-fs-picker-overlay" id="fm-fs-picker-overlay" style="display:none;">
+            <div class="fm-fs-picker">
+                <div class="fm-fs-picker-header">
+                    <span>从文件系统选择</span>
+                    <button class="fm-fs-picker-close" id="fm-fs-picker-close">✕</button>
+                </div>
+                <div class="fm-fs-picker-list" id="fm-fs-picker-list"></div>
             </div>
         </div>
         <div class="fm-viewer" id="fm-viewer" style="display:none;">
