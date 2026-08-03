@@ -40,10 +40,10 @@
     "version": "1.0.0"
   },
   {
-    "id": "wallpaper",
-    "name": "壁纸设置",
-    "path": "wallpaper.app",
-    "description": "自定义桌面壁纸和外观主题",
+    "id": "settings",
+    "name": "设置",
+    "path": "settings.app",
+    "description": "系统设置、个性化、用户信息管理",
     "category": "system",
     "version": "1.0.0"
   },

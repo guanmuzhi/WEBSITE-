@@ -1,7 +1,7 @@
 import StorageService from './storage.js?v=14';
 
 const CURRENT_USER_KEY = 'web-terminal-os-current-user';
-const USERS_FILE_PATH = '/etc/users.json';
+const USERS_FILE_PATH = '/user.json';
 
 class UserManager {
     static instance = null;
@@ -27,13 +27,13 @@ class UserManager {
     }
 
     ensureHomeDir() {
-        this.storage.createPath('/home');
+        this.storage.createPath('/user');
         
-        const homeDir = this.storage.getNodeByPath('/home');
+        const homeDir = this.storage.getNodeByPath('/user');
         if (!homeDir || !homeDir.children) return;
 
         this.users.forEach(user => {
-            const userDirPath = `/home/${user.username}`;
+            const userDirPath = `/user/${user.username}`;
             this.storage.createPath(userDirPath);
         });
     }
@@ -77,13 +77,13 @@ class UserManager {
         });
         
         this.save();
-        this.storage.createPath(`/home/${username}`);
+        this.storage.createPath(`/user/${username}`);
         
         return { success: true, message: `用户 "${username}" 创建成功` };
     }
 
     createUserDir(username) {
-        const userDirPath = `/home/${username}`;
+        const userDirPath = `/user/${username}`;
         this.storage.createPath(userDirPath);
     }
 
@@ -105,7 +105,7 @@ class UserManager {
     }
 
     deleteUserDir(username) {
-        const homeDir = this.storage.getNodeByPath('/home');
+        const homeDir = this.storage.getNodeByPath('/user');
         if (homeDir && homeDir.children) {
             const userDirIndex = homeDir.children.findIndex(c => c.name === username && c.type === 'folder');
             if (userDirIndex !== -1) {
@@ -149,7 +149,7 @@ class UserManager {
     }
 
     renameUserDir(oldUsername, newUsername) {
-        const homeDir = this.storage.getNodeByPath('/home');
+        const homeDir = this.storage.getNodeByPath('/user');
         if (homeDir && homeDir.children) {
             const userDir = homeDir.children.find(c => c.name === oldUsername && c.type === 'folder');
             if (userDir) {
@@ -161,8 +161,8 @@ class UserManager {
     }
 
     migrateUserState(oldUsername, newUsername) {
-        const sourcePath = `/home/${oldUsername}/.window-state.json`;
-        const targetPath = `/home/${newUsername}/.window-state.json`;
+        const sourcePath = `/user/${oldUsername}/info/windows_status.json`;
+        const targetPath = `/user/${newUsername}/info/windows_status.json`;
         
         const content = this.storage.readFile(sourcePath);
         if (content) {
@@ -170,8 +170,8 @@ class UserManager {
             this.storage.deleteFile(sourcePath);
         }
         
-        const sourceWallpaper = `/home/${oldUsername}/.wallpaper.json`;
-        const targetWallpaper = `/home/${newUsername}/.wallpaper.json`;
+        const sourceWallpaper = `/user/${oldUsername}/info/wallpaper.json`;
+        const targetWallpaper = `/user/${newUsername}/info/wallpaper.json`;
         
         const wallpaperContent = this.storage.readFile(sourceWallpaper);
         if (wallpaperContent) {

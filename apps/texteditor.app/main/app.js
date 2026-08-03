@@ -274,7 +274,7 @@ class TextEditor {
     saveFile() {
         let path = this.filenameInput.value.trim();
         if (!path) {
-            this.showPrompt('请输入文件路径（如 /home/public/test.txt）：').then((inputPath) => {
+            this.showPrompt('请输入文件路径（如 /user/public/test.txt）：').then((inputPath) => {
                 if (inputPath) {
                     this.filenameInput.value = inputPath;
                     this.doSaveFile(inputPath);

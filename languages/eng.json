@@ -1,0 +1,21 @@
+{
+  "lang": "eng",
+  "name": "English",
+  "strings": {
+    "app.settings": "Settings",
+    "app.settings.system": "System Info",
+    "app.settings.user": "User Info",
+    "app.settings.personalization": "Personalization",
+    "app.settings.language": "Language",
+    "app.calculator": "Calculator",
+    "app.texteditor": "Text Editor",
+    "app.filemanager": "File Manager",
+    "app.mediaviewer": "Media Viewer",
+    "app.browser": "Browser",
+    "app.appstore": "App Store",
+    "taskbar.start": "Start",
+    "lock.unlock": "Unlock",
+    "lock.password": "Password",
+    "lock.switchUser": "Switch User"
+  }
+}

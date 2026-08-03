@@ -1,0 +1,21 @@
+{
+  "lang": "cmn",
+  "name": "中文简体",
+  "strings": {
+    "app.settings": "设置",
+    "app.settings.system": "系统信息",
+    "app.settings.user": "用户信息",
+    "app.settings.personalization": "个性化",
+    "app.settings.language": "语言",
+    "app.calculator": "计算器",
+    "app.texteditor": "文本编辑器",
+    "app.filemanager": "文件管理器",
+    "app.mediaviewer": "媒体查看器",
+    "app.browser": "浏览器",
+    "app.appstore": "应用商店",
+    "taskbar.start": "开始",
+    "lock.unlock": "解锁",
+    "lock.password": "密码",
+    "lock.switchUser": "切换用户"
+  }
+}

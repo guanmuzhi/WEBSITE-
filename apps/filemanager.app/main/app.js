@@ -973,7 +973,7 @@ class FileManager {
 
     getOwnerOfCurrentPath() {
         const path = this.getCurrentPath();
-        if (path.startsWith('/home/')) {
+        if (path.startsWith('/user/')) {
             const parts = path.split('/');
             if (parts.length >= 3) {
                 return parts[2];
@@ -999,7 +999,7 @@ class FileManager {
 
     async openFolder(folder) {
         const path = this.getCurrentPath();
-        if (path === '/' || path === '/home') {
+        if (path === '/' || path === '/user') {
             const allowed = await this.checkFolderPermission(folder.name);
             if (!allowed) return;
         } else {
@@ -1015,7 +1015,7 @@ class FileManager {
 
     async checkFolderPermission(folderName) {
         const currentPath = this.getCurrentPath();
-        if (currentPath !== '/home') return true;
+        if (currentPath !== '/user') return true;
 
         const currentUser = this.getCurrentUsername();
         if (folderName === currentUser) return true;
@@ -1070,9 +1070,9 @@ class FileManager {
     isProtected(name) {
         const currentPath = this.getCurrentPath();
         if (currentPath === '/') {
-            return ['home', 'tmp'].includes(name);
+            return ['user', 'application', 'languages', 'tmp'].includes(name);
         }
-        if (currentPath === '/home') {
+        if (currentPath === '/user') {
             return true;
         }
         return false;
@@ -1426,6 +1426,18 @@ class FileManager {
         });
 
         sorted.forEach(item => {
+            const currentPath = this.getCurrentPath();
+
+            // 过滤系统文件
+            if (currentPath === '/' && item.name === 'user.json') {
+                return;
+            }
+            if (currentPath.startsWith('/user/') && currentPath.split('/').filter(p => p).length === 2) {
+                if (item.name === 'info' || item.name === 'appinfo') {
+                    return;
+                }
+            }
+
             const el = document.createElement('div');
             el.className = 'fm-file-item';
 

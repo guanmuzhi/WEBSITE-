@@ -31,7 +31,17 @@ class FileSystem {
             children: [
                 {
                     type: 'folder',
-                    name: 'home',
+                    name: 'application',
+                    children: []
+                },
+                {
+                    type: 'folder',
+                    name: 'user',
+                    children: []
+                },
+                {
+                    type: 'folder',
+                    name: 'languages',
                     children: []
                 },
                 {
@@ -45,13 +55,13 @@ class FileSystem {
     }
 
     createUserHome(username) {
-        const homeDir = this.root.children.find(c => c.name === 'home');
+        const homeDir = this.root.children.find(c => c.name === 'user');
         if (!homeDir) {
-            return { success: false, message: 'home 目录不存在' };
+            return { success: false, message: 'user 目录不存在' };
         }
 
         if (homeDir.children.find(c => c.name === username)) {
-            return { success: false, message: '用户目录 "/home/' + username + '" 已存在' };
+            return { success: false, message: '用户目录 "/user/' + username + '" 已存在' };
         }
 
         const children = username === 'public' ? [
@@ -73,27 +83,27 @@ class FileSystem {
             children: children
         });
         this.save();
-        return { success: true, message: '用户目录 "/home/' + username + '" 创建成功' };
+        return { success: true, message: '用户目录 "/user/' + username + '" 创建成功' };
     }
 
     deleteUserHome(username) {
-        const homeDir = this.root.children.find(c => c.name === 'home');
+        const homeDir = this.root.children.find(c => c.name === 'user');
         if (!homeDir) {
-            return { success: false, message: 'home 目录不存在' };
+            return { success: false, message: 'user 目录不存在' };
         }
 
         const userDirIndex = homeDir.children.findIndex(c => c.name === username);
         if (userDirIndex === -1) {
-            return { success: false, message: '用户目录 "/home/' + username + '" 不存在' };
+            return { success: false, message: '用户目录 "/user/' + username + '" 不存在' };
         }
 
         homeDir.children.splice(userDirIndex, 1);
         this.save();
-        return { success: true, message: '用户目录 "/home/' + username + '" 删除成功' };
+        return { success: true, message: '用户目录 "/user/' + username + '" 删除成功' };
     }
 
     getHomeDir(username) {
-        const homeDir = this.root.children.find(c => c.name === 'home');
+        const homeDir = this.root.children.find(c => c.name === 'user');
         if (!homeDir) return null;
         return homeDir.children.find(c => c.name === username);
     }
@@ -149,8 +159,8 @@ class FileSystem {
         let node = this.root;
         
         for (const part of parts) {
-            if (part === 'home') {
-                node = node.children.find(c => c.name === 'home');
+            if (part === 'user') {
+                node = node.children.find(c => c.name === 'user');
             } else if (node.children) {
                 node = node.children.find(c => c.name === part);
             }

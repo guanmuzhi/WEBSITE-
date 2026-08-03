@@ -28,7 +28,7 @@ class DesktopManager {
     getStateFilePath() {
         const user = this.userManager.getCurrentUser();
         const username = user ? user.username : 'default';
-        return `/home/${username}/.window-state.json`;
+        return `/user/${username}/info/windows_status.json`;
     }
 
     async init() {
@@ -84,10 +84,21 @@ class DesktopManager {
         document.addEventListener('wallpaper-changed', (e) => {
             const { type, value } = e.detail;
             this.applyWallpaper(type, value);
+            this.saveWallpaperToFS(type, value);
         });
     }
 
     loadWallpaper() {
+        try {
+            const user = this.userManager.getCurrentUser();
+            const username = user ? user.username : 'public';
+            const path = `/user/${username}/info/wallpaper.json`;
+            const data = this.storage.loadJSON(path);
+            if (data) {
+                this.applyWallpaper(data.type, data.value);
+                return;
+            }
+        } catch (e) {}
         const saved = localStorage.getItem('webos-wallpaper');
         if (saved) {
             try {
@@ -97,6 +108,15 @@ class DesktopManager {
                 this.applyWallpaper('color', '#1a1a2e');
             }
         }
+    }
+
+    saveWallpaperToFS(type, value) {
+        try {
+            const user = this.userManager.getCurrentUser();
+            const username = user ? user.username : 'public';
+            const wallpaper = { type, value };
+            this.storage.saveJSON(`/user/${username}/info/wallpaper.json`, wallpaper);
+        } catch (e) {}
     }
 
     applyWallpaper(type, value) {
@@ -120,7 +140,7 @@ class DesktopManager {
         window._isSavingDisabled = true;
         this._isLoadingState = true;
 
-        const currentStatePath = `/home/${currentUsername}/.window-state.json`;
+        const currentStatePath = `/user/${currentUsername}/info/windows_status.json`;
         this.saveStateToPath(currentStatePath);
 
         const windows = this.windowManager.getAllWindows();

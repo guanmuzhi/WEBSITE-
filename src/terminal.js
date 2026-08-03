@@ -371,7 +371,7 @@ class Terminal {
 
     checkLogoutOnExitHome(previousPath) {
         const currentPath = this.fs.getCurrentPath();
-        const homePath = `/home/${this.currentUser.username}`;
+        const homePath = `/user/${this.currentUser.username}`;
         
         if (previousPath.startsWith(homePath) && !currentPath.startsWith(homePath)) {
             this.currentUser = this.userManager.getDefaultUser();
@@ -826,7 +826,7 @@ class Terminal {
         }
 
         const currentPath = this.fs.getCurrentPath();
-        const isInDeletedUserDir = currentPath.includes(`/home/${username}`);
+        const isInDeletedUserDir = currentPath.includes(`/user/${username}`);
 
         const userResult = this.userManager.deleteUser(username);
         if (!userResult.success) {
@@ -893,7 +893,7 @@ class Terminal {
 
     checkPathPermission(targetPath) {
         const pathParts = targetPath.split('/');
-        const homeIndex = pathParts.indexOf('home');
+        const homeIndex = pathParts.indexOf('user');
         
         if (homeIndex === -1 || homeIndex + 1 >= pathParts.length) {
             return { allowed: true };

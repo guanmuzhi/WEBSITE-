@@ -1,0 +1,21 @@
+{
+  "lang": "jpn",
+  "name": "日本語",
+  "strings": {
+    "app.settings": "設定",
+    "app.settings.system": "システム情報",
+    "app.settings.user": "ユーザー情報",
+    "app.settings.personalization": "個人設定",
+    "app.settings.language": "言語",
+    "app.calculator": "電卓",
+    "app.texteditor": "テキストエディタ",
+    "app.filemanager": "ファイル管理",
+    "app.mediaviewer": "メディアビューア",
+    "app.browser": "ブラウザ",
+    "app.appstore": "アプリストア",
+    "taskbar.start": "スタート",
+    "lock.unlock": "ロック解除",
+    "lock.password": "パスワード",
+    "lock.switchUser": "ユーザー切替"
+  }
+}
