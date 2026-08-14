@@ -5,6 +5,69 @@ class SettingsApp {
         this.init();
     }
 
+    loadLanguagePack(lang) {
+        const paths = {
+            cmn: '/languages/cmn.json',
+            eng: '/languages/eng.json',
+            jpn: '/languages/jpn.json'
+        };
+        return fetch(paths[lang] || paths.cmn)
+            .then(r => r.json())
+            .then(data => data.strings || {})
+            .catch(() => ({}));
+    }
+
+    async applyLanguage(lang) {
+        const strings = await this.loadLanguagePack(lang);
+        localStorage.setItem('webos-language', lang);
+
+        document.querySelectorAll('.settings-nav-item').forEach(item => {
+            const section = item.dataset.section;
+            if (strings[section]) {
+                item.textContent = strings[section];
+            }
+        });
+
+        const sectionTitles = {
+            'section-system': 'system',
+            'section-user': 'user_info',
+            'section-personalization': 'personalization',
+            'section-language': 'language'
+        };
+
+        for (const [id, key] of Object.entries(sectionTitles)) {
+            const el = document.querySelector(`#${id} h2`);
+            if (el && strings[key]) el.textContent = strings[key];
+        }
+
+        const version = strings.version || '版本';
+        const label = document.querySelector('#section-system .info-row:nth-child(2) .info-label');
+        if (label && version) label.textContent = version;
+
+        document.querySelectorAll('.lang-option').forEach(opt => {
+            const l = opt.dataset.lang;
+            const check = opt.querySelector('.lang-check');
+            if (l === lang) {
+                check.textContent = '✓';
+            } else {
+                check.textContent = '';
+            }
+        });
+
+        document.title = strings.app_title || '设置';
+    }
+
+    async loadVersion() {
+        try {
+            const res = await fetch('/apps/settings.app/info.json');
+            const data = await res.json();
+            const versionEl = document.getElementById('sys-version');
+            if (versionEl && data.version) {
+                versionEl.textContent = data.version;
+            }
+        } catch (e) {}
+    }
+
     getCurrentUser() {
         try {
             const um = window.parent.UserManager;
@@ -17,14 +80,12 @@ class SettingsApp {
     }
 
     loadWallpaper() {
-        // Try file system first
         try {
             const storage = window.parent.StorageService.getInstance();
             const path = `/user/${this.currentUser.username}/info/wallpaper.json`;
             const data = storage.loadJSON(path);
             if (data) return data;
         } catch (e) {}
-        // Fallback to localStorage
         const saved = localStorage.getItem('webos-wallpaper');
         if (saved) {
             try { return JSON.parse(saved); } catch (e) {}
@@ -65,7 +126,6 @@ class SettingsApp {
     }
 
     init() {
-        // Navigation
         document.querySelectorAll('.settings-nav-item').forEach(item => {
             item.addEventListener('click', () => {
                 document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.remove('active'));
@@ -75,20 +135,17 @@ class SettingsApp {
             });
         });
 
-        // System info
         document.getElementById('sys-browser').textContent = navigator.userAgent.split(' ').slice(-2).join(' ');
         document.getElementById('sys-os').textContent = navigator.platform || 'Unknown';
         document.getElementById('sys-resolution').textContent = `${window.screen.width}x${window.screen.height}`;
         document.getElementById('sys-language').textContent = navigator.language;
         document.getElementById('sys-online').textContent = navigator.onLine ? '在线' : '离线';
 
-        // User info
         document.getElementById('user-name').textContent = this.currentUser.username;
         document.getElementById('user-created').textContent = this.currentUser.createdAt || '-';
         const avatar = document.getElementById('user-avatar');
         if (avatar) avatar.textContent = (this.currentUser.username || 'U').charAt(0).toUpperCase();
 
-        // Wallpaper
         this.updatePreview();
         document.getElementById('color-grid').addEventListener('click', (e) => {
             const btn = e.target.closest('.color-btn');
@@ -113,18 +170,18 @@ class SettingsApp {
             this.saveWallpaper('color', '#1a1a2e');
         });
 
-        // Language
         const currentLang = localStorage.getItem('webos-language') || 'cmn';
         document.querySelectorAll('.lang-option').forEach(opt => {
             const lang = opt.dataset.lang;
             const check = opt.querySelector('.lang-check');
             if (lang === currentLang) check.textContent = '✓';
             opt.addEventListener('click', () => {
-                localStorage.setItem('webos-language', lang);
-                document.querySelectorAll('.lang-check').forEach(c => c.textContent = '');
-                check.textContent = '✓';
+                this.applyLanguage(lang);
             });
         });
+
+        this.applyLanguage(currentLang);
+        this.loadVersion();
     }
 }
 

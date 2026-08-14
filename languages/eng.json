@@ -16,6 +16,12 @@
     "taskbar.start": "Start",
     "lock.unlock": "Unlock",
     "lock.password": "Password",
-    "lock.switchUser": "Switch User"
+    "lock.switchUser": "Switch User",
+    "system": "System Info",
+    "user_info": "User Info",
+    "personalization": "Personalization",
+    "language": "Language",
+    "version": "Version",
+    "app_title": "Settings"
   }
 }

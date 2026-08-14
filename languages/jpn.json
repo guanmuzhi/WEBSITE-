@@ -16,6 +16,12 @@
     "taskbar.start": "スタート",
     "lock.unlock": "ロック解除",
     "lock.password": "パスワード",
-    "lock.switchUser": "ユーザー切替"
+    "lock.switchUser": "ユーザー切替",
+    "system": "システム情報",
+    "user_info": "ユーザー情報",
+    "personalization": "個人設定",
+    "language": "言語",
+    "version": "バージョン",
+    "app_title": "設定"
   }
 }

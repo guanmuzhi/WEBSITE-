@@ -1432,11 +1432,6 @@ class FileManager {
             if (currentPath === '/' && item.name === 'user.json') {
                 return;
             }
-            if (currentPath.startsWith('/user/') && currentPath.split('/').filter(p => p).length === 2) {
-                if (item.name === 'info' || item.name === 'appinfo') {
-                    return;
-                }
-            }
 
             const el = document.createElement('div');
             el.className = 'fm-file-item';

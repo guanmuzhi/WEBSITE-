@@ -16,6 +16,12 @@
     "taskbar.start": "开始",
     "lock.unlock": "解锁",
     "lock.password": "密码",
-    "lock.switchUser": "切换用户"
+    "lock.switchUser": "切换用户",
+    "system": "系统信息",
+    "user_info": "用户信息",
+    "personalization": "个性化",
+    "language": "语言",
+    "version": "版本",
+    "app_title": "设置"
   }
 }

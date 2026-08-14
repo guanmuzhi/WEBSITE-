@@ -4,6 +4,8 @@ class Browser {
         this.forwardBtn = document.getElementById('forward-btn');
         this.refreshBtn = document.getElementById('refresh-btn');
         this.newTabBtn = document.getElementById('new-tab-btn');
+        this.historyBtn = document.getElementById('history-btn');
+        this.bookmarkBtn = document.getElementById('bookmark-btn');
         this.addressInput = document.getElementById('address-input');
         this.goBtn = document.getElementById('go-btn');
         this.browserFrame = document.getElementById('browser-frame');
@@ -15,19 +17,51 @@ class Browser {
         this.retryBtn = document.getElementById('retry-btn');
         this.openExternalBtn = document.getElementById('open-external-btn');
         this.bookmarksBar = document.getElementById('bookmarks-bar');
+        this.historySidebar = document.getElementById('history-sidebar');
+        this.historyList = document.getElementById('history-list');
+        this.closeHistoryBtn = document.getElementById('close-history');
+        this.clearHistoryBtn = document.getElementById('clear-history');
         
         this.tabs = [];
         this.currentTabIndex = 0;
         this.tabIdCounter = 1;
         this.lastUrl = null;
         
-        this.bookmarks = [
+        this.history = this._loadHistory();
+        this.bookmarks = this._loadBookmarks();
+        
+        this.init();
+    }
+    
+    _loadHistory() {
+        try {
+            const saved = localStorage.getItem('webos-browser-history');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) { return []; }
+    }
+    
+    _saveHistory() {
+        try {
+            localStorage.setItem('webos-browser-history', JSON.stringify(this.history));
+        } catch (e) {}
+    }
+    
+    _loadBookmarks() {
+        try {
+            const saved = localStorage.getItem('webos-browser-bookmarks');
+            if (saved) return JSON.parse(saved);
+        } catch (e) {}
+        return [
             { name: 'Example', url: 'https://example.com' },
             { name: 'JSONPlaceholder', url: 'https://jsonplaceholder.typicode.com' },
             { name: 'HTTPBin', url: 'https://httpbin.org' }
         ];
-        
-        this.init();
+    }
+    
+    _saveBookmarks() {
+        try {
+            localStorage.setItem('webos-browser-bookmarks', JSON.stringify(this.bookmarks));
+        } catch (e) {}
     }
     
     init() {
@@ -35,6 +69,10 @@ class Browser {
         this.forwardBtn.addEventListener('click', () => this.goForward());
         this.refreshBtn.addEventListener('click', () => this.refresh());
         this.newTabBtn.addEventListener('click', () => this.openNewTab());
+        this.historyBtn.addEventListener('click', () => this.toggleHistory());
+        this.bookmarkBtn.addEventListener('click', () => this.toggleBookmark());
+        this.closeHistoryBtn.addEventListener('click', () => this.toggleHistory());
+        this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
         this.goBtn.addEventListener('click', () => this.navigate());
         this.addressInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
@@ -42,7 +80,6 @@ class Browser {
             }
         });
         
-        // Hijack window.open so same-origin iframe popups open as internal tabs
         this._originalWindowOpen = window.open.bind(window);
         window.open = (url, target, features) => {
             if (url && typeof url === 'string' && (target === '_blank' || !target)) {
@@ -70,8 +107,86 @@ class Browser {
         });
         
         this.renderBookmarks();
+        this.renderHistory();
         this.addNewTab('about:blank', '新标签页');
         this.updateNavButtons();
+    }
+    
+    toggleHistory() {
+        if (this.historySidebar.style.display === 'block') {
+            this.historySidebar.style.display = 'none';
+        } else {
+            this.historySidebar.style.display = 'block';
+            this.renderHistory();
+        }
+    }
+    
+    clearHistory() {
+        if (confirm('确定要清空所有历史记录吗？')) {
+            this.history = [];
+            this._saveHistory();
+            this.renderHistory();
+        }
+    }
+    
+    renderHistory() {
+        if (!this.historyList) return;
+        this.historyList.innerHTML = '';
+        if (this.history.length === 0) {
+            this.historyList.innerHTML = '<div style="padding:20px;color:#888;text-align:center;">暂无历史记录</div>';
+            return;
+        }
+        const MAX = 50;
+        const recent = this.history.slice(0, MAX);
+        recent.forEach((item) => {
+            const el = document.createElement('div');
+            el.className = 'history-item';
+            const title = document.createElement('div');
+            title.className = 'history-title';
+            title.textContent = item.title || item.url;
+            title.title = item.url;
+            const url = document.createElement('div');
+            url.className = 'history-url';
+            url.textContent = item.url;
+            url.title = item.url;
+            el.appendChild(title);
+            el.appendChild(url);
+            el.addEventListener('click', () => {
+                this.addressInput.value = item.url;
+                this.navigate();
+                this.toggleHistory();
+            });
+            this.historyList.appendChild(el);
+        });
+    }
+    
+    _addToHistory(url, title) {
+        if (!url || url === 'about:blank') return;
+        this.history = this.history.filter(h => h.url !== url);
+        this.history.unshift({ url: url, title: title, timestamp: Date.now() });
+        if (this.history.length > 500) {
+            this.history = this.history.slice(0, 500);
+        }
+        this._saveHistory();
+    }
+    
+    toggleBookmark() {
+        const currentTab = this.tabs[this.currentTabIndex];
+        if (!currentTab || !currentTab.url || currentTab.url === 'about:blank') return;
+        
+        const existing = this.bookmarks.find(b => b.url === currentTab.url);
+        if (existing) {
+            if (confirm(`已收藏 "${existing.name}"，是否移除？`)) {
+                this.bookmarks = this.bookmarks.filter(b => b.url !== existing.url);
+                this._saveBookmarks();
+                this.renderBookmarks();
+            }
+        } else {
+            const name = currentTab.title || currentTab.url;
+            this.bookmarks.push({ name: name, url: currentTab.url });
+            this._saveBookmarks();
+            this.renderBookmarks();
+        }
     }
     
     openNewTabWithUrl(url) {
@@ -315,12 +430,10 @@ class Browser {
         const currentTab = this.tabs[this.currentTabIndex];
         const url = currentTab ? currentTab.url : null;
 
-        // Clear any previous delayed check
         if (this._loadCheckTimeout) {
             clearTimeout(this._loadCheckTimeout);
         }
 
-        // Try to intercept window.open inside the iframe (same-origin only)
         try {
             const childWindow = this.browserFrame.contentWindow;
             if (childWindow && childWindow.open) {
@@ -334,22 +447,21 @@ class Browser {
                 };
             }
         } catch (e) {
-            // Cross-origin - can't touch iframe's window
         }
 
-        // Update tab title for same-origin pages
         try {
             if (this.browserFrame.contentDocument && this.browserFrame.contentDocument.title) {
                 currentTab.title = this.browserFrame.contentDocument.title;
                 this.updateTabsUI();
+                this._addToHistory(url, currentTab.title);
+            } else {
+                this._addToHistory(url, url);
             }
         } catch (e) {
-            // Cross-origin - can't access title, but page likely loaded fine
+            this._addToHistory(url, url);
         }
 
-        // Delay the blank-document check to let SPA / slow pages render
         this._loadCheckTimeout = setTimeout(() => {
-            // Only check if we're still on the same URL
             if (this.lastUrl !== url) return;
 
             let blocked = false;
@@ -359,7 +471,6 @@ class Browser {
                     blocked = true;
                 }
             } catch (e) {
-                // Cross-origin throws — page actually loaded successfully
                 blocked = false;
             }
 
