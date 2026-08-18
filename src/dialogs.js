@@ -1,24 +1,19 @@
-import UserManager from './user-manager.js?v=14';
-
+import UserManager from './user-manager.js?v=15';
 class Dialogs {
     static showAlert(message, title = '提示') {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
-
             const dialog = document.createElement('div');
             dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
-
             const titleEl = document.createElement('div');
             titleEl.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
             titleEl.textContent = title;
             dialog.appendChild(titleEl);
-
             const msg = document.createElement('div');
             msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:16px;';
             msg.textContent = message;
             dialog.appendChild(msg);
-
             const okBtn = document.createElement('button');
             okBtn.textContent = '确定';
             okBtn.style.cssText = 'padding:8px 24px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
@@ -28,36 +23,28 @@ class Dialogs {
                 document.body.removeChild(overlay);
                 resolve();
             });
-
             dialog.appendChild(okBtn);
             overlay.appendChild(dialog);
             document.body.appendChild(overlay);
-
             setTimeout(() => okBtn.focus(), 50);
         });
     }
-
     static showConfirm(message, title = '确认') {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
-
             const dialog = document.createElement('div');
             dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
-
             const titleEl = document.createElement('div');
             titleEl.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
             titleEl.textContent = title;
             dialog.appendChild(titleEl);
-
             const msg = document.createElement('div');
             msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:16px;';
             msg.textContent = message;
             dialog.appendChild(msg);
-
             const btnContainer = document.createElement('div');
             btnContainer.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
-
             const cancelBtn = document.createElement('button');
             cancelBtn.textContent = '取消';
             cancelBtn.style.cssText = 'padding:8px 16px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;';
@@ -68,7 +55,6 @@ class Dialogs {
                 resolve(false);
             });
             btnContainer.appendChild(cancelBtn);
-
             const confirmBtn = document.createElement('button');
             confirmBtn.textContent = '确定';
             confirmBtn.style.cssText = 'padding:8px 16px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
@@ -79,33 +65,26 @@ class Dialogs {
                 resolve(true);
             });
             btnContainer.appendChild(confirmBtn);
-
             dialog.appendChild(btnContainer);
             overlay.appendChild(dialog);
             document.body.appendChild(overlay);
-
             setTimeout(() => confirmBtn.focus(), 50);
         });
     }
-
     static showPrompt(message, defaultValue = '', title = '输入') {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
-
             const dialog = document.createElement('div');
             dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
-
             const titleEl = document.createElement('div');
             titleEl.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
             titleEl.textContent = title;
             dialog.appendChild(titleEl);
-
             const msg = document.createElement('div');
             msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:12px;';
             msg.textContent = message;
             dialog.appendChild(msg);
-
             const input = document.createElement('input');
             input.type = 'text';
             input.value = defaultValue;
@@ -113,10 +92,8 @@ class Dialogs {
             input.addEventListener('focus', () => { input.style.borderColor = '#3498db'; });
             input.addEventListener('blur', () => { input.style.borderColor = '#3d3d3d'; });
             dialog.appendChild(input);
-
             const btnContainer = document.createElement('div');
             btnContainer.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
-
             const cancelBtn = document.createElement('button');
             cancelBtn.textContent = '取消';
             cancelBtn.style.cssText = 'padding:8px 16px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;';
@@ -127,7 +104,6 @@ class Dialogs {
                 resolve(null);
             });
             btnContainer.appendChild(cancelBtn);
-
             const confirmBtn = document.createElement('button');
             confirmBtn.textContent = '确定';
             confirmBtn.style.cssText = 'padding:8px 16px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
@@ -138,13 +114,10 @@ class Dialogs {
                 resolve(input.value);
             });
             btnContainer.appendChild(confirmBtn);
-
             dialog.appendChild(btnContainer);
             overlay.appendChild(dialog);
             document.body.appendChild(overlay);
-
             setTimeout(() => { input.focus(); input.select(); }, 50);
-
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     document.body.removeChild(overlay);
@@ -156,24 +129,19 @@ class Dialogs {
             });
         });
     }
-
     static showPasswordDialog(username, onSuccess, onCancel) {
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
-
         const dialog = document.createElement('div');
         dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
-
         const title = document.createElement('div');
         title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:16px;color:#eee;';
         title.textContent = `访问 ${username} 的目录`;
         dialog.appendChild(title);
-
         const desc = document.createElement('div');
         desc.style.cssText = 'font-size:13px;color:#888;margin-bottom:16px;';
         desc.textContent = '请输入密码以继续访问';
         dialog.appendChild(desc);
-
         const input = document.createElement('input');
         input.type = 'password';
         input.placeholder = '密码';
@@ -181,14 +149,11 @@ class Dialogs {
         input.addEventListener('focus', () => { input.style.borderColor = '#3498db'; });
         input.addEventListener('blur', () => { input.style.borderColor = '#3d3d3d'; });
         dialog.appendChild(input);
-
         const errorMsg = document.createElement('div');
         errorMsg.style.cssText = 'color:#e74c3c;font-size:12px;margin-bottom:16px;min-height:16px;';
         dialog.appendChild(errorMsg);
-
         const btnContainer = document.createElement('div');
         btnContainer.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
-
         const cancelBtn = document.createElement('button');
         cancelBtn.textContent = '取消';
         cancelBtn.style.cssText = 'padding:8px 16px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;';
@@ -199,13 +164,11 @@ class Dialogs {
             if (onCancel) onCancel();
         });
         btnContainer.appendChild(cancelBtn);
-
         const confirmBtn = document.createElement('button');
         confirmBtn.textContent = '确认';
         confirmBtn.style.cssText = 'padding:8px 16px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
         confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = '#2980b9'; });
         confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = '#3498db'; });
-
         const submit = () => {
             const userInfo = Dialogs.getUserInfo(username);
             if (userInfo && userInfo.password === input.value) {
@@ -216,20 +179,16 @@ class Dialogs {
                 input.style.borderColor = '#e74c3c';
             }
         };
-
         confirmBtn.addEventListener('click', submit);
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') submit();
         });
         btnContainer.appendChild(confirmBtn);
-
         dialog.appendChild(btnContainer);
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
-
         setTimeout(() => input.focus(), 50);
     }
-
     static getUserInfo(username) {
         const userManager = UserManager.getInstance();
         const user = userManager.getUser(username);
@@ -239,5 +198,4 @@ class Dialogs {
         return null;
     }
 }
-
 export default Dialogs;
