@@ -2,6 +2,7 @@ import UserManager from './user-manager.js?v=15';
 import UserSwitcher from './user-switcher.js?v=15';
 import LockScreen from './lock-screen.js?v=15';
 import StorageService from './storage.js?v=15';
+
 class DesktopManager {
     constructor(options = {}) {
         this.desktopEl = options.desktopEl || null;
@@ -14,23 +15,28 @@ class DesktopManager {
         this.terminalWindows = new Map();
         this._isLoadingState = false;
         this.apps = [];
+        this.langStrings = {};
         this.userManager = UserManager.getInstance();
         this.storage = StorageService.getInstance();
         this.userSwitcher = null;
         this.lockScreen = null;
     }
+
     isMobile() {
         return window.innerWidth < 768;
     }
+
     getStateFilePath() {
         const user = this.userManager.getCurrentUser();
         const username = user ? user.username : 'default';
         return `/user/${username}/info/windows_status.json`;
     }
+
     async init() {
         this.taskbarItemsEl = this.desktopEl.querySelector('.taskbar-items');
         this.taskbarClockEl = this.desktopEl.querySelector('.taskbar-clock');
         this.taskbarUserNameEl = this.desktopEl.querySelector('#taskbar-user-name');
+
         if (window._bootManager && window._bootManager.lockScreen) {
             this.lockScreen = window._bootManager.lockScreen;
             this.lockScreen.onUnlock = () => {
@@ -49,6 +55,7 @@ class DesktopManager {
                 }
             });
         }
+
         this.userSwitcher = new UserSwitcher({
             onSwitch: (username) => {
                 this.switchUser(username);
@@ -57,9 +64,13 @@ class DesktopManager {
                 this.lock();
             }
         });
+
         this.setupTaskbarUser();
+        await this.loadLanguageStrings();
         await this.scanApps();
+        await this.seedSystemDirectories();
         this.setupDesktopIcons();
+        this.setupLanguageListener();
         this.startClock();
         this.loadState();
         this.updateTaskbar();
@@ -68,6 +79,148 @@ class DesktopManager {
         this.setupUserSwitchListener();
         this.setupWallpaper();
     }
+
+    // ===== 国际化 =====
+    async loadLanguageStrings() {
+        const lang = localStorage.getItem('webos-language') || 'cmn';
+        const langFiles = { cmn: '/languages/cmn.json', eng: '/languages/eng.json', jpn: '/languages/jpn.json' };
+        try {
+            const res = await fetch(langFiles[lang] || langFiles.cmn);
+            const data = await res.json();
+            this.langStrings = data.strings || {};
+        } catch (e) {
+            this.langStrings = {};
+        }
+    }
+
+    t(key, fallback) {
+        return this.langStrings[key] !== undefined ? this.langStrings[key] : (fallback || key);
+    }
+
+    setupLanguageListener() {
+        document.addEventListener('language-changed', async (e) => {
+            const { lang, strings } = e.detail || {};
+            if (strings) {
+                this.langStrings = strings;
+            } else if (lang) {
+                await this.loadLanguageStrings();
+            }
+            this.updateDesktopIconLabels();
+            this.updateTaskbar();
+        });
+    }
+
+    updateDesktopIconLabels() {
+        const desktopIcons = this.desktopEl.querySelector('.desktop-icons');
+        if (!desktopIcons) return;
+
+        const terminalLabel = desktopIcons.querySelector('#terminal-icon .icon-label');
+        if (terminalLabel) terminalLabel.textContent = this.t('app.terminal', '终端');
+
+        const calcLabel = desktopIcons.querySelector('#calculator-icon .icon-label');
+        if (calcLabel) calcLabel.textContent = this.t('app.calculator', '计算器');
+
+        const fmLabel = desktopIcons.querySelector('#filemanager-icon .icon-label');
+        if (fmLabel) fmLabel.textContent = this.t('app.filemanager', '文件管理器');
+
+        this.apps.forEach(app => {
+            const iconEl = desktopIcons.querySelector(`[data-app="${app.id}"]`);
+            if (iconEl) {
+                const labelEl = iconEl.querySelector('.icon-label');
+                if (labelEl) {
+                    const key = 'app.' + app.path.replace('.app', '');
+                    labelEl.textContent = this.t(key, app.name);
+                }
+            }
+        });
+    }
+
+    // ===== 系统目录填充（解决空文件夹问题）=====
+    async seedSystemDirectories() {
+        try {
+            const fs = this.storage.fs;
+            if (!fs.children) fs.children = [];
+
+            // 1. 填充 /application 目录
+            let appDir = fs.children.find(c => c.name === 'application' && c.type === 'folder');
+            if (!appDir) {
+                appDir = { type: 'folder', name: 'application', children: [] };
+                fs.children.push(appDir);
+            }
+            if (!appDir.children) appDir.children = [];
+
+            this.apps.forEach(app => {
+                if (!appDir.children.find(c => c.name === app.path)) {
+                    appDir.children.push({
+                        type: 'folder',
+                        name: app.path,
+                        children: [
+                            { type: 'file', name: 'info.json', content: JSON.stringify(app, null, 2) },
+                            { type: 'folder', name: 'main', children: [] }
+                        ]
+                    });
+                }
+            });
+
+            // 2. 填充 /languages 目录
+            let langDir = fs.children.find(c => c.name === 'languages' && c.type === 'folder');
+            if (!langDir) {
+                langDir = { type: 'folder', name: 'languages', children: [] };
+                fs.children.push(langDir);
+            }
+            if (!langDir.children) langDir.children = [];
+
+            const langFiles = [
+                { file: 'cmn.json', path: '/languages/cmn.json' },
+                { file: 'eng.json', path: '/languages/eng.json' },
+                { file: 'jpn.json', path: '/languages/jpn.json' }
+            ];
+            for (const lang of langFiles) {
+                if (!langDir.children.find(c => c.name === lang.file)) {
+                    try {
+                        const res = await fetch(lang.path);
+                        const content = await res.text();
+                        langDir.children.push({ type: 'file', name: lang.file, content });
+                    } catch (e) {}
+                }
+            }
+
+            // 3. 确保当前用户的 appinfo 目录有浏览器数据子目录
+            const user = this.userManager.getCurrentUser();
+            if (user) {
+                const username = user.username;
+                let userDir = fs.children.find(c => c.name === 'user' && c.type === 'folder');
+                if (userDir) {
+                    if (!userDir.children) userDir.children = [];
+                    let uDir = userDir.children.find(c => c.name === username && c.type === 'folder');
+                    if (uDir) {
+                        if (!uDir.children) uDir.children = [];
+                        let appInfoDir = uDir.children.find(c => c.name === 'appinfo' && c.type === 'folder');
+                        if (!appInfoDir) {
+                            appInfoDir = { type: 'folder', name: 'appinfo', children: [] };
+                            uDir.children.push(appInfoDir);
+                        }
+                        if (!appInfoDir.children) appInfoDir.children = [];
+                        if (!appInfoDir.children.find(c => c.name === 'browser.app')) {
+                            appInfoDir.children.push({
+                                type: 'folder',
+                                name: 'browser.app',
+                                children: [
+                                    { type: 'file', name: 'history.json', content: '[]' },
+                                    { type: 'file', name: 'bookmarks.json', content: '[]' }
+                                ]
+                            });
+                        }
+                    }
+                }
+            }
+
+            this.storage.saveFS();
+        } catch (e) {
+            console.warn('seedSystemDirectories failed:', e);
+        }
+    }
+
     setupWallpaper() {
         this.loadWallpaper();
         document.addEventListener('wallpaper-changed', (e) => {
@@ -76,6 +229,7 @@ class DesktopManager {
             this.saveWallpaperToFS(type, value);
         });
     }
+
     loadWallpaper() {
         try {
             const user = this.userManager.getCurrentUser();
@@ -97,6 +251,7 @@ class DesktopManager {
             }
         }
     }
+
     saveWallpaperToFS(type, value) {
         try {
             const user = this.userManager.getCurrentUser();
@@ -105,6 +260,7 @@ class DesktopManager {
             this.storage.saveJSON(`/user/${username}/info/wallpaper.json`, wallpaper);
         } catch (e) {}
     }
+
     applyWallpaper(type, value) {
         const desktop = document.getElementById('desktop');
         if (!desktop) return;
@@ -117,6 +273,7 @@ class DesktopManager {
             desktop.style.background = `url(${value}) center/cover fixed`;
         }
     }
+
     async switchUser(username) {
         const currentUser = this.userManager.getCurrentUser();
         const currentUsername = currentUser ? currentUser.username : 'default';
@@ -136,6 +293,7 @@ class DesktopManager {
         this.windowManager.zIndexCounter = 1;
         this.storage.reload();
         this.userManager.reload();
+        await this.seedSystemDirectories();
         await this.loadState();
         this.updateTaskbar();
         const desktopIcons = this.desktopEl.querySelector('.desktop-icons');
@@ -148,6 +306,7 @@ class DesktopManager {
             window._isSavingDisabled = false;
         }, 3000);
     }
+
     saveStateToPath(path) {
         try {
             const windows = this.windowManager.getAllWindows();
@@ -206,11 +365,13 @@ class DesktopManager {
             console.warn('Failed to save GUI state:', e);
         }
     }
+
     setupUserSwitchListener() {
         document.addEventListener('request-user-switch', (e) => {
             this.switchUser(e.detail.username);
         });
     }
+
     setupTaskbarUser() {
         const taskbarUser = this.desktopEl.querySelector('#taskbar-user');
         if (taskbarUser) {
@@ -226,15 +387,18 @@ class DesktopManager {
             }
         });
     }
+
     updateTaskbarUser() {
         const user = this.userManager.getCurrentUser();
         if (user && this.taskbarUserNameEl) {
             this.taskbarUserNameEl.textContent = user.username;
         }
     }
+
     lock() {
         this.lockScreen.show();
     }
+
     setupAppLaunchListeners() {
         document.addEventListener('app-launch-real', (e) => {
             const path = e.detail.path;
@@ -245,7 +409,7 @@ class DesktopManager {
             const filePath = e.detail.path;
             this.openAppByPath({
                 path: 'texteditor.app',
-                name: '文本编辑器',
+                name: this.t('app.texteditor', '文本编辑器'),
                 params: { path: filePath }
             });
         });
@@ -253,7 +417,7 @@ class DesktopManager {
             const filePath = e.detail.path;
             this.openAppByPath({
                 path: 'mediaviewer.app',
-                name: '媒体查看器',
+                name: this.t('app.mediaviewer', '媒体查看器'),
                 params: { path: filePath }
             });
         });
@@ -261,11 +425,12 @@ class DesktopManager {
             const filePath = e.detail.path;
             this.openAppByPath({
                 path: 'mediaviewer.app',
-                name: '媒体查看器',
+                name: this.t('app.mediaviewer', '媒体查看器'),
                 params: { path: filePath }
             });
         });
     }
+
     async scanApps() {
         try {
             const res = await fetch('/apps/manifest.json');
@@ -276,24 +441,31 @@ class DesktopManager {
             this.apps = [];
         }
     }
+
     setupDesktopIcons() {
         const desktopIcons = this.desktopEl.querySelector('.desktop-icons');
         const terminalIcon = this.desktopEl.querySelector('#terminal-icon');
         if (terminalIcon) {
+            const label = terminalIcon.querySelector('.icon-label');
+            if (label) label.textContent = this.t('app.terminal', '终端');
             terminalIcon.addEventListener('click', () => {
                 this.openTerminalWindow();
             });
         }
         const calculatorIcon = this.desktopEl.querySelector('#calculator-icon');
         if (calculatorIcon) {
+            const label = calculatorIcon.querySelector('.icon-label');
+            if (label) label.textContent = this.t('app.calculator', '计算器');
             calculatorIcon.addEventListener('click', () => {
-                this.openAppByPath({ path: 'calculator.app', name: '计算器' });
+                this.openAppByPath({ path: 'calculator.app', name: this.t('app.calculator', '计算器') });
             });
         }
         const filemanagerIcon = this.desktopEl.querySelector('#filemanager-icon');
         if (filemanagerIcon) {
+            const label = filemanagerIcon.querySelector('.icon-label');
+            if (label) label.textContent = this.t('app.filemanager', '文件管理器');
             filemanagerIcon.addEventListener('click', () => {
-                this.openAppByPath({ path: 'filemanager.app', name: '文件管理器' });
+                this.openAppByPath({ path: 'filemanager.app', name: this.t('app.filemanager', '文件管理器') });
             });
         }
         this.apps.forEach(app => {
@@ -302,19 +474,23 @@ class DesktopManager {
                 iconEl = document.createElement('div');
                 iconEl.className = 'desktop-icon';
                 iconEl.setAttribute('data-app', app.id);
+                const key = 'app.' + app.path.replace('.app', '');
+                const displayName = this.t(key, app.name);
                 iconEl.innerHTML = `
                     <div class="icon-image">
-                        <img src="/apps/${app.path}/icon.svg" alt="${app.name}" style="width:28px;height:28px;">
+                        <img src="/apps/${app.path}/icon.svg" alt="${displayName}" style="width:28px;height:28px;">
                     </div>
-                    <div class="icon-label">${app.name}</div>
+                    <div class="icon-label">${displayName}</div>
                 `;
                 desktopIcons.appendChild(iconEl);
             }
             iconEl.addEventListener('click', () => {
-                this.openAppByPath(app);
+                const key = 'app.' + app.path.replace('.app', '');
+                this.openAppByPath({ ...app, name: this.t(key, app.name) });
             });
         });
     }
+
     openTerminalWindow(options = {}) {
         const template = document.getElementById('terminal-template');
         const clone = template.content.cloneNode(true);
@@ -325,7 +501,7 @@ class DesktopManager {
         terminalContainer.appendChild(clone);
         const isMobile = this.isMobile();
         const win = this.windowManager.createWindow({
-            title: '终端',
+            title: this.t('app.terminal', '终端'),
             icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ecf0f1" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
             content: terminalContainer,
             width: isMobile ? window.innerWidth : (options.width || 600),
@@ -337,7 +513,7 @@ class DesktopManager {
                 this.saveState();
             }
         });
-        win.appName = '终端';
+        win.appName = this.t('app.terminal', '终端');
         win.appIcon = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ecf0f1" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>';
         if (isMobile) {
             win.isMaximized = true;
@@ -348,7 +524,7 @@ class DesktopManager {
             onTitleChange: (fullTitle) => {
                 const path = fullTitle.split(':')[1] || fullTitle;
                 const cleanPath = path.replace(/^\/+/, '/');
-                const shortTitle = '终端 - ' + cleanPath;
+                const shortTitle = this.t('app.terminal', '终端') + ' - ' + cleanPath;
                 win.setTitle(shortTitle);
                 this.updateTaskbar();
                 this.saveState();
@@ -390,6 +566,7 @@ class DesktopManager {
         this.saveState();
         return win;
     }
+
     async openAppByPath(app) {
         const infoRes = await fetch(`/apps/${app.path}/info.json`);
         let info = { width: 380, height: 580 };
@@ -459,6 +636,7 @@ class DesktopManager {
         this.saveState();
         return win;
     }
+
     updateTaskbar() {
         if (!this.taskbarItemsEl) return;
         const windows = this.windowManager.getAllWindows();
@@ -489,6 +667,7 @@ class DesktopManager {
             this.taskbarItemsEl.appendChild(item);
         });
     }
+
     _getTopWindow() {
         const windows = this.windowManager.getAllWindows();
         if (windows.length === 0) return null;
@@ -504,6 +683,7 @@ class DesktopManager {
         });
         return topWin;
     }
+
     saveState() {
         if (window._isSavingDisabled) {
             return;
@@ -569,6 +749,7 @@ class DesktopManager {
             console.warn('Failed to save GUI state:', e);
         }
     }
+
     async loadState() {
         try {
             this.storage.reload();
@@ -620,12 +801,14 @@ class DesktopManager {
             console.warn('Failed to load GUI state:', e);
         }
     }
+
     startClock() {
         this._updateClock();
         this.clockInterval = setInterval(() => {
             this._updateClock();
         }, 1000);
     }
+
     _updateClock() {
         if (!this.taskbarClockEl) return;
         const now = new Date();
@@ -635,4 +818,5 @@ class DesktopManager {
         this.taskbarClockEl.textContent = `${hours}:${minutes}:${seconds}`;
     }
 }
+
 export default DesktopManager;
