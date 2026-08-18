@@ -7,6 +7,7 @@ class FileManager {
         this.authorizedUsers = new Set();
         this.clipboard = null;
         this.clipboardAction = null;
+        this.strings = {};
 
         this.filelistEl = document.getElementById('fm-filelist');
         this.pathEl = document.getElementById('fm-path');
@@ -17,12 +18,71 @@ class FileManager {
         this.storage = window.parent.StorageService.getInstance();
 
         this.initEvents();
-        this.render();
+        this.loadLanguage().then(() => {
+            this.applyLanguage();
+            this.render();
+        });
     }
 
-    get root() {
-        return this.storage.fs;
+    async loadLanguage() {
+        const lang = localStorage.getItem('webos-language') || 'cmn';
+        const langFiles = { cmn: '/languages/cmn.json', eng: '/languages/eng.json', jpn: '/languages/jpn.json' };
+        try {
+            const res = await fetch(langFiles[lang] || langFiles.cmn);
+            const data = await res.json();
+            this.strings = data.strings || {};
+        } catch (e) {
+            this.strings = {};
+        }
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.document.addEventListener('language-changed', (e) => {
+                    if (e.detail && e.detail.strings) {
+                        this.strings = e.detail.strings;
+                    }
+                    this.applyLanguage();
+                    this.render();
+                });
+            }
+        } catch (e) {}
     }
+
+    t(key, fallback) {
+        return this.strings[key] !== undefined ? this.strings[key] : (fallback || key);
+    }
+
+    applyLanguage() {
+        const sidebarTitle = document.querySelector('.fm-sidebar-title');
+        if (sidebarTitle) sidebarTitle.textContent = this.t('filemanager.nav', '导航');
+
+        const filesItem = document.getElementById('fm-sidebar-files');
+        if (filesItem) {
+            const svg = filesItem.querySelector('svg');
+            filesItem.innerHTML = '';
+            if (svg) filesItem.appendChild(svg);
+            filesItem.appendChild(document.createTextNode(' ' + this.t('filemanager.files', '文件')));
+        }
+        const networkItem = document.getElementById('fm-sidebar-network');
+        if (networkItem) {
+            const svg = networkItem.querySelector('svg');
+            networkItem.innerHTML = '';
+            if (svg) networkItem.appendChild(svg);
+            networkItem.appendChild(document.createTextNode(' ' + this.t('filemanager.network', 'LAN Drop')));
+        }
+
+        document.getElementById('fm-back').title = this.t('filemanager.back', '返回上级');
+        document.getElementById('fm-home').title = this.t('filemanager.home', '根目录');
+        document.getElementById('fm-refresh').title = this.t('filemanager.refresh', '刷新');
+        document.getElementById('fm-new-folder').title = this.t('filemanager.new_folder', '新建文件夹');
+        document.getElementById('fm-new-file').title = this.t('filemanager.new_file', '新建文件');
+        document.getElementById('fm-upload').title = this.t('filemanager.upload', '上传文件');
+        document.getElementById('fm-paste').title = this.t('filemanager.paste', '粘贴');
+
+        const viewerClose = document.getElementById('fm-viewer-close');
+        if (viewerClose) viewerClose.textContent = this.t('common.close', '关闭');
+    }
+
+    get root() { return this.storage.fs; }
 
     get currentDir() {
         if (this.pathStack.length === 0) return this.root;
@@ -40,34 +100,25 @@ class FileManager {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
-
             const dialog = document.createElement('div');
             dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
-
             const title = document.createElement('div');
             title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
-            title.textContent = '提示';
+            title.textContent = this.t('common.alert', '提示');
             dialog.appendChild(title);
-
             const msg = document.createElement('div');
             msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:16px;';
             msg.textContent = message;
             dialog.appendChild(msg);
-
             const okBtn = document.createElement('button');
-            okBtn.textContent = '确定';
+            okBtn.textContent = this.t('common.ok', '确定');
             okBtn.style.cssText = 'padding:8px 24px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
             okBtn.addEventListener('mouseenter', () => { okBtn.style.background = '#2980b9'; });
             okBtn.addEventListener('mouseleave', () => { okBtn.style.background = '#3498db'; });
-            okBtn.addEventListener('click', () => {
-                document.body.removeChild(overlay);
-                resolve();
-            });
-
+            okBtn.addEventListener('click', () => { document.body.removeChild(overlay); resolve(); });
             dialog.appendChild(okBtn);
             overlay.appendChild(dialog);
             document.body.appendChild(overlay);
-
             setTimeout(() => okBtn.focus(), 50);
         });
     }
@@ -76,49 +127,35 @@ class FileManager {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
-
             const dialog = document.createElement('div');
             dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
-
             const title = document.createElement('div');
             title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
-            title.textContent = '确认';
+            title.textContent = this.t('common.confirm', '确认');
             dialog.appendChild(title);
-
             const msg = document.createElement('div');
             msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:16px;';
             msg.textContent = message;
             dialog.appendChild(msg);
-
             const btnContainer = document.createElement('div');
             btnContainer.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
-
             const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = '取消';
+            cancelBtn.textContent = this.t('common.cancel', '取消');
             cancelBtn.style.cssText = 'padding:8px 16px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;';
             cancelBtn.addEventListener('mouseenter', () => { cancelBtn.style.background = '#4d4d4d'; });
             cancelBtn.addEventListener('mouseleave', () => { cancelBtn.style.background = '#3d3d3d'; });
-            cancelBtn.addEventListener('click', () => {
-                document.body.removeChild(overlay);
-                resolve(false);
-            });
+            cancelBtn.addEventListener('click', () => { document.body.removeChild(overlay); resolve(false); });
             btnContainer.appendChild(cancelBtn);
-
             const confirmBtn = document.createElement('button');
-            confirmBtn.textContent = '确定';
+            confirmBtn.textContent = this.t('common.ok', '确定');
             confirmBtn.style.cssText = 'padding:8px 16px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
             confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = '#2980b9'; });
             confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = '#3498db'; });
-            confirmBtn.addEventListener('click', () => {
-                document.body.removeChild(overlay);
-                resolve(true);
-            });
+            confirmBtn.addEventListener('click', () => { document.body.removeChild(overlay); resolve(true); });
             btnContainer.appendChild(confirmBtn);
-
             dialog.appendChild(btnContainer);
             overlay.appendChild(dialog);
             document.body.appendChild(overlay);
-
             setTimeout(() => confirmBtn.focus(), 50);
         });
     }
@@ -127,20 +164,16 @@ class FileManager {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
-
             const dialog = document.createElement('div');
             dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
-
             const title = document.createElement('div');
             title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
-            title.textContent = '输入';
+            title.textContent = this.t('common.prompt', '输入');
             dialog.appendChild(title);
-
             const msg = document.createElement('div');
             msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:12px;';
             msg.textContent = message;
             dialog.appendChild(msg);
-
             const input = document.createElement('input');
             input.type = 'text';
             input.value = defaultValue;
@@ -148,58 +181,35 @@ class FileManager {
             input.addEventListener('focus', () => { input.style.borderColor = '#3498db'; });
             input.addEventListener('blur', () => { input.style.borderColor = '#3d3d3d'; });
             dialog.appendChild(input);
-
             const btnContainer = document.createElement('div');
             btnContainer.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
-
             const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = '取消';
+            cancelBtn.textContent = this.t('common.cancel', '取消');
             cancelBtn.style.cssText = 'padding:8px 16px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;';
             cancelBtn.addEventListener('mouseenter', () => { cancelBtn.style.background = '#4d4d4d'; });
             cancelBtn.addEventListener('mouseleave', () => { cancelBtn.style.background = '#3d3d3d'; });
-            cancelBtn.addEventListener('click', () => {
-                document.body.removeChild(overlay);
-                resolve(null);
-            });
+            cancelBtn.addEventListener('click', () => { document.body.removeChild(overlay); resolve(null); });
             btnContainer.appendChild(cancelBtn);
-
             const confirmBtn = document.createElement('button');
-            confirmBtn.textContent = '确定';
+            confirmBtn.textContent = this.t('common.ok', '确定');
             confirmBtn.style.cssText = 'padding:8px 16px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
             confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = '#2980b9'; });
             confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = '#3498db'; });
-            confirmBtn.addEventListener('click', () => {
-                document.body.removeChild(overlay);
-                resolve(input.value);
-            });
+            confirmBtn.addEventListener('click', () => { document.body.removeChild(overlay); resolve(input.value); });
             btnContainer.appendChild(confirmBtn);
-
             dialog.appendChild(btnContainer);
             overlay.appendChild(dialog);
             document.body.appendChild(overlay);
-
             setTimeout(() => { input.focus(); input.select(); }, 50);
-
             input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    document.body.removeChild(overlay);
-                    resolve(input.value);
-                } else if (e.key === 'Escape') {
-                    document.body.removeChild(overlay);
-                    resolve(null);
-                }
+                if (e.key === 'Enter') { document.body.removeChild(overlay); resolve(input.value); }
+                else if (e.key === 'Escape') { document.body.removeChild(overlay); resolve(null); }
             });
         });
     }
 
-    loadFS() {
-        this.pathStack = [];
-    }
-
-    saveFS() {
-        if (window.parent._isSavingDisabled) return;
-        this.storage.saveFS();
-    }
+    loadFS() { this.pathStack = []; }
+    saveFS() { if (window.parent._isSavingDisabled) return; this.storage.saveFS(); }
 
     initEvents() {
         document.getElementById('fm-back').addEventListener('click', () => this.goUp());
@@ -209,22 +219,13 @@ class FileManager {
             this.loadFS();
             this.navigateToPath(currentPath);
         });
-        document.getElementById('fm-viewer-close').addEventListener('click', () => {
-            this.viewerEl.style.display = 'none';
-        });
+        document.getElementById('fm-viewer-close').addEventListener('click', () => { this.viewerEl.style.display = 'none'; });
         document.getElementById('fm-new-folder').addEventListener('click', () => this.createFolder());
         document.getElementById('fm-new-file').addEventListener('click', () => this.createFile());
         document.getElementById('fm-upload').addEventListener('click', () => this.uploadFile());
         document.getElementById('fm-paste').addEventListener('click', () => this.pasteFile());
-
-        document.getElementById('fm-sidebar-files').addEventListener('click', () => {
-            this.switchToFiles();
-        });
-
-        document.getElementById('fm-sidebar-network').addEventListener('click', () => {
-            this.switchToNetwork();
-        });
-
+        document.getElementById('fm-sidebar-files').addEventListener('click', () => { this.switchToFiles(); });
+        document.getElementById('fm-sidebar-network').addEventListener('click', () => { this.switchToNetwork(); });
         this.initLANDropEvents();
     }
 
@@ -244,14 +245,10 @@ class FileManager {
         this.initLANDrop();
     }
 
-    // ===== LAN Drop =====
-
     initLANDropEvents() {
         document.getElementById('fm-landrop-mode-send').addEventListener('click', () => this.switchLANDropMode('send'));
         document.getElementById('fm-landrop-mode-recv').addEventListener('click', () => this.switchLANDropMode('recv'));
-        document.getElementById('fm-landrop-pick').addEventListener('click', () => {
-            document.getElementById('fm-landrop-file-input').click();
-        });
+        document.getElementById('fm-landrop-pick').addEventListener('click', () => { document.getElementById('fm-landrop-file-input').click(); });
         document.getElementById('fm-landrop-file-input').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) this.onSendFilePicked(file);
@@ -273,7 +270,6 @@ class FileManager {
     initLANDrop() {
         if (this.landropInited) return;
         this.landropInited = true;
-
         let name = 'WebOS用户';
         try {
             const userManager = window.parent.UserManager;
@@ -283,7 +279,6 @@ class FileManager {
                 if (currentUser && currentUser.name) name = currentUser.name;
             }
         } catch (e) {}
-
         this.myId = 'dev-' + Math.random().toString(36).slice(2, 10);
         this.myName = name;
         this.devices = new Map();
@@ -299,33 +294,20 @@ class FileManager {
         this.recvDone = false;
         this.receivedBlob = null;
         this.receivedFileName = null;
-
         this.switchLANDropMode('send');
-
         try {
             this.bc = new BroadcastChannel('landrop');
             this.bc.onmessage = (e) => this.handleBCMessage(e.data);
             this.bc.postMessage({ type: 'hello', id: this.myId, name: this.myName });
-        } catch (err) {
-            this.bc = null;
-        }
-
+        } catch (err) { this.bc = null; }
         window.addEventListener('beforeunload', () => this.cleanupLANDrop());
         window.addEventListener('pagehide', () => this.cleanupLANDrop());
         this.renderDevices();
     }
 
     cleanupLANDrop() {
-        try {
-            if (this.bc) {
-                this.bc.postMessage({ type: 'bye', id: this.myId });
-                this.bc.close();
-                this.bc = null;
-            }
-        } catch (e) {}
-        try {
-            if (this.pc) this.pc.close();
-        } catch (e) {}
+        try { if (this.bc) { this.bc.postMessage({ type: 'bye', id: this.myId }); this.bc.close(); this.bc = null; } } catch (e) {}
+        try { if (this.pc) this.pc.close(); } catch (e) {}
     }
 
     handleBCMessage(msg) {
@@ -368,8 +350,7 @@ class FileManager {
             const el = document.createElement('div');
             el.className = 'fm-landrop-device';
             const initial = (dev.name || '?').charAt(0).toUpperCase();
-            el.innerHTML =
-                '<div class="fm-landrop-device-icon">' + this.escapeHtml(initial) + '</div>' +
+            el.innerHTML = '<div class="fm-landrop-device-icon">' + this.escapeHtml(initial) + '</div>' +
                 '<div class="fm-landrop-device-name">' + this.escapeHtml(dev.name) + '</div>' +
                 '<div class="fm-landrop-device-hint">点击发送文件</div>';
             el.addEventListener('click', () => this.connectToDevice(dev.id, dev.name));
@@ -378,9 +359,7 @@ class FileManager {
     }
 
     escapeHtml(str) {
-        return String(str).replace(/[&<>"']/g, (c) => ({
-            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-        }[c]));
+        return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
     switchLANDropMode(mode) {
@@ -391,46 +370,27 @@ class FileManager {
         document.getElementById('fm-landrop-recv').style.display = mode === 'recv' ? 'block' : 'none';
     }
 
-    // --- SDP encoding ---
-    encodeSDP(sdp) {
-        return btoa(encodeURIComponent(JSON.stringify(sdp)));
-    }
-
-    decodeSDP(code) {
-        return JSON.parse(decodeURIComponent(atob(code)));
-    }
+    encodeSDP(sdp) { return btoa(encodeURIComponent(JSON.stringify(sdp))); }
+    decodeSDP(code) { return JSON.parse(decodeURIComponent(atob(code))); }
 
     waitForIce(pc) {
         return new Promise((resolve) => {
             if (pc.iceGatheringState === 'complete') { resolve(); return; }
             const check = () => {
-                if (pc.iceGatheringState === 'complete') {
-                    pc.removeEventListener('icegatheringstatechange', check);
-                    resolve();
-                }
+                if (pc.iceGatheringState === 'complete') { pc.removeEventListener('icegatheringstatechange', check); resolve(); }
             };
             pc.addEventListener('icegatheringstatechange', check);
-            setTimeout(() => {
-                pc.removeEventListener('icegatheringstatechange', check);
-                resolve();
-            }, 5000);
+            setTimeout(() => { pc.removeEventListener('icegatheringstatechange', check); resolve(); }, 5000);
         });
     }
 
     resetConnection() {
         try { if (this.channel) this.channel.close(); } catch (e) {}
         try { if (this.pc) this.pc.close(); } catch (e) {}
-        this.pc = null;
-        this.channel = null;
-        this.role = null;
-        this.recvMeta = null;
-        this.recvChunks = null;
-        this.recvSize = 0;
-        this.recvDone = false;
-        this.sentSize = 0;
-        this.sendingFile = null;
-        this.receivedBlob = null;
-        this.receivedFileName = null;
+        this.pc = null; this.channel = null; this.role = null;
+        this.recvMeta = null; this.recvChunks = null; this.recvSize = 0; this.recvDone = false;
+        this.sentSize = 0; this.sendingFile = null;
+        this.receivedBlob = null; this.receivedFileName = null;
         const actions = document.getElementById('fm-landrop-recv-actions');
         if (actions) actions.style.display = 'none';
     }
@@ -443,30 +403,24 @@ class FileManager {
         channel.onerror = () => this.onChannelClose();
     }
 
-    // Sender: create offer, returns Base64-encoded connection code
     async createSenderConnection() {
         this.resetConnection();
         this.role = 'sender';
         const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });
         const channel = pc.createDataChannel('file', { ordered: true });
         this.setupChannel(channel);
-        this.pc = pc;
-        this.channel = channel;
+        this.pc = pc; this.channel = channel;
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         await this.waitForIce(pc);
         return this.encodeSDP(pc.localDescription);
     }
 
-    // Receiver: accept offer code, returns Base64-encoded answer code
     async acceptSenderConnection(offerCode) {
         this.resetConnection();
         this.role = 'receiver';
         const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });
-        pc.ondatachannel = (e) => {
-            this.channel = e.channel;
-            this.setupChannel(e.channel);
-        };
+        pc.ondatachannel = (e) => { this.channel = e.channel; this.setupChannel(e.channel); };
         this.pc = pc;
         const offer = this.decodeSDP(offerCode);
         await pc.setRemoteDescription(offer);
@@ -476,7 +430,6 @@ class FileManager {
         return this.encodeSDP(pc.localDescription);
     }
 
-    // Sender: paste answer code to complete handshake
     async acceptAnswer(answerCode) {
         if (!this.pc) throw new Error('未建立连接');
         const answer = this.decodeSDP(answerCode);
@@ -484,12 +437,8 @@ class FileManager {
     }
 
     onChannelOpen(channel) {
-        if (this.role === 'sender' && this.pendingFile) {
-            this.showSendStatus('连接已建立，开始发送...');
-            this.sendFile(this.pendingFile);
-        } else if (this.role === 'receiver') {
-            this.showRecvStatus('连接已建立，等待接收文件...');
-        }
+        if (this.role === 'sender' && this.pendingFile) { this.showSendStatus('连接已建立，开始发送...'); this.sendFile(this.pendingFile); }
+        else if (this.role === 'receiver') { this.showRecvStatus('连接已建立，等待接收文件...'); }
     }
 
     onChannelClose() {
@@ -502,12 +451,8 @@ class FileManager {
             let msg;
             try { msg = JSON.parse(data); } catch (e) { return; }
             if (msg.type === 'file-meta') {
-                this.recvMeta = msg;
-                this.recvChunks = [];
-                this.recvSize = 0;
-                this.recvDone = false;
-                this.receivedBlob = null;
-                this.receivedFileName = msg.name;
+                this.recvMeta = msg; this.recvChunks = []; this.recvSize = 0; this.recvDone = false;
+                this.receivedBlob = null; this.receivedFileName = msg.name;
                 const actions = document.getElementById('fm-landrop-recv-actions');
                 if (actions) actions.style.display = 'none';
                 this.showRecvProgress();
@@ -522,17 +467,13 @@ class FileManager {
         }
     }
 
-    // --- file system picker ---
     collectFSFiles(node, path, results) {
         if (!node) return;
         if (!node.children) return;
         for (const child of node.children) {
             const childPath = path + '/' + child.name;
-            if (child.type === 'file') {
-                results.push({ name: child.name, path: childPath, content: child.content });
-            } else if (child.type === 'folder' && child.children) {
-                this.collectFSFiles(child, childPath, results);
-            }
+            if (child.type === 'file') { results.push({ name: child.name, path: childPath, content: child.content }); }
+            else if (child.type === 'folder' && child.children) { this.collectFSFiles(child, childPath, results); }
         }
     }
 
@@ -540,10 +481,8 @@ class FileManager {
         const overlay = document.getElementById('fm-fs-picker-overlay');
         const list = document.getElementById('fm-fs-picker-list');
         if (!overlay || !list) return;
-
         const files = [];
         this.collectFSFiles(this.storage.fs, '', files);
-
         if (files.length === 0) {
             list.innerHTML = '<div style="padding:24px;text-align:center;color:#666;">文件系统中暂无文件</div>';
         } else {
@@ -559,14 +498,10 @@ class FileManager {
                 item.innerHTML = '<span class="fm-fs-picker-name">' + this.escapeHtml(f.name) + '</span>' +
                     '<span class="fm-fs-picker-path">' + this.escapeHtml(f.path) + '</span>' +
                     '<span class="fm-fs-picker-size">' + sizeStr + '</span>';
-                item.addEventListener('click', () => {
-                    this.closeFSPicker();
-                    this.pickFSFile(f);
-                });
+                item.addEventListener('click', () => { this.closeFSPicker(); this.pickFSFile(f); });
                 list.appendChild(item);
             });
         }
-
         overlay.style.display = 'flex';
     }
 
@@ -578,20 +513,14 @@ class FileManager {
     async pickFSFile(fileObj) {
         try {
             const dataURL = fileObj.content;
-            if (!dataURL || !dataURL.startsWith('data:')) {
-                this.showSendStatus('无法读取文件内容');
-                return;
-            }
+            if (!dataURL || !dataURL.startsWith('data:')) { this.showSendStatus('无法读取文件内容'); return; }
             const res = await fetch(dataURL);
             const blob = await res.blob();
             const file = new File([blob], fileObj.name, { type: blob.type || 'application/octet-stream' });
             this.onSendFilePicked(file);
-        } catch (e) {
-            this.showSendStatus('读取文件失败：' + e.message);
-        }
+        } catch (e) { this.showSendStatus('读取文件失败：' + e.message); }
     }
 
-    // --- manual send flow ---
     async onSendFilePicked(file) {
         this.pendingFile = file;
         document.getElementById('fm-landrop-offer-code').value = '';
@@ -602,9 +531,7 @@ class FileManager {
             const offerCode = await this.createSenderConnection();
             document.getElementById('fm-landrop-offer-code').value = offerCode;
             this.showSendStatus('连接码已生成，请发送给接收方并等待应答码');
-        } catch (e) {
-            this.showSendStatus('生成连接码失败：' + e.message);
-        }
+        } catch (e) { this.showSendStatus('生成连接码失败：' + e.message); }
     }
 
     async onCopyOffer() {
@@ -618,15 +545,10 @@ class FileManager {
         const code = document.getElementById('fm-landrop-answer-input').value.trim();
         if (!code) { await this.showAlert('请粘贴应答码'); return; }
         if (!this.pc) { await this.showAlert('请先生成连接码'); return; }
-        try {
-            await this.acceptAnswer(code);
-            this.showSendStatus('应答码已确认，等待连接建立...');
-        } catch (e) {
-            await this.showAlert('应答码无效：' + e.message);
-        }
+        try { await this.acceptAnswer(code); this.showSendStatus('应答码已确认，等待连接建立...'); }
+        catch (e) { await this.showAlert('应答码无效：' + e.message); }
     }
 
-    // --- manual receive flow ---
     async onGenAnswer() {
         const code = document.getElementById('fm-landrop-offer-input').value.trim();
         if (!code) { await this.showAlert('请粘贴连接码'); return; }
@@ -639,9 +561,7 @@ class FileManager {
             const answerCode = await this.acceptSenderConnection(code);
             document.getElementById('fm-landrop-answer-code').value = answerCode;
             this.showRecvStatus('应答码已生成，请回传给发送方');
-        } catch (e) {
-            this.showRecvStatus('连接码无效：' + e.message);
-        }
+        } catch (e) { this.showRecvStatus('连接码无效：' + e.message); }
     }
 
     async onCopyAnswer() {
@@ -651,22 +571,15 @@ class FileManager {
         this.showRecvStatus('应答码已复制到剪贴板');
     }
 
-    // --- auto connect via BroadcastChannel ---
     async connectToDevice(deviceId, deviceName) {
-        if (!this.pendingFile) {
-            await this.showAlert('请先在「发送文件」模式中选择要发送的文件');
-            this.switchLANDropMode('send');
-            return;
-        }
+        if (!this.pendingFile) { await this.showAlert('请先在「发送文件」模式中选择要发送的文件'); this.switchLANDropMode('send'); return; }
         if (!this.bc) { await this.showAlert('BroadcastChannel 不可用'); return; }
         this.showSendStatus('正在向 ' + deviceName + ' 发起连接...');
         try {
             const offerCode = await this.createSenderConnection();
             this.bc.postMessage({ type: 'offer', target: deviceId, from: this.myId, offer: offerCode });
             this.showSendStatus('连接码已发送给 ' + deviceName + '，等待应答...');
-        } catch (e) {
-            this.showSendStatus('发起连接失败：' + e.message);
-        }
+        } catch (e) { this.showSendStatus('发起连接失败：' + e.message); }
     }
 
     async handleIncomingOffer(fromId, offerCode) {
@@ -675,50 +588,30 @@ class FileManager {
             const answerCode = await this.acceptSenderConnection(offerCode);
             if (this.bc) this.bc.postMessage({ type: 'answer', target: fromId, from: this.myId, answer: answerCode });
             this.showRecvStatus('已应答，等待连接建立...');
-        } catch (e) {
-            this.showRecvStatus('处理连接请求失败：' + e.message);
-        }
+        } catch (e) { this.showRecvStatus('处理连接请求失败：' + e.message); }
     }
 
     async handleIncomingAnswer(fromId, answerCode) {
         if (!this.pc) return;
-        try {
-            await this.acceptAnswer(answerCode);
-            this.showSendStatus('收到应答，等待连接建立...');
-        } catch (e) {
-            this.showSendStatus('应答码无效：' + e.message);
-        }
+        try { await this.acceptAnswer(answerCode); this.showSendStatus('收到应答，等待连接建立...'); }
+        catch (e) { this.showSendStatus('应答码无效：' + e.message); }
     }
 
-    // --- file chunked transfer ---
     async sendFile(file) {
-        if (!this.channel || this.channel.readyState !== 'open') {
-            this.showSendStatus('连接未就绪');
-            return;
-        }
-        this.sendingFile = file;
-        this.sentSize = 0;
+        if (!this.channel || this.channel.readyState !== 'open') { this.showSendStatus('连接未就绪'); return; }
+        this.sendingFile = file; this.sentSize = 0;
         this.showSendProgress();
         const meta = { type: 'file-meta', name: file.name, size: file.size, mime: file.type || 'application/octet-stream' };
         this.channel.send(JSON.stringify(meta));
         const chunkSize = 16384;
         const buffer = await file.arrayBuffer();
-        let offset = 0;
-        let count = 0;
+        let offset = 0; let count = 0;
         while (offset < buffer.byteLength) {
-            if (!this.channel || this.channel.readyState !== 'open') {
-                this.showSendStatus('连接已断开');
-                return;
-            }
-            if (this.channel.bufferedAmount > 8 * 1024 * 1024) {
-                await new Promise(r => setTimeout(r, 20));
-                continue;
-            }
+            if (!this.channel || this.channel.readyState !== 'open') { this.showSendStatus('连接已断开'); return; }
+            if (this.channel.bufferedAmount > 8 * 1024 * 1024) { await new Promise(r => setTimeout(r, 20)); continue; }
             const end = Math.min(offset + chunkSize, buffer.byteLength);
             this.channel.send(buffer.slice(offset, end));
-            offset = end;
-            this.sentSize = offset;
-            count++;
+            offset = end; this.sentSize = offset; count++;
             this.updateSendProgress();
             if (count % 16 === 0) await new Promise(r => setTimeout(r, 0));
         }
@@ -729,8 +622,7 @@ class FileManager {
         if (this.recvDone) return;
         this.recvDone = true;
         const blob = new Blob(this.recvChunks, { type: (this.recvMeta.mime || 'application/octet-stream') });
-        this.receivedBlob = blob;
-        this.receivedFileName = this.recvMeta.name;
+        this.receivedBlob = blob; this.receivedFileName = this.recvMeta.name;
         const el = document.getElementById('fm-landrop-recv-progress');
         if (el) {
             const fill = el.querySelector('.fm-landrop-progress-fill');
@@ -771,23 +663,13 @@ class FileManager {
         if (!this.receivedBlob) return;
         const url = URL.createObjectURL(this.receivedBlob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = this.receivedFileName || 'received';
-        document.body.appendChild(a);
-        a.click();
+        a.href = url; a.download = this.receivedFileName || 'received';
+        document.body.appendChild(a); a.click();
         setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
     }
 
-    // --- progress / status UI ---
-    showSendStatus(text) {
-        const el = document.getElementById('fm-landrop-send-status');
-        if (el) el.textContent = text;
-    }
-
-    showRecvStatus(text) {
-        const el = document.getElementById('fm-landrop-recv-status');
-        if (el) el.textContent = text;
-    }
+    showSendStatus(text) { const el = document.getElementById('fm-landrop-send-status'); if (el) el.textContent = text; }
+    showRecvStatus(text) { const el = document.getElementById('fm-landrop-recv-status'); if (el) el.textContent = text; }
 
     showSendProgress() {
         const el = document.getElementById('fm-landrop-send-progress');
@@ -831,40 +713,28 @@ class FileManager {
     }
 
     async copyText(text) {
-        try {
-            await navigator.clipboard.writeText(text);
-        } catch (e) {
+        try { await navigator.clipboard.writeText(text); }
+        catch (e) {
             const ta = document.createElement('textarea');
-            ta.value = text;
-            ta.style.position = 'fixed';
-            ta.style.opacity = '0';
-            document.body.appendChild(ta);
-            ta.select();
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
             try { document.execCommand('copy'); } catch (e2) {}
             document.body.removeChild(ta);
         }
     }
 
-    getCurrentPath() {
-        if (this.pathStack.length === 0) return '/';
-        return '/' + this.pathStack.join('/');
-    }
+    getCurrentPath() { if (this.pathStack.length === 0) return '/'; return '/' + this.pathStack.join('/'); }
 
     navigateToPath(pathStr) {
         this.loadFS();
-        if (!pathStr || pathStr === '/') {
-            this.pathStack = [];
-        } else {
+        if (!pathStr || pathStr === '/') { this.pathStack = []; }
+        else {
             const parts = pathStr.split('/').filter(p => p);
             let node = this.root;
             for (const part of parts) {
                 if (node.children) {
                     const child = node.children.find(c => c.name === part && c.type === 'folder');
-                    if (child) {
-                        node = child;
-                    } else {
-                        return;
-                    }
+                    if (child) { node = child; } else { return; }
                 }
             }
             this.pathStack = parts;
@@ -872,17 +742,8 @@ class FileManager {
         this.render();
     }
 
-    goUp() {
-        if (this.pathStack.length === 0) return;
-        this.pathStack.pop();
-        this.render();
-    }
-
-    goRoot() {
-        this.loadFS();
-        this.pathStack = [];
-        this.render();
-    }
+    goUp() { if (this.pathStack.length === 0) return; this.pathStack.pop(); this.render(); }
+    goRoot() { this.loadFS(); this.pathStack = []; this.render(); }
 
     getCurrentUsername() {
         const userManager = window.parent.UserManager.getInstance();
@@ -899,74 +760,52 @@ class FileManager {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
-
             const dialog = document.createElement('div');
             dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
-
             const title = document.createElement('div');
             title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:16px;color:#eee;';
             title.textContent = `访问 ${username} 的目录`;
             dialog.appendChild(title);
-
             const desc = document.createElement('div');
             desc.style.cssText = 'font-size:13px;color:#888;margin-bottom:16px;';
             desc.textContent = '请输入密码以继续访问';
             dialog.appendChild(desc);
-
             const input = document.createElement('input');
-            input.type = 'password';
-            input.placeholder = '密码';
+            input.type = 'password'; input.placeholder = '密码';
             input.style.cssText = 'width:100%;padding:10px 12px;background:#1e1e1e;border:1px solid #3d3d3d;border-radius:4px;color:#ddd;font-size:13px;font-family:inherit;margin-bottom:8px;outline:none;';
             input.addEventListener('focus', () => { input.style.borderColor = '#3498db'; });
             input.addEventListener('blur', () => { input.style.borderColor = '#3d3d3d'; });
             dialog.appendChild(input);
-
             const errorMsg = document.createElement('div');
             errorMsg.style.cssText = 'color:#e74c3c;font-size:12px;margin-bottom:16px;min-height:16px;';
             dialog.appendChild(errorMsg);
-
             const btnContainer = document.createElement('div');
             btnContainer.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
-
             const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = '取消';
+            cancelBtn.textContent = this.t('common.cancel', '取消');
             cancelBtn.style.cssText = 'padding:8px 16px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;';
             cancelBtn.addEventListener('mouseenter', () => { cancelBtn.style.background = '#4d4d4d'; });
             cancelBtn.addEventListener('mouseleave', () => { cancelBtn.style.background = '#3d3d3d'; });
-            cancelBtn.addEventListener('click', () => {
-                document.body.removeChild(overlay);
-                resolve(false);
-            });
+            cancelBtn.addEventListener('click', () => { document.body.removeChild(overlay); resolve(false); });
             btnContainer.appendChild(cancelBtn);
-
             const confirmBtn = document.createElement('button');
-            confirmBtn.textContent = '确认';
+            confirmBtn.textContent = this.t('common.ok', '确定');
             confirmBtn.style.cssText = 'padding:8px 16px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
             confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = '#2980b9'; });
             confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = '#3498db'; });
-
             const submit = () => {
                 const userInfo = this.getUserInfo(username);
                 if (userInfo && userInfo.password === input.value) {
                     this.authorizedUsers.add(username);
-                    document.body.removeChild(overlay);
-                    resolve(true);
-                } else {
-                    errorMsg.textContent = '密码错误';
-                    input.style.borderColor = '#e74c3c';
-                }
+                    document.body.removeChild(overlay); resolve(true);
+                } else { errorMsg.textContent = '密码错误'; input.style.borderColor = '#e74c3c'; }
             };
-
             confirmBtn.addEventListener('click', submit);
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') submit();
-            });
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
             btnContainer.appendChild(confirmBtn);
-
             dialog.appendChild(btnContainer);
             overlay.appendChild(dialog);
             document.body.appendChild(overlay);
-
             setTimeout(() => input.focus(), 50);
         });
     }
@@ -975,9 +814,7 @@ class FileManager {
         const path = this.getCurrentPath();
         if (path.startsWith('/user/')) {
             const parts = path.split('/');
-            if (parts.length >= 3) {
-                return parts[2];
-            }
+            if (parts.length >= 3) return parts[2];
         }
         return null;
     }
@@ -985,15 +822,11 @@ class FileManager {
     async checkPermissionForAction() {
         const owner = this.getOwnerOfCurrentPath();
         if (!owner) return true;
-
         const currentUser = this.getCurrentUsername();
         if (owner === currentUser) return true;
-
         if (this.authorizedUsers.has(owner)) return true;
-
         const userInfo = this.getUserInfo(owner);
         if (!userInfo || !userInfo.password) return true;
-
         return await this.showPasswordDialog(owner);
     }
 
@@ -1006,7 +839,6 @@ class FileManager {
             const allowed = await this.checkPermissionForAction();
             if (!allowed) return;
         }
-
         const currentPath = this.getCurrentPath();
         this.loadFS();
         const targetPath = currentPath === '/' ? `/${folder.name}` : `${currentPath}/${folder.name}`;
@@ -1016,15 +848,11 @@ class FileManager {
     async checkFolderPermission(folderName) {
         const currentPath = this.getCurrentPath();
         if (currentPath !== '/user') return true;
-
         const currentUser = this.getCurrentUsername();
         if (folderName === currentUser) return true;
-
         if (this.authorizedUsers.has(folderName)) return true;
-
         const userInfo = this.getUserInfo(folderName);
         if (!userInfo || !userInfo.password) return true;
-
         return await this.showPasswordDialog(folderName);
     }
 
@@ -1034,7 +862,6 @@ class FileManager {
         const videoExts = ['mp4', 'webm', 'ogg'];
         const audioExts = ['mp3', 'wav', 'flac'];
         const textExts = ['txt', 'md', 'js', 'css', 'html', 'json', 'py', 'java', 'c', 'cpp', 'h', 'sh', 'yaml', 'yml', 'xml'];
-
         if (imageExts.includes(ext)) return 'image';
         if (videoExts.includes(ext)) return 'video';
         if (audioExts.includes(ext)) return 'audio';
@@ -1045,132 +872,84 @@ class FileManager {
     async openFile(file) {
         const allowed = await this.checkPermissionForAction();
         if (!allowed) return;
-
         const filePath = this.getCurrentPath() === '/' ? `/${file.name}` : `${this.getCurrentPath()}/${file.name}`;
         const fileType = this.getFileType(file.name);
         let eventName = 'open-file-in-editor';
-
-        if (fileType === 'image') {
-            eventName = 'open-image-viewer';
-        } else if (fileType === 'video' || fileType === 'audio') {
-            eventName = 'open-media-player';
-        } else if (fileType === 'other') {
+        if (fileType === 'image') { eventName = 'open-image-viewer'; }
+        else if (fileType === 'video' || fileType === 'audio') { eventName = 'open-media-player'; }
+        else if (fileType === 'other') {
             this.viewerTitleEl.textContent = file.name;
             this.viewerContentEl.textContent = file.content || '';
             this.viewerEl.style.display = 'flex';
             return;
         }
-
-        const event = new CustomEvent(eventName, {
-            detail: { path: filePath }
-        });
+        const event = new CustomEvent(eventName, { detail: { path: filePath } });
         window.parent.document.dispatchEvent(event);
     }
 
     isProtected(name) {
         const currentPath = this.getCurrentPath();
-        if (currentPath === '/') {
-            return ['user', 'application', 'languages', 'tmp'].includes(name);
-        }
-        if (currentPath === '/user') {
-            return true;
-        }
+        if (currentPath === '/') { return ['user', 'application', 'languages', 'tmp'].includes(name); }
+        if (currentPath === '/user') { return true; }
         return false;
     }
 
     async deleteFile(name) {
         const allowed = await this.checkPermissionForAction();
         if (!allowed) return;
-
-        if (this.isProtected(name)) {
-            await this.showAlert('无法删除此目录');
-            return;
-        }
+        if (this.isProtected(name)) { await this.showAlert('无法删除此目录'); return; }
         const confirmed = await this.showConfirm(`确定删除 "${name}" 吗？`);
         if (!confirmed) return;
         if (!this.currentDir.children) return;
         const index = this.currentDir.children.findIndex(c => c.name === name);
-        if (index !== -1) {
-            this.currentDir.children.splice(index, 1);
-            this.saveFS();
-            this.render();
-        }
+        if (index !== -1) { this.currentDir.children.splice(index, 1); this.saveFS(); this.render(); }
     }
 
     async renameFile(oldName) {
         const allowed = await this.checkPermissionForAction();
         if (!allowed) return;
-
-        if (this.isProtected(oldName)) {
-            await this.showAlert('无法重命名此目录');
-            return;
-        }
+        if (this.isProtected(oldName)) { await this.showAlert('无法重命名此目录'); return; }
         const newName = await this.showPrompt(`重命名 "${oldName}" 为:`, oldName);
         if (!newName || newName === oldName) return;
         if (!this.currentDir.children) return;
         const node = this.currentDir.children.find(c => c.name === oldName);
         if (node) {
             const existing = this.currentDir.children.find(c => c.name === newName);
-            if (existing) {
-                await this.showAlert(`"${newName}" 已存在`);
-                return;
-            }
-            node.name = newName;
-            this.saveFS();
-            this.render();
+            if (existing) { await this.showAlert(`"${newName}" 已存在`); return; }
+            node.name = newName; this.saveFS(); this.render();
         }
     }
 
     async createFolder() {
         const allowed = await this.checkPermissionForAction();
         if (!allowed) return;
-
-        const name = await this.showPrompt('输入文件夹名称:', '新建文件夹');
+        const name = await this.showPrompt('输入文件夹名称:', this.t('filemanager.new_folder', '新建文件夹'));
         if (!name) return;
         if (!this.currentDir.children) this.currentDir.children = [];
         const existing = this.currentDir.children.find(c => c.name === name && c.type === 'folder');
-        if (existing) {
-            await this.showAlert(`文件夹 "${name}" 已存在`);
-            return;
-        }
-        this.currentDir.children.push({
-            type: 'folder',
-            name: name,
-            children: []
-        });
-        this.saveFS();
-        this.render();
+        if (existing) { await this.showAlert(`文件夹 "${name}" 已存在`); return; }
+        this.currentDir.children.push({ type: 'folder', name: name, children: [] });
+        this.saveFS(); this.render();
     }
 
     async createFile() {
         const allowed = await this.checkPermissionForAction();
         if (!allowed) return;
-
-        const name = await this.showPrompt('输入文件名称:', '新建文件.txt');
+        const name = await this.showPrompt('输入文件名称:', this.t('filemanager.new_file', '新建文件.txt'));
         if (!name) return;
         if (!this.currentDir.children) this.currentDir.children = [];
         const existing = this.currentDir.children.find(c => c.name === name && c.type === 'file');
-        if (existing) {
-            await this.showAlert(`文件 "${name}" 已存在`);
-            return;
-        }
-        this.currentDir.children.push({
-            type: 'file',
-            name: name,
-            content: ''
-        });
-        this.saveFS();
-        this.render();
+        if (existing) { await this.showAlert(`文件 "${name}" 已存在`); return; }
+        this.currentDir.children.push({ type: 'file', name: name, content: '' });
+        this.saveFS(); this.render();
     }
 
     async copyFile(name) {
         const allowed = await this.checkPermissionForAction();
         if (!allowed) return;
-
         if (!this.currentDir.children) return;
         const node = this.currentDir.children.find(c => c.name === name);
         if (!node) return;
-
         this.clipboard = JSON.parse(JSON.stringify(node));
         this.clipboardAction = 'copy';
         await this.showAlert(`已复制 "${name}"`);
@@ -1179,51 +958,37 @@ class FileManager {
     async cutFile(name) {
         const allowed = await this.checkPermissionForAction();
         if (!allowed) return;
-
         if (!this.currentDir.children) return;
         const node = this.currentDir.children.find(c => c.name === name);
         if (!node) return;
-
         this.clipboard = JSON.parse(JSON.stringify(node));
         this.clipboardAction = 'cut';
         await this.showAlert(`已剪切 "${name}"`);
     }
 
     async pasteFile() {
-        if (!this.clipboard) {
-            await this.showAlert('剪贴板为空');
-            return;
-        }
-
+        if (!this.clipboard) { await this.showAlert('剪贴板为空'); return; }
         const allowed = await this.checkPermissionForAction();
         if (!allowed) return;
-
         const targetName = this.clipboard.name;
         if (!this.currentDir.children) this.currentDir.children = [];
         const existing = this.currentDir.children.find(c => c.name === targetName);
-        
         let finalName = targetName;
         if (existing) {
             const ext = targetName.includes('.') ? targetName.substring(targetName.lastIndexOf('.')) : '';
             const base = targetName.includes('.') ? targetName.substring(0, targetName.lastIndexOf('.')) : targetName;
             let counter = 1;
-            while (this.currentDir.children.find(c => c.name === `${base}(${counter})${ext}`)) {
-                counter++;
-            }
+            while (this.currentDir.children.find(c => c.name === `${base}(${counter})${ext}`)) counter++;
             finalName = `${base}(${counter})${ext}`;
         }
-
         const newItem = JSON.parse(JSON.stringify(this.clipboard));
         newItem.name = finalName;
         this.currentDir.children.push(newItem);
-
         if (this.clipboardAction === 'cut') {
             const sourcePath = this.clipboard._sourcePath || '/';
             this.removeFromPath(sourcePath, this.clipboard.name);
         }
-
-        this.saveFS();
-        this.render();
+        this.saveFS(); this.render();
         await this.showAlert(`已粘贴 "${finalName}"`);
     }
 
@@ -1238,70 +1003,47 @@ class FileManager {
         }
         if (node.children) {
             const index = node.children.findIndex(c => c.name === name);
-            if (index !== -1) {
-                node.children.splice(index, 1);
-            }
+            if (index !== -1) node.children.splice(index, 1);
         }
     }
 
     uploadFile() {
         const input = document.createElement('input');
-        input.type = 'file';
-        input.multiple = true;
-        input.style.display = 'none';
+        input.type = 'file'; input.multiple = true; input.style.display = 'none';
         input.addEventListener('change', async (e) => {
             const files = e.target.files;
             if (!files || files.length === 0) return;
-
             const allowed = await this.checkPermissionForAction();
             if (!allowed) return;
-
             if (!this.currentDir.children) this.currentDir.children = [];
-
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 const fileType = this.getFileType(file.name);
-                const content = fileType === 'image' || fileType === 'video' || fileType === 'audio' 
-                    ? await this.readFileAsDataURL(file) 
-                    : await this.readFileAsText(file);
-                
+                const content = fileType === 'image' || fileType === 'video' || fileType === 'audio'
+                    ? await this.readFileAsDataURL(file) : await this.readFileAsText(file);
                 let finalName = file.name;
                 const existing = this.currentDir.children.find(c => c.name === file.name);
                 if (existing) {
                     const ext = file.name.includes('.') ? file.name.substring(file.name.lastIndexOf('.')) : '';
                     const base = file.name.includes('.') ? file.name.substring(0, file.name.lastIndexOf('.')) : file.name;
                     let counter = 1;
-                    while (this.currentDir.children.find(c => c.name === `${base}(${counter})${ext}`)) {
-                        counter++;
-                    }
+                    while (this.currentDir.children.find(c => c.name === `${base}(${counter})${ext}`)) counter++;
                     finalName = `${base}(${counter})${ext}`;
                 }
-
-                this.currentDir.children.push({
-                    type: 'file',
-                    name: finalName,
-                    content: content
-                });
+                this.currentDir.children.push({ type: 'file', name: finalName, content: content });
             }
-
-            this.saveFS();
-            this.render();
+            this.saveFS(); this.render();
             await this.showAlert(`已上传 ${files.length} 个文件`);
         });
-        document.body.appendChild(input);
-        input.click();
+        document.body.appendChild(input); input.click();
         setTimeout(() => document.body.removeChild(input), 100);
     }
 
     readFileAsText(file) {
         return new Promise((resolve) => {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                resolve(e.target.result);
-            };
-            reader.onerror = () => {
-                resolve('');
-            };
+            reader.onload = (e) => { resolve(e.target.result); };
+            reader.onerror = () => { resolve(''); };
             reader.readAsText(file);
         });
     }
@@ -1309,12 +1051,8 @@ class FileManager {
     readFileAsDataURL(file) {
         return new Promise((resolve) => {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                resolve(e.target.result);
-            };
-            reader.onerror = () => {
-                resolve('');
-            };
+            reader.onload = (e) => { resolve(e.target.result); };
+            reader.onerror = () => { resolve(''); };
             reader.readAsDataURL(file);
         });
     }
@@ -1322,7 +1060,6 @@ class FileManager {
     downloadFile(name) {
         const file = this.currentDir.children?.find(c => c.name === name && c.type === 'file');
         if (!file) return;
-
         let blob;
         if (file.content && file.content.startsWith('data:')) {
             const parts = file.content.split(',');
@@ -1331,60 +1068,40 @@ class FileManager {
             const byteString = atob(data);
             const ab = new ArrayBuffer(byteString.length);
             const ia = new Uint8Array(ab);
-            for (let i = 0; i < byteString.length; i++) {
-                ia[i] = byteString.charCodeAt(i);
-            }
+            for (let i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
             blob = new Blob([ab], { type: mimeType });
-        } else {
-            blob = new Blob([file.content || ''], { type: 'text/plain' });
-        }
-
+        } else { blob = new Blob([file.content || ''], { type: 'text/plain' }); }
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 100);
+        a.href = url; a.download = file.name;
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
     }
 
     async downloadFolder(name) {
         const folder = this.currentDir.children?.find(c => c.name === name && c.type === 'folder');
         if (!folder) return;
-
         const zip = new JSZip();
         this.addFolderToZip(zip, folder, name);
-
         const content = await zip.generateAsync({ type: 'blob' });
         const url = URL.createObjectURL(content);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = name + '.zip';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 100);
+        a.href = url; a.download = name + '.zip';
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
     }
 
     addFolderToZip(zip, folder, path) {
         if (folder.children) {
             folder.children.forEach(item => {
                 const itemPath = path + '/' + item.name;
-                if (item.type === 'folder') {
-                    this.addFolderToZip(zip, item, itemPath);
-                } else {
+                if (item.type === 'folder') { this.addFolderToZip(zip, item, itemPath); }
+                else {
                     let content;
                     if (item.content && item.content.startsWith('data:')) {
                         const parts = item.content.split(',');
                         content = atob(parts[1]);
-                    } else {
-                        content = item.content || '';
-                    }
+                    } else { content = item.content || ''; }
                     zip.file(item.name, content);
                 }
             });
@@ -1402,129 +1119,80 @@ class FileManager {
 
     render() {
         this.pathEl.textContent = this.getCurrentPath();
-
         document.querySelectorAll('.fm-sidebar-item').forEach(item => {
             item.classList.remove('active');
-            if (item.dataset.path === this.getCurrentPath()) {
-                item.classList.add('active');
-            }
+            if (item.dataset.path === this.getCurrentPath()) { item.classList.add('active'); }
         });
-
         this.filelistEl.innerHTML = '';
-
         const children = this.currentDir.children || [];
         if (children.length === 0) {
-            this.filelistEl.innerHTML = '<div class="fm-empty">此文件夹为空</div>';
+            this.filelistEl.innerHTML = '<div class="fm-empty">' + this.t('filemanager.empty', '此文件夹为空') + '</div>';
             return;
         }
-
         const sorted = [...children].sort((a, b) => {
-            if (a.type !== b.type) {
-                return a.type === 'folder' ? -1 : 1;
-            }
+            if (a.type !== b.type) { return a.type === 'folder' ? -1 : 1; }
             return a.name.localeCompare(b.name);
         });
-
         sorted.forEach(item => {
             const currentPath = this.getCurrentPath();
-
-            // 过滤系统文件
-            if (currentPath === '/' && item.name === 'user.json') {
-                return;
-            }
-
+            if (currentPath === '/' && item.name === 'user.json') { return; }
             const el = document.createElement('div');
             el.className = 'fm-file-item';
-
             const icon = document.createElement('div');
             icon.className = 'fm-file-icon';
             icon.innerHTML = item.type === 'folder' ? FOLDER_ICON : FILE_ICON;
             el.appendChild(icon);
-
             const name = document.createElement('div');
             name.className = 'fm-file-name';
             name.textContent = item.name + (item.type === 'folder' ? '/' : '');
             el.appendChild(name);
-
             const size = document.createElement('div');
             size.className = 'fm-file-size';
             size.textContent = this.getFileSize(item);
             el.appendChild(size);
-
             const actions = document.createElement('div');
             actions.className = 'fm-file-actions';
-
             const copyBtn = document.createElement('button');
             copyBtn.className = 'fm-action-btn';
             copyBtn.title = '复制';
             copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-            copyBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.copyFile(item.name);
-            });
+            copyBtn.addEventListener('click', (e) => { e.stopPropagation(); this.copyFile(item.name); });
             actions.appendChild(copyBtn);
-
             const cutBtn = document.createElement('button');
             cutBtn.className = 'fm-action-btn';
             cutBtn.title = '剪切';
             cutBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M5 9l7-7 7 7"/><path d="M12 12V22"/><path d="M19 21H5"/></svg>';
-            cutBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.cutFile(item.name);
-            });
+            cutBtn.addEventListener('click', (e) => { e.stopPropagation(); this.cutFile(item.name); });
             actions.appendChild(cutBtn);
-
             const renameBtn = document.createElement('button');
             renameBtn.className = 'fm-action-btn';
             renameBtn.title = '重命名';
             renameBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
-            renameBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.renameFile(item.name);
-            });
+            renameBtn.addEventListener('click', (e) => { e.stopPropagation(); this.renameFile(item.name); });
             actions.appendChild(renameBtn);
-
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'fm-action-btn danger';
             deleteBtn.title = '删除';
             deleteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
-            deleteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.deleteFile(item.name);
-            });
+            deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); this.deleteFile(item.name); });
             actions.appendChild(deleteBtn);
-
             const downloadBtn = document.createElement('button');
             downloadBtn.className = 'fm-action-btn';
             downloadBtn.title = '下载';
             downloadBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
             downloadBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (item.type === 'file') {
-                    this.downloadFile(item.name);
-                } else {
-                    this.downloadFolder(item.name);
-                }
+                if (item.type === 'file') { this.downloadFile(item.name); } else { this.downloadFolder(item.name); }
             });
             actions.appendChild(downloadBtn);
-
             el.appendChild(actions);
-
             el.addEventListener('click', () => {
-                if (item.type === 'folder') {
-                    this.openFolder(item);
-                } else {
-                    this.openFile(item);
-                }
+                if (item.type === 'folder') { this.openFolder(item); } else { this.openFile(item); }
             });
-
             this.filelistEl.appendChild(el);
         });
-
         const pasteBtn = document.getElementById('fm-paste');
-        if (pasteBtn) {
-            pasteBtn.style.display = this.clipboard ? 'block' : 'none';
-        }
+        if (pasteBtn) { pasteBtn.style.display = this.clipboard ? 'block' : 'none'; }
     }
 }
 
