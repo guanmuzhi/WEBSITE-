@@ -1,187 +1,234 @@
+// apps/settings.app/main/app.js
 class SettingsApp {
     constructor() {
-        this.currentUser = this.getCurrentUser();
-        this.currentWallpaper = this.loadWallpaper();
+        this.languagePack = { strings: {} };
+        this.currentLang = localStorage.getItem('webos-language') || 'cmn';
         this.init();
     }
 
-    loadLanguagePack(lang) {
-        const paths = {
+    async init() {
+        await this.loadLanguagePack(this.currentLang);
+        this.setupNavigation();
+        this.loadSystemInfo();
+        this.loadUserInfo();
+        this.loadPersonalization();
+        this.loadLanguageSettings();
+        this.applyLanguage();
+    }
+
+    async loadLanguagePack(lang) {
+        const langFiles = {
             cmn: '/languages/cmn.json',
             eng: '/languages/eng.json',
             jpn: '/languages/jpn.json'
         };
-        return fetch(paths[lang] || paths.cmn)
-            .then(r => r.json())
-            .then(data => data.strings || {})
-            .catch(() => ({}));
+        try {
+            const res = await fetch(langFiles[lang] || langFiles.cmn);
+            this.languagePack = await res.json();
+            this.currentLang = lang;
+            localStorage.setItem('webos-language', lang);
+        } catch (e) {
+            this.languagePack = { strings: {} };
+        }
     }
 
-    async applyLanguage(lang) {
-        const strings = await this.loadLanguagePack(lang);
-        localStorage.setItem('webos-language', lang);
+    t(key, fallback) {
+        const strings = this.languagePack.strings || {};
+        return strings[key] !== undefined ? strings[key] : (fallback || key);
+    }
+
+    setupNavigation() {
+        const navItems = document.querySelectorAll('.settings-nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                navItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                const section = item.dataset.section;
+                document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+                document.getElementById('section-' + section).classList.add('active');
+            });
+        });
+    }
+
+    loadSystemInfo() {
+        document.getElementById('sys-name').textContent = 'Web Terminal OS';
+        document.getElementById('sys-browser').textContent = navigator.userAgent.split(') ')[0] + ')';
+        document.getElementById('sys-os').textContent = navigator.platform || 'Unknown';
+        document.getElementById('sys-resolution').textContent = `${window.screen.width} x ${window.screen.height}`;
+        document.getElementById('sys-online').textContent = navigator.onLine ? '在线' : '离线';
+        document.getElementById('sys-version').textContent = 'v1.0.0';
+    }
+
+    loadUserInfo() {
+        try {
+            const userManager = window.parent.UserManager.getInstance();
+            const user = userManager.getCurrentUser();
+            if (user) {
+                document.getElementById('user-name').textContent = user.name || user.username;
+                document.getElementById('user-created').textContent = user.createdAt || '未知';
+            }
+        } catch (e) {}
+    }
+
+    loadPersonalization() {
+        const wallpaper = localStorage.getItem('webos-wallpaper') || 'default';
+        document.querySelectorAll('input[name="wallpaper"]').forEach(radio => {
+            radio.checked = radio.value === wallpaper;
+            radio.addEventListener('change', (e) => {
+                localStorage.setItem('webos-wallpaper', e.target.value);
+                this.applyWallpaper(e.target.value);
+            });
+        });
+
+        const customColor = localStorage.getItem('webos-custom-color') || '#1a1a2e';
+        const colorInput = document.getElementById('custom-color');
+        if (colorInput) {
+            colorInput.value = customColor;
+            colorInput.addEventListener('input', (e) => {
+                localStorage.setItem('webos-custom-color', e.target.value);
+                this.applyWallpaper('custom');
+            });
+        }
+    }
+
+    applyWallpaper(type) {
+        try {
+            const desktop = window.parent.document.getElementById('desktop');
+            if (!desktop) return;
+            switch (type) {
+                case 'default':
+                    desktop.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';
+                    break;
+                case 'dark':
+                    desktop.style.background = '#0a0a0a';
+                    break;
+                case 'custom':
+                    const color = localStorage.getItem('webos-custom-color') || '#1a1a2e';
+                    desktop.style.background = color;
+                    break;
+                case 'gradient':
+                    desktop.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    break;
+            }
+        } catch (e) {}
+    }
+
+    loadLanguageSettings() {
+        const langSelect = document.getElementById('lang-select');
+        if (langSelect) {
+            langSelect.value = this.currentLang;
+            langSelect.addEventListener('change', async (e) => {
+                const lang = e.target.value;
+                await this.loadLanguagePack(lang);
+                this.applyLanguage();
+                // 通知父窗口语言已变更
+                try {
+                    if (window.parent && window.parent !== window) {
+                        window.parent.document.dispatchEvent(new CustomEvent('language-changed', {
+                            detail: { lang, strings: this.languagePack.strings }
+                        }));
+                    }
+                } catch (err) {}
+            });
+        }
+    }
+
+    applyLanguage() {
+        const strings = this.languagePack.strings || {};
+
+        // 导航栏：data-section 到语言 key 的映射（修复 user -> user_info 映射错误）
+        const navKeyMap = {
+            system: 'system',
+            user: 'user_info',
+            personalization: 'personalization',
+            language: 'language'
+        };
 
         document.querySelectorAll('.settings-nav-item').forEach(item => {
             const section = item.dataset.section;
-            if (strings[section]) {
-                item.textContent = strings[section];
+            const key = navKeyMap[section] || section;
+            if (strings[key]) {
+                item.textContent = strings[key];
             }
         });
 
+        // 区块标题
         const sectionTitles = {
             'section-system': 'system',
             'section-user': 'user_info',
             'section-personalization': 'personalization',
             'section-language': 'language'
         };
-
-        for (const [id, key] of Object.entries(sectionTitles)) {
-            const el = document.querySelector(`#${id} h2`);
-            if (el && strings[key]) el.textContent = strings[key];
-        }
-
-        const version = strings.version || '版本';
-        const label = document.querySelector('#section-system .info-row:nth-child(2) .info-label');
-        if (label && version) label.textContent = version;
-
-        document.querySelectorAll('.lang-option').forEach(opt => {
-            const l = opt.dataset.lang;
-            const check = opt.querySelector('.lang-check');
-            if (l === lang) {
-                check.textContent = '✓';
-            } else {
-                check.textContent = '';
+        Object.entries(sectionTitles).forEach(([id, key]) => {
+            const el = document.querySelector('#' + id + ' h2');
+            if (el && strings[key]) {
+                el.textContent = strings[key];
             }
         });
 
-        document.title = strings.app_title || '设置';
-    }
-
-    async loadVersion() {
-        try {
-            const res = await fetch('/apps/settings.app/info.json');
-            const data = await res.json();
-            const versionEl = document.getElementById('sys-version');
-            if (versionEl && data.version) {
-                versionEl.textContent = data.version;
+        // 系统信息标签
+        const sysLabels = {
+            'sys-name-label': 'settings.sys_name',
+            'sys-browser-label': 'settings.sys_browser',
+            'sys-os-label': 'settings.sys_os',
+            'sys-resolution-label': 'settings.sys_resolution',
+            'sys-online-label': 'settings.sys_online',
+            'sys-version-label': 'version'
+        };
+        Object.entries(sysLabels).forEach(([id, key]) => {
+            const el = document.getElementById(id);
+            if (el && strings[key]) {
+                el.textContent = strings[key];
             }
-        } catch (e) {}
-    }
+        });
 
-    getCurrentUser() {
-        try {
-            const um = window.parent.UserManager;
-            if (um) {
-                const u = um.getInstance().getCurrentUser();
-                return u || { username: 'public', createdAt: '-' };
+        // 用户信息标签
+        const userLabels = {
+            'user-name-label': 'settings.user_name',
+            'user-created-label': 'settings.user_created'
+        };
+        Object.entries(userLabels).forEach(([id, key]) => {
+            const el = document.getElementById(id);
+            if (el && strings[key]) {
+                el.textContent = strings[key];
             }
-        } catch (e) {}
-        return { username: 'public', createdAt: '-' };
-    }
+        });
 
-    loadWallpaper() {
-        try {
-            const storage = window.parent.StorageService.getInstance();
-            const path = `/user/${this.currentUser.username}/info/wallpaper.json`;
-            const data = storage.loadJSON(path);
-            if (data) return data;
-        } catch (e) {}
-        const saved = localStorage.getItem('webos-wallpaper');
-        if (saved) {
-            try { return JSON.parse(saved); } catch (e) {}
+        // 个性化标签
+        const persLabels = {
+            'pers-wallpaper-title': 'settings.wallpaper',
+            'pers-wallpaper-default': 'settings.wallpaper_default',
+            'pers-wallpaper-dark': 'settings.wallpaper_dark',
+            'pers-wallpaper-custom': 'settings.wallpaper_custom',
+            'pers-wallpaper-gradient': 'settings.wallpaper_gradient',
+            'pers-custom-color-label': 'settings.custom_color'
+        };
+        Object.entries(persLabels).forEach(([id, key]) => {
+            const el = document.getElementById(id);
+            if (el && strings[key]) {
+                el.textContent = strings[key];
+            }
+        });
+
+        // 语言设置标签
+        const langLabels = {
+            'lang-select-label': 'settings.select_language'
+        };
+        Object.entries(langLabels).forEach(([id, key]) => {
+            const el = document.getElementById(id);
+            if (el && strings[key]) {
+                el.textContent = strings[key];
+            }
+        });
+
+        // 版本和标题
+        const versionEl = document.getElementById('settings-version');
+        if (versionEl && strings['version']) {
+            versionEl.textContent = strings['version'] + ' v1.0.0';
         }
-        return { type: 'color', value: '#1a1a2e' };
-    }
-
-    saveWallpaper(type, value) {
-        const wallpaper = { type, value };
-        this.currentWallpaper = wallpaper;
-        localStorage.setItem('webos-wallpaper', JSON.stringify(wallpaper));
-        try {
-            const storage = window.parent.StorageService.getInstance();
-            storage.saveJSON(`/user/${this.currentUser.username}/info/wallpaper.json`, wallpaper);
-        } catch (e) {}
-        this.updatePreview();
-        window.parent.document.dispatchEvent(new CustomEvent('wallpaper-changed', {
-            detail: { type, value }
-        }));
-    }
-
-    updatePreview() {
-        const preview = document.getElementById('current-preview');
-        const label = document.getElementById('current-label');
-        if (!preview || !label) return;
-        const { type, value } = this.currentWallpaper;
-        if (type === 'color') {
-            preview.style.background = value;
-            preview.style.backgroundImage = 'none';
-            label.textContent = `纯色: ${value}`;
-        } else if (type === 'gradient') {
-            preview.style.background = value;
-            label.textContent = '渐变壁纸';
-        } else if (type === 'image') {
-            preview.style.background = `url(${value}) center/cover`;
-            label.textContent = '图片壁纸';
+        if (strings['app.settings']) {
+            document.title = strings['app.settings'];
         }
-    }
-
-    init() {
-        document.querySelectorAll('.settings-nav-item').forEach(item => {
-            item.addEventListener('click', () => {
-                document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-                document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
-                document.getElementById('section-' + item.dataset.section).classList.add('active');
-            });
-        });
-
-        document.getElementById('sys-browser').textContent = navigator.userAgent.split(' ').slice(-2).join(' ');
-        document.getElementById('sys-os').textContent = navigator.platform || 'Unknown';
-        document.getElementById('sys-resolution').textContent = `${window.screen.width}x${window.screen.height}`;
-        document.getElementById('sys-language').textContent = navigator.language;
-        document.getElementById('sys-online').textContent = navigator.onLine ? '在线' : '离线';
-
-        document.getElementById('user-name').textContent = this.currentUser.username;
-        document.getElementById('user-created').textContent = this.currentUser.createdAt || '-';
-        const avatar = document.getElementById('user-avatar');
-        if (avatar) avatar.textContent = (this.currentUser.username || 'U').charAt(0).toUpperCase();
-
-        this.updatePreview();
-        document.getElementById('color-grid').addEventListener('click', (e) => {
-            const btn = e.target.closest('.color-btn');
-            if (btn) this.saveWallpaper('color', btn.dataset.color);
-        });
-        document.getElementById('apply-custom').addEventListener('click', () => {
-            this.saveWallpaper('color', document.getElementById('custom-color').value);
-        });
-        document.getElementById('gradient-grid').addEventListener('click', (e) => {
-            const btn = e.target.closest('.gradient-btn');
-            if (btn) this.saveWallpaper('gradient', btn.dataset.gradient);
-        });
-        document.getElementById('image-grid').addEventListener('click', (e) => {
-            const btn = e.target.closest('.image-btn');
-            if (btn) this.saveWallpaper('image', btn.dataset.image);
-        });
-        document.getElementById('apply-image').addEventListener('click', () => {
-            const url = document.getElementById('image-url').value.trim();
-            if (url) this.saveWallpaper('image', url);
-        });
-        document.getElementById('reset-wallpaper').addEventListener('click', () => {
-            this.saveWallpaper('color', '#1a1a2e');
-        });
-
-        const currentLang = localStorage.getItem('webos-language') || 'cmn';
-        document.querySelectorAll('.lang-option').forEach(opt => {
-            const lang = opt.dataset.lang;
-            const check = opt.querySelector('.lang-check');
-            if (lang === currentLang) check.textContent = '✓';
-            opt.addEventListener('click', () => {
-                this.applyLanguage(lang);
-            });
-        });
-
-        this.applyLanguage(currentLang);
-        this.loadVersion();
     }
 }
 

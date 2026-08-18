@@ -5,6 +5,8 @@ class Calculator {
         this.current = '';
         this.lastResult = '';
         this.justEvaluated = false;
+        this.strings = {};
+        this.loadLanguage();
 
         document.querySelectorAll('.btn').forEach(btn => {
             btn.addEventListener('click', () => this.handleInput(btn.dataset.value));
@@ -18,6 +20,32 @@ class Calculator {
             else if (key === 'Backspace') this.handleInput('DEL');
             else if (key === 'Escape') this.handleInput('AC');
         });
+    }
+
+    async loadLanguage() {
+        const lang = localStorage.getItem('webos-language') || 'cmn';
+        const langFiles = { cmn: '/languages/cmn.json', eng: '/languages/eng.json', jpn: '/languages/jpn.json' };
+        try {
+            const res = await fetch(langFiles[lang] || langFiles.cmn);
+            const data = await res.json();
+            this.strings = data.strings || {};
+        } catch (e) {
+            this.strings = {};
+        }
+        // 监听父窗口语言变更
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.document.addEventListener('language-changed', (e) => {
+                    if (e.detail && e.detail.strings) {
+                        this.strings = e.detail.strings;
+                    }
+                });
+            }
+        } catch (e) {}
+    }
+
+    t(key, fallback) {
+        return this.strings[key] !== undefined ? this.strings[key] : (fallback || key);
     }
 
     handleInput(val) {
@@ -90,7 +118,7 @@ class Calculator {
             const result = Function('"use strict"; return (' + safe + ')')();
 
             if (!isFinite(result) || isNaN(result)) {
-                this.resultEl.textContent = '错误';
+                this.resultEl.textContent = this.t('calculator.error', '错误');
                 this.lastResult = '';
             } else {
                 const formatted = this.format(result);
@@ -102,7 +130,7 @@ class Calculator {
             this.current = this.lastResult;
             this.justEvaluated = true;
         } catch (e) {
-            this.resultEl.textContent = '错误';
+            this.resultEl.textContent = this.t('calculator.error', '错误');
             this.expressionEl.textContent = this.current;
             this.justEvaluated = true;
         }
