@@ -25,12 +25,10 @@ class ViEditor {
         
         this.init();
     }
-
     init() {
         this.editorContent.addEventListener('keydown', (e) => this.handleKeyDown(e));
         this.editorCommandInput.addEventListener('keydown', (e) => this.handleCommandKeyDown(e));
     }
-
     open(filename, content, file) {
         this.currentFile = file;
         this.terminalTitle.textContent = `vi ${filename}`;
@@ -48,7 +46,6 @@ class ViEditor {
         
         this.editorContent.focus();
     }
-
     close() {
         this.editorContent.style.display = 'none';
         this.editorStatusBar.style.display = 'none';
@@ -64,7 +61,6 @@ class ViEditor {
         
         this.terminal.input.focus();
     }
-
     save() {
         if (this.currentFile) {
             const result = this.terminal.fs.saveFile(this.currentFile, this.editorContent.value);
@@ -72,7 +68,6 @@ class ViEditor {
         }
         return { success: false, message: '没有打开的文件' };
     }
-
     handleKeyDown(e) {
         if (this.mode === 'normal') {
             this.handleNormalMode(e);
@@ -82,7 +77,6 @@ class ViEditor {
         
         this.updatePosition();
     }
-
     handleNormalMode(e) {
         e.preventDefault();
         const textarea = this.editorContent;
@@ -148,7 +142,6 @@ class ViEditor {
                 e.preventDefault();
         }
     }
-
     handleInsertMode(e) {
         if (e.key === 'Escape') {
             e.preventDefault();
@@ -162,7 +155,6 @@ class ViEditor {
             }
         }
     }
-
     handleCommandKeyDown(e) {
         if (e.key === 'Enter') {
             const cmd = this.editorCommandInput.value;
@@ -174,7 +166,6 @@ class ViEditor {
             this.editorContent.focus();
         }
     }
-
     executeCommand(cmd) {
         switch (cmd) {
             case 'w':
@@ -210,7 +201,6 @@ class ViEditor {
         this.editorCommandLine.style.display = 'none';
         this.editorContent.focus();
     }
-
     deleteLine() {
         const textarea = this.editorContent;
         const start = textarea.selectionStart;
@@ -238,12 +228,10 @@ class ViEditor {
         textarea.value = newContent;
         textarea.setSelectionRange(newPos, newPos);
     }
-
     updateModeDisplay() {
         this.editorMode.className = `editor-mode ${this.mode}`;
         this.editorMode.textContent = this.mode.toUpperCase();
     }
-
     updatePosition() {
         const textarea = this.editorContent;
         const pos = textarea.selectionStart;
@@ -256,5 +244,4 @@ class ViEditor {
         this.editorPosition.textContent = `行 ${line}, 列 ${col}`;
     }
 }
-
 export default ViEditor;
