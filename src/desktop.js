@@ -1,8 +1,7 @@
-import UserManager from './user-manager.js?v=14';
-import UserSwitcher from './user-switcher.js?v=14';
-import LockScreen from './lock-screen.js?v=14';
-import StorageService from './storage.js?v=14';
-
+import UserManager from './user-manager.js?v=15';
+import UserSwitcher from './user-switcher.js?v=15';
+import LockScreen from './lock-screen.js?v=15';
+import StorageService from './storage.js?v=15';
 class DesktopManager {
     constructor(options = {}) {
         this.desktopEl = options.desktopEl || null;
@@ -20,22 +19,18 @@ class DesktopManager {
         this.userSwitcher = null;
         this.lockScreen = null;
     }
-
     isMobile() {
         return window.innerWidth < 768;
     }
-
     getStateFilePath() {
         const user = this.userManager.getCurrentUser();
         const username = user ? user.username : 'default';
         return `/user/${username}/info/windows_status.json`;
     }
-
     async init() {
         this.taskbarItemsEl = this.desktopEl.querySelector('.taskbar-items');
         this.taskbarClockEl = this.desktopEl.querySelector('.taskbar-clock');
         this.taskbarUserNameEl = this.desktopEl.querySelector('#taskbar-user-name');
-
         if (window._bootManager && window._bootManager.lockScreen) {
             this.lockScreen = window._bootManager.lockScreen;
             this.lockScreen.onUnlock = () => {
@@ -54,7 +49,6 @@ class DesktopManager {
                 }
             });
         }
-
         this.userSwitcher = new UserSwitcher({
             onSwitch: (username) => {
                 this.switchUser(username);
@@ -63,31 +57,25 @@ class DesktopManager {
                 this.lock();
             }
         });
-
         this.setupTaskbarUser();
-
         await this.scanApps();
         this.setupDesktopIcons();
         this.startClock();
         this.loadState();
         this.updateTaskbar();
         this.updateTaskbarUser();
-        
         this.setupAppLaunchListeners();
         this.setupUserSwitchListener();
         this.setupWallpaper();
     }
-
     setupWallpaper() {
         this.loadWallpaper();
-        
         document.addEventListener('wallpaper-changed', (e) => {
             const { type, value } = e.detail;
             this.applyWallpaper(type, value);
             this.saveWallpaperToFS(type, value);
         });
     }
-
     loadWallpaper() {
         try {
             const user = this.userManager.getCurrentUser();
@@ -109,7 +97,6 @@ class DesktopManager {
             }
         }
     }
-
     saveWallpaperToFS(type, value) {
         try {
             const user = this.userManager.getCurrentUser();
@@ -118,11 +105,9 @@ class DesktopManager {
             this.storage.saveJSON(`/user/${username}/info/wallpaper.json`, wallpaper);
         } catch (e) {}
     }
-
     applyWallpaper(type, value) {
         const desktop = document.getElementById('desktop');
         if (!desktop) return;
-
         if (type === 'color') {
             desktop.style.background = value;
             desktop.style.backgroundImage = 'none';
@@ -132,17 +117,13 @@ class DesktopManager {
             desktop.style.background = `url(${value}) center/cover fixed`;
         }
     }
-
     async switchUser(username) {
         const currentUser = this.userManager.getCurrentUser();
         const currentUsername = currentUser ? currentUser.username : 'default';
-
         window._isSavingDisabled = true;
         this._isLoadingState = true;
-
         const currentStatePath = `/user/${currentUsername}/info/windows_status.json`;
         this.saveStateToPath(currentStatePath);
-
         const windows = this.windowManager.getAllWindows();
         windows.forEach(win => {
             if (this.terminalWindows.has(win.id)) {
@@ -150,31 +131,23 @@ class DesktopManager {
             }
             win.close();
         });
-
         this.userManager.setCurrentUser(username);
         this.updateTaskbarUser();
-
         this.windowManager.zIndexCounter = 1;
         this.storage.reload();
         this.userManager.reload();
-
         await this.loadState();
-
         this.updateTaskbar();
-
         const desktopIcons = this.desktopEl.querySelector('.desktop-icons');
         if (desktopIcons) {
             desktopIcons.style.display = '';
         }
-
         document.dispatchEvent(new CustomEvent('user-switched', { detail: { username } }));
-
         setTimeout(() => {
             this._isLoadingState = false;
             window._isSavingDisabled = false;
         }, 3000);
     }
-
     saveStateToPath(path) {
         try {
             const windows = this.windowManager.getAllWindows();
@@ -191,27 +164,21 @@ class DesktopManager {
                         isMinimized: win.isMinimized,
                         zIndex: parseInt(win.element.style.zIndex) || 0
                     };
-
                     if (win.windowType === 'terminal' && this.terminalWindows.has(win.id)) {
                         const terminal = this.terminalWindows.get(win.id);
                         winState.currentPath = terminal.fs.getCurrentPath();
                     }
-
                     if (win.windowType === 'app') {
                         winState.appPath = win.appPath;
                         winState.appParams = win.appParams;
                     }
-
                     return winState;
                 })
             };
-
             state.windows.sort((a, b) => a.zIndex - b.zIndex);
-
             const parts = path.split('/');
             const fileName = parts.pop();
             const folderPath = parts.join('/') || '/';
-
             let node = this.storage.fs;
             for (const part of folderPath.split('/').filter(p => p)) {
                 if (!node.children) node.children = [];
@@ -222,7 +189,6 @@ class DesktopManager {
                 }
                 node = child;
             }
-
             if (!node.children) node.children = [];
             const existingIndex = node.children.findIndex(c => c.name === fileName && c.type === 'file');
             const fileData = {
@@ -235,20 +201,16 @@ class DesktopManager {
             } else {
                 node.children.push(fileData);
             }
-
             this.storage.saveFS();
         } catch (e) {
             console.warn('Failed to save GUI state:', e);
         }
     }
-
     setupUserSwitchListener() {
-        // 终端请求切换用户时，由桌面统一执行完整切换流程
         document.addEventListener('request-user-switch', (e) => {
             this.switchUser(e.detail.username);
         });
     }
-
     setupTaskbarUser() {
         const taskbarUser = this.desktopEl.querySelector('#taskbar-user');
         if (taskbarUser) {
@@ -257,61 +219,53 @@ class DesktopManager {
                 this.userSwitcher.toggle();
             });
         }
-
         document.addEventListener('click', (e) => {
-            if (!this.userSwitcher.el.contains(e.target) && 
+            if (!this.userSwitcher.el.contains(e.target) &&
                 !taskbarUser.contains(e.target)) {
                 this.userSwitcher.hide();
             }
         });
     }
-
     updateTaskbarUser() {
         const user = this.userManager.getCurrentUser();
         if (user && this.taskbarUserNameEl) {
             this.taskbarUserNameEl.textContent = user.username;
         }
     }
-
     lock() {
         this.lockScreen.show();
     }
-
     setupAppLaunchListeners() {
         document.addEventListener('app-launch-real', (e) => {
             const path = e.detail.path;
             const app = { path: path, name: path.replace('.app', '') };
             this.openAppByPath(app);
         });
-
         document.addEventListener('open-file-in-editor', (e) => {
             const filePath = e.detail.path;
-            this.openAppByPath({ 
-                path: 'texteditor.app', 
+            this.openAppByPath({
+                path: 'texteditor.app',
                 name: '文本编辑器',
                 params: { path: filePath }
             });
         });
-
         document.addEventListener('open-image-viewer', (e) => {
             const filePath = e.detail.path;
-            this.openAppByPath({ 
-                path: 'mediaviewer.app', 
+            this.openAppByPath({
+                path: 'mediaviewer.app',
                 name: '媒体查看器',
                 params: { path: filePath }
             });
         });
-
         document.addEventListener('open-media-player', (e) => {
             const filePath = e.detail.path;
-            this.openAppByPath({ 
-                path: 'mediaviewer.app', 
+            this.openAppByPath({
+                path: 'mediaviewer.app',
                 name: '媒体查看器',
                 params: { path: filePath }
             });
         });
     }
-
     async scanApps() {
         try {
             const res = await fetch('/apps/manifest.json');
@@ -322,34 +276,28 @@ class DesktopManager {
             this.apps = [];
         }
     }
-
     setupDesktopIcons() {
         const desktopIcons = this.desktopEl.querySelector('.desktop-icons');
-
         const terminalIcon = this.desktopEl.querySelector('#terminal-icon');
         if (terminalIcon) {
             terminalIcon.addEventListener('click', () => {
                 this.openTerminalWindow();
             });
         }
-
         const calculatorIcon = this.desktopEl.querySelector('#calculator-icon');
         if (calculatorIcon) {
             calculatorIcon.addEventListener('click', () => {
                 this.openAppByPath({ path: 'calculator.app', name: '计算器' });
             });
         }
-
         const filemanagerIcon = this.desktopEl.querySelector('#filemanager-icon');
         if (filemanagerIcon) {
             filemanagerIcon.addEventListener('click', () => {
                 this.openAppByPath({ path: 'filemanager.app', name: '文件管理器' });
             });
         }
-
         this.apps.forEach(app => {
             let iconEl = this.desktopEl.querySelector(`[data-app="${app.id}"]`);
-            
             if (!iconEl) {
                 iconEl = document.createElement('div');
                 iconEl.className = 'desktop-icon';
@@ -362,13 +310,11 @@ class DesktopManager {
                 `;
                 desktopIcons.appendChild(iconEl);
             }
-            
             iconEl.addEventListener('click', () => {
                 this.openAppByPath(app);
             });
         });
     }
-
     openTerminalWindow(options = {}) {
         const template = document.getElementById('terminal-template');
         const clone = template.content.cloneNode(true);
@@ -377,9 +323,7 @@ class DesktopManager {
         terminalContainer.style.display = 'flex';
         terminalContainer.style.flexDirection = 'column';
         terminalContainer.appendChild(clone);
-
         const isMobile = this.isMobile();
-
         const win = this.windowManager.createWindow({
             title: '终端',
             icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ecf0f1" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
@@ -393,14 +337,11 @@ class DesktopManager {
                 this.saveState();
             }
         });
-
         win.appName = '终端';
         win.appIcon = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ecf0f1" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>';
-
         if (isMobile) {
             win.isMaximized = true;
         }
-
         const terminalEl = terminalContainer.querySelector('.terminal');
         const terminal = new this.terminalClass({
             container: terminalEl,
@@ -413,13 +354,10 @@ class DesktopManager {
                 this.saveState();
             }
         });
-
         if (options.initialPath) {
             terminal.setPath(options.initialPath);
         }
-
         this.terminalWindows.set(win.id, terminal);
-
         const originalClose = win.close;
         win.close = () => {
             originalClose.call(win);
@@ -427,65 +365,52 @@ class DesktopManager {
             this.updateTaskbar();
             this.saveState();
         };
-
         const originalMinimize = win.minimize;
         win.minimize = () => {
             originalMinimize.call(win);
             this.updateTaskbar();
             this.saveState();
         };
-
         const originalRestore = win.restore;
         win.restore = () => {
             originalRestore.call(win);
             this.updateTaskbar();
             this.saveState();
         };
-
         const originalFocus = win.focus;
         win.focus = () => {
             originalFocus.call(win);
             this.updateTaskbar();
             this.saveState();
         };
-
         win.element.addEventListener('mousedown', () => {
             this.updateTaskbar();
         });
-
         this.updateTaskbar();
         this.saveState();
-
         return win;
     }
-
     async openAppByPath(app) {
         const infoRes = await fetch(`/apps/${app.path}/info.json`);
         let info = { width: 380, height: 580 };
         try { info = await infoRes.json(); } catch (e) {}
-
         const contentContainer = document.createElement('div');
         contentContainer.style.width = '100%';
         contentContainer.style.height = '100%';
         contentContainer.style.overflow = 'hidden';
-
         const iframe = document.createElement('iframe');
         iframe.style.width = '100%';
         iframe.style.height = '100%';
         iframe.style.border = 'none';
         iframe.style.display = 'block';
-        
         let src = `/apps/${app.path}/main/index.html`;
         if (app.params) {
             const params = new URLSearchParams(app.params);
             src += '?' + params.toString();
         }
         iframe.src = src;
-
         contentContainer.appendChild(iframe);
-
         const isMobile = this.isMobile();
-
         const win = this.windowManager.createWindow({
             title: app.name,
             icon: `/apps/${app.path}/icon.svg`,
@@ -499,62 +424,49 @@ class DesktopManager {
                 this.saveState();
             }
         });
-
         win.appName = app.name;
         win.appIcon = `/apps/${app.path}/icon.svg`;
         win.appPath = app.path;
         win.appParams = app.params;
-
         const originalClose = win.close;
         win.close = () => {
             originalClose.call(win);
             this.updateTaskbar();
             this.saveState();
         };
-
         const originalMinimize = win.minimize;
         win.minimize = () => {
             originalMinimize.call(win);
             this.updateTaskbar();
             this.saveState();
         };
-
         const originalRestore = win.restore;
         win.restore = () => {
             originalRestore.call(win);
             this.updateTaskbar();
             this.saveState();
         };
-
         const originalFocus = win.focus;
         win.focus = () => {
             originalFocus.call(win);
             this.updateTaskbar();
             this.saveState();
         };
-
         win.element.addEventListener('mousedown', () => {
             this.updateTaskbar();
         });
-
         this.updateTaskbar();
         this.saveState();
-
         return win;
     }
-
     updateTaskbar() {
         if (!this.taskbarItemsEl) return;
-
         const windows = this.windowManager.getAllWindows();
         this.taskbarItemsEl.innerHTML = '';
-
         const topWindow = this._getTopWindow();
-
         windows.forEach(win => {
             const item = document.createElement('div');
             item.className = 'taskbar-item';
-
             const iconEl = document.createElement('img');
             iconEl.className = 'taskbar-icon';
             iconEl.src = win.appIcon || '';
@@ -562,11 +474,9 @@ class DesktopManager {
             iconEl.style.width = '20px';
             iconEl.style.height = '20px';
             item.appendChild(iconEl);
-
             if (topWindow && win.id === topWindow.id && !win.isMinimized) {
                 item.classList.add('active');
             }
-
             item.addEventListener('click', () => {
                 if (win.isMinimized) {
                     win.restore();
@@ -576,18 +486,14 @@ class DesktopManager {
                     win.focus();
                 }
             });
-
             this.taskbarItemsEl.appendChild(item);
         });
     }
-
     _getTopWindow() {
         const windows = this.windowManager.getAllWindows();
         if (windows.length === 0) return null;
-
         let topWin = null;
         let maxZIndex = -1;
-
         windows.forEach(win => {
             if (win.isMinimized) return;
             const zIndex = parseInt(win.element.style.zIndex) || 0;
@@ -596,10 +502,8 @@ class DesktopManager {
                 topWin = win;
             }
         });
-
         return topWin;
     }
-
     saveState() {
         if (window._isSavingDisabled) {
             return;
@@ -622,28 +526,22 @@ class DesktopManager {
                         isMinimized: win.isMinimized,
                         zIndex: parseInt(win.element.style.zIndex) || 0
                     };
-
                     if (win.windowType === 'terminal' && this.terminalWindows.has(win.id)) {
                         const terminal = this.terminalWindows.get(win.id);
                         winState.currentPath = terminal.fs.getCurrentPath();
                     }
-
                     if (win.windowType === 'app') {
                         winState.appPath = win.appPath;
                         winState.appParams = win.appParams;
                     }
-
                     return winState;
                 })
             };
-
             state.windows.sort((a, b) => a.zIndex - b.zIndex);
-
             const path = this.getStateFilePath();
             const parts = path.split('/');
             const fileName = parts.pop();
             const folderPath = parts.join('/') || '/';
-
             let node = this.storage.fs;
             for (const part of folderPath.split('/').filter(p => p)) {
                 if (!node.children) node.children = [];
@@ -654,7 +552,6 @@ class DesktopManager {
                 }
                 node = child;
             }
-
             if (!node.children) node.children = [];
             const existingIndex = node.children.findIndex(c => c.name === fileName && c.type === 'file');
             const fileData = {
@@ -667,24 +564,19 @@ class DesktopManager {
             } else {
                 node.children.push(fileData);
             }
-
             this.storage.saveFS();
         } catch (e) {
             console.warn('Failed to save GUI state:', e);
         }
     }
-
     async loadState() {
         try {
             this.storage.reload();
             const data = this.storage.loadJSON(this.getStateFilePath());
             if (!data) return;
-
             const state = data;
             if (!state.windows || !Array.isArray(state.windows)) return;
-
             this._isLoadingState = true;
-
             for (const winState of state.windows) {
                 if (winState.windowType === 'terminal') {
                     this.openTerminalWindow({
@@ -706,7 +598,6 @@ class DesktopManager {
                     });
                 }
             }
-
             const restoredWindows = this.windowManager.getAllWindows();
             state.windows.forEach((winState, index) => {
                 const restoredWin = restoredWindows[index];
@@ -722,23 +613,19 @@ class DesktopManager {
                     }
                 }
             });
-
             this.updateTaskbar();
-
             const maxZIndex = state.windows.reduce((max, w) => Math.max(max, w.zIndex), 0);
             this.windowManager.zIndexCounter = maxZIndex + 1;
         } catch (e) {
             console.warn('Failed to load GUI state:', e);
         }
     }
-
     startClock() {
         this._updateClock();
         this.clockInterval = setInterval(() => {
             this._updateClock();
         }, 1000);
     }
-
     _updateClock() {
         if (!this.taskbarClockEl) return;
         const now = new Date();
@@ -748,5 +635,4 @@ class DesktopManager {
         this.taskbarClockEl.textContent = `${hours}:${minutes}:${seconds}`;
     }
 }
-
 export default DesktopManager;

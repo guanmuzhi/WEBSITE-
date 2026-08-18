@@ -1,8 +1,7 @@
-import WindowManager from './window-manager.js?v=14';
-import DesktopManager from './desktop.js?v=14';
-import UserManager from './user-manager.js?v=14';
-import LockScreen from './lock-screen.js?v=14';
-
+import WindowManager from './window-manager.js?v=15';
+import DesktopManager from './desktop.js?v=15';
+import UserManager from './user-manager.js?v=15';
+import LockScreen from './lock-screen.js?v=15';
 class BootManager {
     constructor(terminalClass) {
         this.terminalClass = terminalClass;
@@ -17,45 +16,35 @@ class BootManager {
         this.lockScreen = null;
         this.desktopManager = null;
     }
-
     init() {
         window._bootManager = this;
         this.bootScreen = document.getElementById('boot-screen');
         this.desktop = document.getElementById('desktop');
-
         const bootTerminalContainer = this.bootScreen.querySelector('.terminal');
         this.terminal = new this.terminalClass({ container: bootTerminalContainer, skipWelcome: true });
-
         this.printBootMessage();
-
         this.keyHandler = (e) => {
             e.preventDefault();
             e.stopPropagation();
             this.stayInTerminal();
         };
         document.addEventListener('keydown', this.keyHandler, true);
-
         this.countdownTimer = setTimeout(() => {
             this.enterGUI();
         }, 1000);
     }
-
     printBootMessage() {
         this.terminal.print('WebOS 启动中...');
         this.terminal.print('');
         this.terminal.print('按任意键停止启动，进入终端模式');
         this.terminal.print('');
     }
-
     enterGUI() {
         if (this.bootCompleted || this.stayedInTerminal) return;
-
         this.bootCompleted = true;
         this.cleanup();
-
         this.userManager.setCurrentUser('public');
         this.userManager.reload();
-
         this.lockScreen = new LockScreen({
             onUnlock: () => {
                 if (this.desktopManager) {
@@ -69,9 +58,7 @@ class BootManager {
             }
         });
         this.lockScreen.showWithUserList();
-
         this.bootScreen.classList.add('fade-out');
-
         setTimeout(() => {
             this.bootScreen.style.display = 'none';
             this.desktop.style.display = 'block';
@@ -82,19 +69,15 @@ class BootManager {
             this.initDesktop();
         }, 300);
     }
-
     stayInTerminal() {
         if (this.bootCompleted || this.stayedInTerminal) return;
-
         this.stayedInTerminal = true;
         this.cleanup();
-
         this.terminal.print('');
         this.terminal.print('已停留在终端模式', 'success');
         this.terminal.print('');
         this.terminal.input.focus();
     }
-
     cleanup() {
         if (this.countdownTimer) {
             clearTimeout(this.countdownTimer);
@@ -105,19 +88,15 @@ class BootManager {
             this.keyHandler = null;
         }
     }
-
     initDesktop() {
         const windowsContainer = this.desktop.querySelector('.windows-container');
         const windowManager = new WindowManager(windowsContainer);
-
         this.desktopManager = new DesktopManager({
             desktopEl: this.desktop,
             terminalClass: this.terminalClass,
             windowManager: windowManager
         });
-
         this.desktopManager.init();
     }
 }
-
 export default BootManager;
