@@ -43,6 +43,34 @@ body {
     gap: 16px;
 }
 
+.add-app-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--primary-color);
+    border: none;
+    border-radius: 20px;
+    color: white;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: inherit;
+    flex-shrink: 0;
+}
+
+.add-app-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+}
+
+.add-app-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
 .update-badge {
     background: #e74c3c;
     color: white;
@@ -176,6 +204,12 @@ body {
     height: 40px;
 }
 
+.app-card-icon img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
 .update-indicator {
     position: absolute;
     top: -4px;
@@ -282,6 +316,13 @@ body {
     color: var(--text-muted);
 }
 
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+
 .app-modal {
     display: none;
     position: fixed;
@@ -361,6 +402,12 @@ body {
     height: 50px;
 }
 
+.modal-icon img {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+}
+
 .modal-title {
     font-size: 24px;
     font-weight: 600;
@@ -403,10 +450,6 @@ body {
     color: var(--text-secondary);
 }
 
-.star-rating {
-    color: #f39c12;
-}
-
 .modal-install {
     width: 100%;
     padding: 14px;
@@ -433,6 +476,36 @@ body {
     background: #2ecc71;
 }
 
+.install-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 24px;
+    color: var(--text-primary);
+    font-size: 14px;
+    z-index: 2000;
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    max-width: 80%;
+    text-align: center;
+}
+
+.install-toast.show {
+    transform: translateX(-50%) translateY(0);
+}
+
+.install-toast.success {
+    border-color: #2ecc71;
+}
+
+.install-toast.error {
+    border-color: #e74c3c;
+}
+
 @media (max-width: 600px) {
     .appstore-header {
         flex-direction: column;
@@ -443,6 +516,10 @@ body {
     .appstore-search {
         width: 100%;
         max-width: none;
+    }
+
+    .add-app-btn span {
+        display: none;
     }
 
     .app-grid {
