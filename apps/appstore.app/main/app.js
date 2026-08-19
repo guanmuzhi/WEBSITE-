@@ -18,6 +18,9 @@ class AppStore {
         this.modalVersion = document.getElementById('modal-version');
         this.modalDescription = document.getElementById('modal-description');
         this.updateBadge = document.getElementById('update-badge');
+        this.addAppBtn = document.getElementById('add-app-btn');
+        this.appFileInput = document.getElementById('app-file-input');
+        this.installToast = document.getElementById('install-toast');
 
         await this.loadApps();
         this.setupEventListeners();
@@ -36,11 +39,40 @@ class AppStore {
                 apps.push(appInfo);
             }
             
+            try {
+                if (window.parent && window.parent.getInstalledApps) {
+                    const installedApps = window.parent.getInstalledApps();
+                    for (const app of installedApps) {
+                        if (!apps.find(a => a.path === app.path)) {
+                            apps.push({
+                                id: app.id,
+                                name: app.name,
+                                developer: '用户安装',
+                                version: app.version || '1.0.0',
+                                latestVersion: app.version || '1.0.0',
+                                description: app.description || '用户自行安装的应用',
+                                category: app.category || 'productivity',
+                                icon: this.getAppIconUrl(app.path),
+                                installed: true,
+                                hasUpdate: false,
+                                userInstalled: true
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('无法获取用户安装的应用:', e);
+            }
+            
             this.apps = apps;
         } catch (error) {
             console.error('Failed to load apps:', error);
             this.apps = this.getFallbackApps();
         }
+    }
+
+    getAppIconUrl(appPath) {
+        return 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>');
     }
 
     async loadAppInfo(app) {
@@ -139,6 +171,52 @@ class AppStore {
         this.modalInstall.addEventListener('click', () => {
             this.handleInstallAction(this.currentApp);
         });
+
+        this.addAppBtn.addEventListener('click', () => {
+            this.appFileInput.click();
+        });
+
+        this.appFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                await this.installAppFromFile(file);
+            }
+            e.target.value = '';
+        });
+    }
+
+    async installAppFromFile(file) {
+        if (!window.parent || !window.parent.installAppFromFile) {
+            this.showToast('安装功能不可用', 'error');
+            return;
+        }
+
+        this.showToast('正在安装应用...', '');
+        this.addAppBtn.disabled = true;
+
+        try {
+            const result = await window.parent.installAppFromFile(file);
+            if (result.success) {
+                this.showToast(`应用 "${result.appName}" 安装成功！`, 'success');
+                await this.loadApps();
+                this.renderApps();
+            } else {
+                this.showToast(`安装失败: ${result.error}`, 'error');
+            }
+        } catch (e) {
+            this.showToast(`安装出错: ${e.message}`, 'error');
+        } finally {
+            this.addAppBtn.disabled = false;
+        }
+    }
+
+    showToast(message, type = '') {
+        this.installToast.textContent = message;
+        this.installToast.className = 'install-toast show ' + type;
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => {
+            this.installToast.classList.remove('show');
+        }, 3000);
     }
 
     checkUpdates() {
@@ -191,7 +269,7 @@ class AppStore {
 
         card.innerHTML = `
             <div class="app-card-icon">
-                <img src="${app.icon}" alt="${app.name}" onerror="this.style.display='none'">
+                <img src="${app.icon}" alt="${app.name}" onerror="this.style.display='none';this.parentNode.innerHTML='<svg viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#3498db&quot; stroke-width=&quot;2&quot;><rect x=&quot;3&quot; y=&quot;3&quot; width=&quot;18&quot; height=&quot;18&quot; rx=&quot;2&quot;/></svg>'">
                 ${app.hasUpdate ? '<div class="update-indicator">更新</div>' : ''}
             </div>
             <div class="app-card-name">${app.name}</div>
@@ -241,7 +319,9 @@ class AppStore {
         if (!app) return;
 
         if (app.installed && !app.hasUpdate) {
-            window.parent.openApp(app.id);
+            if (window.parent && window.parent.openApp) {
+                window.parent.openApp(app.id);
+            }
             this.closeModal();
             return;
         }

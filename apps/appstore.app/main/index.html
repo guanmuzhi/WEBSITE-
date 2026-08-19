@@ -18,6 +18,15 @@
                 </svg>
                 <input type="text" id="search-input" placeholder="搜索应用...">
             </div>
+            <button class="add-app-btn" id="add-app-btn" title="从本地安装 .app 应用">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span>添加应用</span>
+            </button>
+            <input type="file" id="app-file-input" accept=".app,.zip" style="display:none">
             <div class="update-badge" id="update-badge" style="display: none;">0</div>
         </div>
 
@@ -54,6 +63,8 @@
             <button class="modal-install" id="modal-install">安装</button>
         </div>
     </div>
+
+    <div class="install-toast" id="install-toast"></div>
 
     <script src="app.js"></script>
 </body>
