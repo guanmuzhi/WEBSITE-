@@ -2,7 +2,6 @@ import UserManager from './user-manager.js?v=15';
 import UserSwitcher from './user-switcher.js?v=15';
 import LockScreen from './lock-screen.js?v=15';
 import StorageService from './storage.js?v=15';
-
 class DesktopManager {
     constructor(options = {}) {
         this.desktopEl = options.desktopEl || null;
@@ -21,22 +20,18 @@ class DesktopManager {
         this.userSwitcher = null;
         this.lockScreen = null;
     }
-
     isMobile() {
         return window.innerWidth < 768;
     }
-
     getStateFilePath() {
         const user = this.userManager.getCurrentUser();
         const username = user ? user.username : 'default';
         return `/user/${username}/info/windows_status.json`;
     }
-
     async init() {
         this.taskbarItemsEl = this.desktopEl.querySelector('.taskbar-items');
         this.taskbarClockEl = this.desktopEl.querySelector('.taskbar-clock');
         this.taskbarUserNameEl = this.desktopEl.querySelector('#taskbar-user-name');
-
         if (window._bootManager && window._bootManager.lockScreen) {
             this.lockScreen = window._bootManager.lockScreen;
             this.lockScreen.onUnlock = () => {
@@ -55,7 +50,6 @@ class DesktopManager {
                 }
             });
         }
-
         this.userSwitcher = new UserSwitcher({
             onSwitch: (username) => {
                 this.switchUser(username);
@@ -64,7 +58,6 @@ class DesktopManager {
                 this.lock();
             }
         });
-
         this.setupTaskbarUser();
         await this.loadLanguageStrings();
         await this.scanApps();
@@ -78,9 +71,10 @@ class DesktopManager {
         this.setupAppLaunchListeners();
         this.setupUserSwitchListener();
         this.setupWallpaper();
+        window.openApp = this.openAppById.bind(this);
+        window.installAppFromFile = this.installAppFromFile.bind(this);
+        window.getInstalledApps = () => this.apps;
     }
-
-    // ===== 国际化 =====
     async loadLanguageStrings() {
         const lang = localStorage.getItem('webos-language') || 'cmn';
         const langFiles = { cmn: '/languages/cmn.json', eng: '/languages/eng.json', jpn: '/languages/jpn.json' };
@@ -92,11 +86,9 @@ class DesktopManager {
             this.langStrings = {};
         }
     }
-
     t(key, fallback) {
         return this.langStrings[key] !== undefined ? this.langStrings[key] : (fallback || key);
     }
-
     setupLanguageListener() {
         document.addEventListener('language-changed', async (e) => {
             const { lang, strings } = e.detail || {};
@@ -109,20 +101,15 @@ class DesktopManager {
             this.updateTaskbar();
         });
     }
-
     updateDesktopIconLabels() {
         const desktopIcons = this.desktopEl.querySelector('.desktop-icons');
         if (!desktopIcons) return;
-
         const terminalLabel = desktopIcons.querySelector('#terminal-icon .icon-label');
         if (terminalLabel) terminalLabel.textContent = this.t('app.terminal', '终端');
-
         const calcLabel = desktopIcons.querySelector('#calculator-icon .icon-label');
         if (calcLabel) calcLabel.textContent = this.t('app.calculator', '计算器');
-
         const fmLabel = desktopIcons.querySelector('#filemanager-icon .icon-label');
         if (fmLabel) fmLabel.textContent = this.t('app.filemanager', '文件管理器');
-
         this.apps.forEach(app => {
             const iconEl = desktopIcons.querySelector(`[data-app="${app.id}"]`);
             if (iconEl) {
@@ -134,42 +121,63 @@ class DesktopManager {
             }
         });
     }
-
-    // ===== 系统目录填充（解决空文件夹问题）=====
     async seedSystemDirectories() {
         try {
             const fs = this.storage.fs;
             if (!fs.children) fs.children = [];
-
-            // 1. 填充 /application 目录
             let appDir = fs.children.find(c => c.name === 'application' && c.type === 'folder');
             if (!appDir) {
                 appDir = { type: 'folder', name: 'application', children: [] };
                 fs.children.push(appDir);
             }
             if (!appDir.children) appDir.children = [];
-
-            this.apps.forEach(app => {
+            for (const app of this.apps) {
                 if (!appDir.children.find(c => c.name === app.path)) {
-                    appDir.children.push({
+                    const appFolder = {
                         type: 'folder',
                         name: app.path,
                         children: [
-                            { type: 'file', name: 'info.json', content: JSON.stringify(app, null, 2) },
                             { type: 'folder', name: 'main', children: [] }
                         ]
-                    });
+                    };
+                    try {
+                        const infoRes = await fetch(`/apps/${app.path}/info.json`);
+                        if (infoRes.ok) {
+                            const infoContent = await infoRes.text();
+                            appFolder.children.push({ type: 'file', name: 'info.json', content: infoContent });
+                        } else {
+                            appFolder.children.push({ type: 'file', name: 'info.json', content: JSON.stringify(app, null, 2) });
+                        }
+                    } catch (e) {
+                        appFolder.children.push({ type: 'file', name: 'info.json', content: JSON.stringify(app, null, 2) });
+                    }
+                    try {
+                        const iconRes = await fetch(`/apps/${app.path}/icon.svg`);
+                        if (iconRes.ok) {
+                            const iconContent = await iconRes.text();
+                            appFolder.children.push({ type: 'file', name: 'icon.svg', content: iconContent });
+                        }
+                    } catch (e) {}
+                    const mainFiles = ['index.html', 'style.css', 'app.js'];
+                    const mainFolder = appFolder.children.find(c => c.name === 'main');
+                    for (const mf of mainFiles) {
+                        try {
+                            const res = await fetch(`/apps/${app.path}/main/${mf}`);
+                            if (res.ok) {
+                                const content = await res.text();
+                                mainFolder.children.push({ type: 'file', name: mf, content });
+                            }
+                        } catch (e) {}
+                    }
+                    appDir.children.push(appFolder);
                 }
-            });
-
-            // 2. 填充 /languages 目录
+            }
             let langDir = fs.children.find(c => c.name === 'languages' && c.type === 'folder');
             if (!langDir) {
                 langDir = { type: 'folder', name: 'languages', children: [] };
                 fs.children.push(langDir);
             }
             if (!langDir.children) langDir.children = [];
-
             const langFiles = [
                 { file: 'cmn.json', path: '/languages/cmn.json' },
                 { file: 'eng.json', path: '/languages/eng.json' },
@@ -184,8 +192,6 @@ class DesktopManager {
                     } catch (e) {}
                 }
             }
-
-            // 3. 确保当前用户的 appinfo 目录有浏览器数据子目录
             const user = this.userManager.getCurrentUser();
             if (user) {
                 const username = user.username;
@@ -214,13 +220,11 @@ class DesktopManager {
                     }
                 }
             }
-
             this.storage.saveFS();
         } catch (e) {
             console.warn('seedSystemDirectories failed:', e);
         }
     }
-
     setupWallpaper() {
         this.loadWallpaper();
         document.addEventListener('wallpaper-changed', (e) => {
@@ -229,7 +233,6 @@ class DesktopManager {
             this.saveWallpaperToFS(type, value);
         });
     }
-
     loadWallpaper() {
         try {
             const user = this.userManager.getCurrentUser();
@@ -251,7 +254,6 @@ class DesktopManager {
             }
         }
     }
-
     saveWallpaperToFS(type, value) {
         try {
             const user = this.userManager.getCurrentUser();
@@ -260,7 +262,6 @@ class DesktopManager {
             this.storage.saveJSON(`/user/${username}/info/wallpaper.json`, wallpaper);
         } catch (e) {}
     }
-
     applyWallpaper(type, value) {
         const desktop = document.getElementById('desktop');
         if (!desktop) return;
@@ -273,7 +274,6 @@ class DesktopManager {
             desktop.style.background = `url(${value}) center/cover fixed`;
         }
     }
-
     async switchUser(username) {
         const currentUser = this.userManager.getCurrentUser();
         const currentUsername = currentUser ? currentUser.username : 'default';
@@ -306,7 +306,6 @@ class DesktopManager {
             window._isSavingDisabled = false;
         }, 3000);
     }
-
     saveStateToPath(path) {
         try {
             const windows = this.windowManager.getAllWindows();
@@ -365,13 +364,11 @@ class DesktopManager {
             console.warn('Failed to save GUI state:', e);
         }
     }
-
     setupUserSwitchListener() {
         document.addEventListener('request-user-switch', (e) => {
             this.switchUser(e.detail.username);
         });
     }
-
     setupTaskbarUser() {
         const taskbarUser = this.desktopEl.querySelector('#taskbar-user');
         if (taskbarUser) {
@@ -387,18 +384,15 @@ class DesktopManager {
             }
         });
     }
-
     updateTaskbarUser() {
         const user = this.userManager.getCurrentUser();
         if (user && this.taskbarUserNameEl) {
             this.taskbarUserNameEl.textContent = user.username;
         }
     }
-
     lock() {
         this.lockScreen.show();
     }
-
     setupAppLaunchListeners() {
         document.addEventListener('app-launch-real', (e) => {
             const path = e.detail.path;
@@ -430,7 +424,6 @@ class DesktopManager {
             });
         });
     }
-
     async scanApps() {
         try {
             const res = await fetch('/apps/manifest.json');
@@ -441,7 +434,6 @@ class DesktopManager {
             this.apps = [];
         }
     }
-
     setupDesktopIcons() {
         const desktopIcons = this.desktopEl.querySelector('.desktop-icons');
         const terminalIcon = this.desktopEl.querySelector('#terminal-icon');
@@ -490,7 +482,6 @@ class DesktopManager {
             });
         });
     }
-
     openTerminalWindow(options = {}) {
         const template = document.getElementById('terminal-template');
         const clone = template.content.cloneNode(true);
@@ -566,11 +557,146 @@ class DesktopManager {
         this.saveState();
         return win;
     }
-
+    getAppFromVFS(appPath) {
+        const fs = this.storage.fs;
+        if (!fs.children) return null;
+        const appDir = fs.children.find(c => c.name === 'application' && c.type === 'folder');
+        if (!appDir || !appDir.children) return null;
+        const appFolder = appDir.children.find(c => c.name === appPath && c.type === 'folder');
+        if (!appFolder || !appFolder.children) return null;
+        const mainFolder = appFolder.children.find(c => c.name === 'main' && c.type === 'folder');
+        if (!mainFolder || !mainFolder.children) return null;
+        const indexFile = mainFolder.children.find(c => c.name === 'index.html' && c.type === 'file');
+        if (!indexFile) return null;
+        const files = {};
+        mainFolder.children.forEach(f => {
+            if (f.type === 'file') files[f.name] = f.content;
+        });
+        const infoFile = appFolder.children.find(c => c.name === 'info.json' && c.type === 'file');
+        const iconFile = appFolder.children.find(c => c.name === 'icon.svg' && c.type === 'file');
+        return {
+            files: files,
+            info: infoFile ? infoFile.content : null,
+            icon: iconFile ? iconFile.content : null
+        };
+    }
+    generateAppHtml(vfsApp) {
+        if (!vfsApp || !vfsApp.files) return null;
+        let html = vfsApp.files['index.html'] || '<html><body><h1>App load failed</h1></body></html>';
+        html = html.replace(/<link[^>]*href=["']([^"']+\.css)["'][^>]*>/gi, (match, href) => {
+            const fileName = href.split('/').pop();
+            if (vfsApp.files[fileName]) {
+                return `<style>${vfsApp.files[fileName]}</style>`;
+            }
+            return match;
+        });
+        html = html.replace(/<script[^>]*src=["']([^"']+\.js)["'][^>]*><\/script>/gi, (match, src) => {
+            const fileName = src.split('/').pop();
+            if (vfsApp.files[fileName]) {
+                return `<script>${vfsApp.files[fileName]}</script>`;
+            }
+            return match;
+        });
+        html = html.replace(/<img[^>]*src=["']([^"']+\.svg)["'][^>]*>/gi, (match, src) => {
+            const fileName = src.split('/').pop();
+            if (vfsApp.files[fileName]) {
+                const svgContent = vfsApp.files[fileName];
+                return match.replace(src, `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgContent)))}`);
+            }
+            return match;
+        });
+        return html;
+    }
+    async installAppFromFile(file) {
+        if (!window.JSZip) {
+            return { success: false, error: 'JSZip 未加载' };
+        }
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const zip = await window.JSZip.loadAsync(arrayBuffer);
+            const requiredFiles = ['main/index.html', 'info.json', 'icon.svg'];
+            const missing = requiredFiles.filter(f => !zip.files[f]);
+            if (missing.length > 0) {
+                return { success: false, error: `缺少必需文件: ${missing.join(', ')}` };
+            }
+            const infoText = await zip.file('info.json').async('text');
+            let info;
+            try {
+                info = JSON.parse(infoText);
+            } catch (e) {
+                return { success: false, error: 'info.json 格式无效' };
+            }
+            const appPath = info.id ? `${info.id}.app` : file.name.replace(/\.app$/i, '.app').replace(/\.zip$/i, '.app');
+            const appName = info.name || appPath.replace('.app', '');
+            const mainFiles = {};
+            for (const [filePath, zipFile] of Object.entries(zip.files)) {
+                if (filePath.startsWith('main/') && !zipFile.dir) {
+                    const relativePath = filePath.substring('main/'.length);
+                    mainFiles[relativePath] = await zipFile.async('text');
+                }
+            }
+            const iconContent = await zip.file('icon.svg').async('text');
+            const fs = this.storage.fs;
+            if (!fs.children) fs.children = [];
+            let appDir = fs.children.find(c => c.name === 'application' && c.type === 'folder');
+            if (!appDir) {
+                appDir = { type: 'folder', name: 'application', children: [] };
+                fs.children.push(appDir);
+            }
+            if (!appDir.children) appDir.children = [];
+            appDir.children = appDir.children.filter(c => c.name !== appPath);
+            const mainChildren = [];
+            for (const [name, content] of Object.entries(mainFiles)) {
+                mainChildren.push({ type: 'file', name, content });
+            }
+            const appFolder = {
+                type: 'folder',
+                name: appPath,
+                children: [
+                    { type: 'folder', name: 'main', children: mainChildren },
+                    { type: 'file', name: 'info.json', content: infoText },
+                    { type: 'file', name: 'icon.svg', content: iconContent }
+                ]
+            };
+            appDir.children.push(appFolder);
+            this.storage.saveFS();
+            if (!this.apps.find(a => a.path === appPath)) {
+                this.apps.push({
+                    id: info.id || appPath.replace('.app', ''),
+                    name: appName,
+                    path: appPath,
+                    description: info.description || '',
+                    category: info.category || 'productivity',
+                    version: info.version || '1.0.0'
+                });
+            }
+            this.setupDesktopIcons();
+            return { success: true, appPath, appName };
+        } catch (e) {
+            return { success: false, error: `安装失败: ${e.message}` };
+        }
+    }
+    openAppById(appId) {
+        const app = this.apps.find(a => a.id === appId || a.path === `${appId}.app`);
+        if (app) {
+            this.openAppByPath(app);
+        }
+    }
     async openAppByPath(app) {
-        const infoRes = await fetch(`/apps/${app.path}/info.json`);
+        const vfsApp = this.getAppFromVFS(app.path);
         let info = { width: 380, height: 580 };
-        try { info = await infoRes.json(); } catch (e) {}
+        let iconUrl = `/apps/${app.path}/icon.svg`;
+        if (vfsApp && vfsApp.info) {
+            try { info = JSON.parse(vfsApp.info); } catch (e) {}
+        } else {
+            try {
+                const infoRes = await fetch(`/apps/${app.path}/info.json`);
+                if (infoRes.ok) info = await infoRes.json();
+            } catch (e) {}
+        }
+        if (vfsApp && vfsApp.icon) {
+            iconUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(vfsApp.icon)))}`;
+        }
         const contentContainer = document.createElement('div');
         contentContainer.style.width = '100%';
         contentContainer.style.height = '100%';
@@ -580,17 +706,26 @@ class DesktopManager {
         iframe.style.height = '100%';
         iframe.style.border = 'none';
         iframe.style.display = 'block';
-        let src = `/apps/${app.path}/main/index.html`;
-        if (app.params) {
-            const params = new URLSearchParams(app.params);
-            src += '?' + params.toString();
+        if (vfsApp) {
+            const appHtml = this.generateAppHtml(vfsApp);
+            if (appHtml) {
+                iframe.srcdoc = appHtml;
+            } else {
+                iframe.src = `/apps/${app.path}/main/index.html`;
+            }
+        } else {
+            let src = `/apps/${app.path}/main/index.html`;
+            if (app.params) {
+                const params = new URLSearchParams(app.params);
+                src += '?' + params.toString();
+            }
+            iframe.src = src;
         }
-        iframe.src = src;
         contentContainer.appendChild(iframe);
         const isMobile = this.isMobile();
         const win = this.windowManager.createWindow({
             title: app.name,
-            icon: `/apps/${app.path}/icon.svg`,
+            icon: iconUrl,
             content: contentContainer,
             width: isMobile ? window.innerWidth : (app.width || info.width || 380),
             height: isMobile ? (window.innerHeight - 56) : (app.height || info.height || 580),
@@ -602,7 +737,7 @@ class DesktopManager {
             }
         });
         win.appName = app.name;
-        win.appIcon = `/apps/${app.path}/icon.svg`;
+        win.appIcon = iconUrl;
         win.appPath = app.path;
         win.appParams = app.params;
         const originalClose = win.close;
@@ -636,7 +771,6 @@ class DesktopManager {
         this.saveState();
         return win;
     }
-
     updateTaskbar() {
         if (!this.taskbarItemsEl) return;
         const windows = this.windowManager.getAllWindows();
@@ -667,7 +801,6 @@ class DesktopManager {
             this.taskbarItemsEl.appendChild(item);
         });
     }
-
     _getTopWindow() {
         const windows = this.windowManager.getAllWindows();
         if (windows.length === 0) return null;
@@ -683,7 +816,6 @@ class DesktopManager {
         });
         return topWin;
     }
-
     saveState() {
         if (window._isSavingDisabled) {
             return;
@@ -749,7 +881,6 @@ class DesktopManager {
             console.warn('Failed to save GUI state:', e);
         }
     }
-
     async loadState() {
         try {
             this.storage.reload();
@@ -801,14 +932,12 @@ class DesktopManager {
             console.warn('Failed to load GUI state:', e);
         }
     }
-
     startClock() {
         this._updateClock();
         this.clockInterval = setInterval(() => {
             this._updateClock();
         }, 1000);
     }
-
     _updateClock() {
         if (!this.taskbarClockEl) return;
         const now = new Date();
@@ -818,5 +947,4 @@ class DesktopManager {
         this.taskbarClockEl.textContent = `${hours}:${minutes}:${seconds}`;
     }
 }
-
 export default DesktopManager;
