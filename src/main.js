@@ -1,7 +1,7 @@
-import Terminal from './terminal.js?v=15';
-import BootManager from './boot-manager.js?v=15';
-import StorageService from './storage.js?v=15';
-import UserManager from './user-manager.js?v=15';
+import Terminal from './terminal.js?v=16';
+import BootManager from './boot-manager.js?v=16';
+import StorageService from './storage.js?v=16';
+import UserManager from './user-manager.js?v=16';
 document.addEventListener('DOMContentLoaded', () => {
     window.StorageService = StorageService;
     window.UserManager = UserManager;
