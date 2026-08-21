@@ -10,6 +10,14 @@ class DesktopManager {
         this.taskbarItemsEl = null;
         this.taskbarClockEl = null;
         this.taskbarUserNameEl = null;
+        this.taskbarEl = null;
+        this.compactTaskbarEl = null;
+        this.compactTaskbarNameEl = null;
+        this.compactTaskbarAvatarEl = null;
+        this.compactExpandBtn = null;
+        this._taskbarAutohide = false;
+        this._taskbarAutohideTimer = null;
+        this.wallpaperVideoEl = null;
         this.clockInterval = null;
         this.terminalWindows = new Map();
         this._isLoadingState = false;
@@ -31,6 +39,13 @@ class DesktopManager {
         this.taskbarItemsEl = this.desktopEl.querySelector('.taskbar-items');
         this.taskbarClockEl = this.desktopEl.querySelector('.taskbar-clock');
         this.taskbarUserNameEl = this.desktopEl.querySelector('#taskbar-user-name');
+        this.taskbarEl = this.desktopEl.querySelector('.taskbar');
+        this.compactTaskbarEl = this.desktopEl.querySelector('#taskbar-compact');
+        this.compactTaskbarNameEl = this.desktopEl.querySelector('#taskbar-compact-name');
+        this.compactTaskbarAvatarEl = this.desktopEl.querySelector('#taskbar-compact-avatar');
+        this.compactExpandBtn = this.desktopEl.querySelector('#taskbar-compact-expand');
+        this.wallpaperVideoEl = this.desktopEl.querySelector('#wallpaper-video');
+        this.setupCompactTaskbar();
         if (window._bootManager && window._bootManager.lockScreen) {
             this.lockScreen = window._bootManager.lockScreen;
             this.lockScreen.onUnlock = () => { this.updateTaskbarUser(); };
@@ -52,6 +67,7 @@ class DesktopManager {
         this.setupAppLaunchListeners();
         this.setupUserSwitchListener();
         this.setupWallpaper();
+        this.setupTaskbarAutohideListener();
         window.openApp = this.openAppById.bind(this);
         window.installAppFromFile = this.installAppFromFile.bind(this);
         window.getInstalledApps = () => this.apps.filter(a => !this._systemAppPaths.has(a.path));
@@ -142,6 +158,9 @@ class DesktopManager {
         this.loadWallpaper();
         document.addEventListener('wallpaper-changed', (e) => { const { type, value } = e.detail; this.applyWallpaper(type, value); this.saveWallpaperToFS(type, value); });
     }
+    setupTaskbarAutohideListener() {
+        document.addEventListener('taskbar-autohide-changed', (e) => { const { enabled } = e.detail; this.setTaskbarAutohide(enabled); });
+    }
     loadWallpaper() {
         try {
             const user = this.userManager.getCurrentUser();
@@ -159,9 +178,12 @@ class DesktopManager {
     applyWallpaper(type, value) {
         const desktop = document.getElementById('desktop');
         if (!desktop) return;
+        const video = this.wallpaperVideoEl || document.getElementById('wallpaper-video');
+        if (video) { video.pause(); video.classList.remove('active'); video.removeAttribute('src'); video.load(); }
         if (type === 'color') { desktop.style.background = value; desktop.style.backgroundImage = 'none'; }
         else if (type === 'gradient') { desktop.style.background = value; }
         else if (type === 'image') { desktop.style.background = `url(${value}) center/cover fixed`; }
+        else if (type === 'video') { if (video && value) { desktop.style.background = '#000'; video.src = value; video.classList.add('active'); video.play().catch(() => {}); } }
     }
     async switchUser(username) {
         const currentUser = this.userManager.getCurrentUser();
@@ -209,7 +231,51 @@ class DesktopManager {
         if (taskbarUser) { taskbarUser.addEventListener('click', (e) => { e.stopPropagation(); this.userSwitcher.toggle(); }); }
         document.addEventListener('click', (e) => { if (!this.userSwitcher.el.contains(e.target) && !taskbarUser.contains(e.target)) { this.userSwitcher.hide(); } });
     }
-    updateTaskbarUser() { const user = this.userManager.getCurrentUser(); if (user && this.taskbarUserNameEl) { this.taskbarUserNameEl.textContent = user.username; } }
+    updateTaskbarUser() {
+        const user = this.userManager.getCurrentUser();
+        if (user && this.taskbarUserNameEl) { this.taskbarUserNameEl.textContent = user.username; }
+        if (user && this.compactTaskbarNameEl) { this.compactTaskbarNameEl.textContent = user.username; }
+        if (user && this.compactTaskbarAvatarEl) { this.compactTaskbarAvatarEl.textContent = (user.username || 'U').charAt(0).toUpperCase(); }
+    }
+    setupCompactTaskbar() {
+        if (!this.compactExpandBtn) return;
+        this.compactExpandBtn.addEventListener('click', (e) => { e.stopPropagation(); this.expandTaskbarFromCompact(); });
+        if (this.compactTaskbarEl) {
+            const compactUser = this.compactTaskbarEl.querySelector('#taskbar-compact-user');
+            if (compactUser) { compactUser.addEventListener('click', (e) => { e.stopPropagation(); this.userSwitcher.toggle(); }); }
+        }
+    }
+    setTaskbarAutohide(enabled) {
+        this._taskbarAutohide = enabled;
+        if (enabled) {
+            if (this.compactTaskbarEl) this.compactTaskbarEl.style.display = 'flex';
+            if (this.taskbarEl) { this.taskbarEl.classList.add('autohide-hidden'); this.taskbarEl.classList.remove('autohide-visible'); }
+        } else {
+            if (this.compactTaskbarEl) this.compactTaskbarEl.style.display = 'none';
+            if (this.taskbarEl) { this.taskbarEl.classList.remove('autohide-hidden'); this.taskbarEl.classList.remove('autohide-visible'); }
+            this._clearAutohideTimer();
+        }
+    }
+    expandTaskbarFromCompact() {
+        if (!this._taskbarAutohide) return;
+        if (this.taskbarEl) { this.taskbarEl.classList.remove('autohide-hidden'); this.taskbarEl.classList.add('autohide-visible'); }
+        this._setupAutohideMouseLeave();
+        this._resetAutohideTimer();
+    }
+    _setupAutohideMouseLeave() {
+        if (!this.taskbarEl) return;
+        this.taskbarEl.onmouseenter = () => { this._clearAutohideTimer(); };
+        this.taskbarEl.onmouseleave = () => { this._resetAutohideTimer(); };
+    }
+    _resetAutohideTimer() {
+        this._clearAutohideTimer();
+        this._taskbarAutohideTimer = setTimeout(() => {
+            if (this._taskbarAutohide && this.taskbarEl) { this.taskbarEl.classList.remove('autohide-visible'); this.taskbarEl.classList.add('autohide-hidden'); }
+        }, 1500);
+    }
+    _clearAutohideTimer() {
+        if (this._taskbarAutohideTimer) { clearTimeout(this._taskbarAutohideTimer); this._taskbarAutohideTimer = null; }
+    }
     lock() { this.lockScreen.show(); }
     setupAppLaunchListeners() {
         document.addEventListener('app-launch-real', (e) => { const path = e.detail.path; const app = { path: path, name: path.replace('.app', '') }; this.openAppByPath(app); });
