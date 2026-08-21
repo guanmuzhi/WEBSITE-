@@ -1081,7 +1081,12 @@ class FileManager {
     async downloadFolder(name) {
         const folder = this.currentDir.children?.find(c => c.name === name && c.type === 'folder');
         if (!folder) return;
-        const zip = new JSZip();
+        const JSZipLib = window.JSZip || window.parent.JSZip;
+        if (!JSZipLib) {
+            await this.showAlert('JSZip 库未加载，无法打包文件夹');
+            return;
+        }
+        const zip = new JSZipLib();
         this.addFolderToZip(zip, folder, name);
         const content = await zip.generateAsync({ type: 'blob' });
         const url = URL.createObjectURL(content);
