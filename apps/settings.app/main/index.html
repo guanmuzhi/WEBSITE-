@@ -38,15 +38,50 @@
                 <h2>个性化</h2>
                 <h3 id="pers-wallpaper-title">壁纸设置</h3>
                 <div class="wallpaper-options">
-                    <label class="wallpaper-option"><input type="radio" name="wallpaper" value="default" checked><span id="pers-wallpaper-default">默认壁纸</span></label>
-                    <label class="wallpaper-option"><input type="radio" name="wallpaper" value="dark"><span id="pers-wallpaper-dark">纯色背景</span></label>
-                    <label class="wallpaper-option"><input type="radio" name="wallpaper" value="custom"><span id="pers-wallpaper-custom">自定义颜色</span></label>
-                    <label class="wallpaper-option"><input type="radio" name="wallpaper" value="gradient"><span id="pers-wallpaper-gradient">渐变壁纸</span></label>
-                    <label class="wallpaper-option"><input type="radio" name="wallpaper" value="ocean"><span>海洋蓝</span></label>
-                    <label class="wallpaper-option"><input type="radio" name="wallpaper" value="sunset"><span>日落橙</span></label>
-                    <label class="wallpaper-option"><input type="radio" name="wallpaper" value="forest"><span>森林绿</span></label>
+                    <label class="wallpaper-option">
+                        <input type="radio" name="wallpaper" value="default" checked>
+                        <span id="pers-wallpaper-default">默认壁纸</span>
+                    </label>
+                    <label class="wallpaper-option">
+                        <input type="radio" name="wallpaper" value="dark">
+                        <span id="pers-wallpaper-dark">纯色背景</span>
+                    </label>
+                    <label class="wallpaper-option">
+                        <input type="radio" name="wallpaper" value="custom">
+                        <span id="pers-wallpaper-custom">自定义颜色</span>
+                    </label>
+                    <label class="wallpaper-option">
+                        <input type="radio" name="wallpaper" value="gradient">
+                        <span id="pers-wallpaper-gradient">渐变壁纸</span>
+                    </label>
+                    <label class="wallpaper-option">
+                        <input type="radio" name="wallpaper" value="ocean">
+                        <span>海洋蓝</span>
+                    </label>
+                    <label class="wallpaper-option">
+                        <input type="radio" name="wallpaper" value="sunset">
+                        <span>日落橙</span>
+                    </label>
+                    <label class="wallpaper-option">
+                        <input type="radio" name="wallpaper" value="forest">
+                        <span>森林绿</span>
+                    </label>
                 </div>
-                <div class="custom-color-row"><span id="pers-custom-color-label">自定义颜色:</span><input type="color" id="custom-color" value="#1a1a2e"></div>
+                <div class="custom-color-row">
+                    <span id="pers-custom-color-label">自定义颜色:</span>
+                    <input type="color" id="custom-color" value="#1a1a2e">
+                </div>
+                <div class="wallpaper-upload-row">
+                    <button id="upload-image-wallpaper" class="wallpaper-upload-btn">上传图片壁纸 (支持GIF动图)</button>
+                    <button id="upload-video-wallpaper" class="wallpaper-upload-btn">上传视频壁纸</button>
+                    <input type="file" id="image-wallpaper-input" accept="image/*" style="display:none;">
+                    <input type="file" id="video-wallpaper-input" accept="video/*" style="display:none;">
+                </div>
+                <div id="wallpaper-preview" class="wallpaper-preview" style="display:none;">
+                    <span id="wallpaper-preview-label">当前自定义壁纸:</span>
+                    <span id="wallpaper-preview-name"></span>
+                    <button id="wallpaper-preview-clear" class="wallpaper-clear-btn">清除</button>
+                </div>
                 <h3 id="pers-accent-title">主题色</h3>
                 <div class="accent-colors">
                     <div class="accent-color" data-color="#3498db" style="background:#3498db;"></div>
@@ -59,14 +94,45 @@
                     <div class="accent-color" data-color="#00bcd4" style="background:#00bcd4;"></div>
                 </div>
                 <h3 id="pers-appearance-title">外观</h3>
-                <div class="setting-row"><span id="pers-fontsize-label">字体大小:</span><select id="font-size-select"><option value="12">小 (12px)</option><option value="14" selected>中 (14px)</option><option value="16">大 (16px)</option><option value="18">特大 (18px)</option></select></div>
-                <div class="setting-row"><span id="pers-opacity-label">窗口透明度:</span><input type="range" id="window-opacity" min="70" max="100" value="100"><span id="opacity-value">100%</span></div>
-                <div class="setting-row toggle-row"><span id="pers-animations-label">窗口动画:</span><label class="toggle-switch"><input type="checkbox" id="animations-toggle" checked><span class="toggle-slider"></span></label></div>
-                <div class="setting-row toggle-row"><span id="pers-taskbar-autohide-label">任务栏自动隐藏:</span><label class="toggle-switch"><input type="checkbox" id="taskbar-autohide"><span class="toggle-slider"></span></label></div>
+                <div class="setting-row">
+                    <span id="pers-fontsize-label">字体大小:</span>
+                    <select id="font-size-select">
+                        <option value="12">小 (12px)</option>
+                        <option value="14" selected>中 (14px)</option>
+                        <option value="16">大 (16px)</option>
+                        <option value="18">特大 (18px)</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <span id="pers-opacity-label">窗口透明度:</span>
+                    <input type="range" id="window-opacity" min="70" max="100" value="100">
+                    <span id="opacity-value">100%</span>
+                </div>
+                <div class="setting-row toggle-row">
+                    <span id="pers-animations-label">窗口动画:</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="animations-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row toggle-row">
+                    <span id="pers-taskbar-autohide-label">任务栏自动隐藏:</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="taskbar-autohide">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
             </section>
             <section id="section-language" class="settings-section">
                 <h2>语言设置</h2>
-                <div class="lang-select-row"><label id="lang-select-label" for="lang-select">选择语言:</label><select id="lang-select"><option value="cmn">简体中文</option><option value="eng">English</option><option value="jpn">日本語</option></select></div>
+                <div class="lang-select-row">
+                    <label id="lang-select-label" for="lang-select">选择语言:</label>
+                    <select id="lang-select">
+                        <option value="cmn">简体中文</option>
+                        <option value="eng">English</option>
+                        <option value="jpn">日本語</option>
+                    </select>
+                </div>
             </section>
         </div>
     </div>
