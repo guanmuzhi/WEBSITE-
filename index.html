@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nevora OS</title>
+    <title>Web Terminal OS</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="stylesheet" href="style.css?v=10">
+    <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
     <div id="boot-screen" class="boot-screen">
@@ -28,6 +28,7 @@
         </div>
     </div>
     <div id="desktop" class="desktop" style="display: none;">
+        <video id="wallpaper-video" class="wallpaper-video" autoplay muted loop playsinline></video>
         <div class="desktop-icons">
             <div id="terminal-icon" class="desktop-icon">
                 <div class="icon-image">
@@ -84,6 +85,15 @@
                 </div>
             </div>
         </div>
+        <div class="taskbar-compact" id="taskbar-compact" style="display:none;">
+            <div class="taskbar-compact-user" id="taskbar-compact-user">
+                <span class="taskbar-compact-avatar" id="taskbar-compact-avatar">U</span>
+                <span class="taskbar-compact-name" id="taskbar-compact-name">public</span>
+            </div>
+            <div class="taskbar-compact-expand" id="taskbar-compact-expand" title="展开任务栏">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+        </div>
     </div>
     <template id="terminal-template">
         <div class="terminal">
@@ -106,6 +116,6 @@
         </div>
     </template>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script type="module" src="src/main.js?v=17"></script>
+    <script type="module" src="src/main.js?v=18"></script>
 </body>
 </html>
