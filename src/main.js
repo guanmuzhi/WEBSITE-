@@ -6,3 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.StorageService = StorageService;
     window.UserManager = UserManager;
     window._isSavingDisabled = false;
+    const bootManager = new BootManager(Terminal);
+    window._bootManager = bootManager;
+});
