@@ -29,6 +29,17 @@
             </section>
             <section id="section-user" class="settings-section">
                 <h2>用户信息</h2>
+                <div class="user-avatar-section">
+                    <div class="user-avatar-wrapper">
+                        <img id="user-avatar-preview" class="user-avatar-preview" src="" alt="头像" style="display:none;">
+                        <div id="user-avatar-placeholder" class="user-avatar-placeholder">U</div>
+                    </div>
+                    <div class="user-avatar-actions">
+                        <button id="user-avatar-upload" class="wallpaper-upload-btn">上传头像</button>
+                        <button id="user-avatar-remove" class="wallpaper-clear-btn">移除头像</button>
+                        <input type="file" id="user-avatar-input" accept="image/*" style="display:none;">
+                    </div>
+                </div>
                 <div class="info-grid">
                     <div class="info-row"><span id="user-name-label" class="info-label">用户名</span><span id="user-name" class="info-value"></span></div>
                     <div class="info-row"><span id="user-created-label" class="info-label">创建时间</span><span id="user-created" class="info-value"></span></div>
@@ -136,7 +147,7 @@
             </section>
         </div>
     </div>
-    <div id="settings-version" class="settings-footer">版本 v1.0.0</div>
+    <div id="settings-version" class="settings-footer">版本 v1.5</div>
     <script src="app.js"></script>
 </body>
 </html>
