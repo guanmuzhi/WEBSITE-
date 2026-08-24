@@ -48,50 +48,72 @@
             <section id="section-personalization" class="settings-section">
                 <h2>个性化</h2>
                 <h3 id="pers-wallpaper-title">壁纸设置</h3>
-                <div class="wallpaper-options">
-                    <label class="wallpaper-option">
-                        <input type="radio" name="wallpaper" value="default" checked>
-                        <span id="pers-wallpaper-default">默认壁纸</span>
+                <div class="wallpaper-type-selector">
+                    <label class="wallpaper-type-option">
+                        <input type="radio" name="wallpaper-type" value="solid" checked>
+                        <span>纯色</span>
                     </label>
-                    <label class="wallpaper-option">
-                        <input type="radio" name="wallpaper" value="dark">
-                        <span id="pers-wallpaper-dark">纯色背景</span>
+                    <label class="wallpaper-type-option">
+                        <input type="radio" name="wallpaper-type" value="gradient">
+                        <span>渐变色</span>
                     </label>
-                    <label class="wallpaper-option">
-                        <input type="radio" name="wallpaper" value="custom">
-                        <span id="pers-wallpaper-custom">自定义颜色</span>
+                    <label class="wallpaper-type-option">
+                        <input type="radio" name="wallpaper-type" value="image">
+                        <span>图片</span>
                     </label>
-                    <label class="wallpaper-option">
-                        <input type="radio" name="wallpaper" value="gradient">
-                        <span id="pers-wallpaper-gradient">渐变壁纸</span>
-                    </label>
-                    <label class="wallpaper-option">
-                        <input type="radio" name="wallpaper" value="ocean">
-                        <span>海洋蓝</span>
-                    </label>
-                    <label class="wallpaper-option">
-                        <input type="radio" name="wallpaper" value="sunset">
-                        <span>日落橙</span>
-                    </label>
-                    <label class="wallpaper-option">
-                        <input type="radio" name="wallpaper" value="forest">
-                        <span>森林绿</span>
+                    <label class="wallpaper-type-option">
+                        <input type="radio" name="wallpaper-type" value="video">
+                        <span>视频</span>
                     </label>
                 </div>
-                <div class="custom-color-row">
-                    <span id="pers-custom-color-label">自定义颜色:</span>
-                    <input type="color" id="custom-color" value="#1a1a2e">
+                <div id="wallpaper-solid-panel" class="wallpaper-panel">
+                    <div class="setting-row">
+                        <span>颜色:</span>
+                        <input type="color" id="wallpaper-solid-color" value="#0c3547">
+                    </div>
                 </div>
-                <div class="wallpaper-upload-row">
-                    <button id="upload-image-wallpaper" class="wallpaper-upload-btn">上传图片壁纸 (支持GIF动图)</button>
-                    <button id="upload-video-wallpaper" class="wallpaper-upload-btn">上传视频壁纸</button>
-                    <input type="file" id="image-wallpaper-input" accept="image/*" style="display:none;">
-                    <input type="file" id="video-wallpaper-input" accept="video/*" style="display:none;">
+                <div id="wallpaper-gradient-panel" class="wallpaper-panel" style="display:none;">
+                    <div class="setting-row">
+                        <span>起始颜色:</span>
+                        <input type="color" id="wallpaper-gradient-start" value="#0c3547">
+                    </div>
+                    <div class="setting-row">
+                        <span>终止颜色:</span>
+                        <input type="color" id="wallpaper-gradient-end" value="#14a085">
+                    </div>
+                    <div class="setting-row">
+                        <span>方向:</span>
+                        <select id="wallpaper-gradient-direction">
+                            <option value="to right">水平 (左→右)</option>
+                            <option value="to bottom">垂直 (上→下)</option>
+                            <option value="135deg" selected>对角线 (左上→右下)</option>
+                            <option value="45deg">对角线 (左下→右上)</option>
+                            <option value="to right bottom">角向 (左上→右下)</option>
+                            <option value="circle">径向</option>
+                        </select>
+                    </div>
                 </div>
-                <div id="wallpaper-preview" class="wallpaper-preview" style="display:none;">
-                    <span id="wallpaper-preview-label">当前自定义壁纸:</span>
-                    <span id="wallpaper-preview-name"></span>
-                    <button id="wallpaper-preview-clear" class="wallpaper-clear-btn">清除</button>
+                <div id="wallpaper-image-panel" class="wallpaper-panel" style="display:none;">
+                    <div class="wallpaper-upload-row">
+                        <button id="upload-image-wallpaper" class="wallpaper-upload-btn">上传图片 (支持GIF动图)</button>
+                        <input type="file" id="image-wallpaper-input" accept="image/*" style="display:none;">
+                    </div>
+                    <div id="image-wallpaper-preview" class="wallpaper-preview" style="display:none;">
+                        <span>当前图片:</span>
+                        <span id="image-wallpaper-name"></span>
+                        <button id="image-wallpaper-clear" class="wallpaper-clear-btn">清除</button>
+                    </div>
+                </div>
+                <div id="wallpaper-video-panel" class="wallpaper-panel" style="display:none;">
+                    <div class="wallpaper-upload-row">
+                        <button id="upload-video-wallpaper" class="wallpaper-upload-btn">上传视频</button>
+                        <input type="file" id="video-wallpaper-input" accept="video/*" style="display:none;">
+                    </div>
+                    <div id="video-wallpaper-preview" class="wallpaper-preview" style="display:none;">
+                        <span>当前视频:</span>
+                        <span id="video-wallpaper-name"></span>
+                        <button id="video-wallpaper-clear" class="wallpaper-clear-btn">清除</button>
+                    </div>
                 </div>
                 <h3 id="pers-accent-title">主题色</h3>
                 <div class="accent-colors">
