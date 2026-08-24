@@ -1,7 +1,7 @@
-import WindowManager from './window-manager.js?v=19';
-import DesktopManager from './desktop.js?v=19';
-import UserManager from './user-manager.js?v=19';
-import LockScreen from './lock-screen.js?v=19';
+import WindowManager from './window-manager.js?v=20';
+import DesktopManager from './desktop.js?v=20';
+import UserManager from './user-manager.js?v=20';
+import LockScreen from './lock-screen.js?v=20';
 class BootManager {
     constructor(terminalClass) {
         this.terminalClass = terminalClass;
@@ -89,14 +89,18 @@ class BootManager {
         }
     }
     initDesktop() {
-        const windowsContainer = this.desktop.querySelector('.windows-container');
-        const windowManager = new WindowManager(windowsContainer);
-        this.desktopManager = new DesktopManager({
-            desktopEl: this.desktop,
-            terminalClass: this.terminalClass,
-            windowManager: windowManager
-        });
-        this.desktopManager.init();
+        try {
+            const windowsContainer = this.desktop.querySelector('.windows-container');
+            const windowManager = new WindowManager(windowsContainer);
+            this.desktopManager = new DesktopManager({
+                desktopEl: this.desktop,
+                terminalClass: this.terminalClass,
+                windowManager: windowManager
+            });
+            this.desktopManager.init();
+        } catch (e) {
+            console.error('Desktop init failed:', e);
+        }
     }
 }
 export default BootManager;
