@@ -119,20 +119,11 @@ class DesktopManager {
             for (const app of this.apps) {
                 if (!appDir.children.find(c => c.name === app.path)) {
                     const appFolder = { type: 'folder', name: app.path, children: [{ type: 'folder', name: 'main', children: [] }] };
-                    try {
-                        const infoRes = await fetch(`/apps/${app.path}/info.json`);
-                        if (infoRes.ok) { const infoContent = await infoRes.text(); appFolder.children.push({ type: 'file', name: 'info.json', content: infoContent }); }
-                        else { appFolder.children.push({ type: 'file', name: 'info.json', content: JSON.stringify(app, null, 2) }); }
-                    } catch (e) { appFolder.children.push({ type: 'file', name: 'info.json', content: JSON.stringify(app, null, 2) }); }
-                    try {
-                        const iconRes = await fetch(`/apps/${app.path}/icon.svg`);
-                        if (iconRes.ok) { const iconContent = await iconRes.text(); appFolder.children.push({ type: 'file', name: 'icon.svg', content: iconContent }); }
-                    } catch (e) {}
+                    try { const infoRes = await fetch(`/apps/${app.path}/info.json`); if (infoRes.ok) { const infoContent = await infoRes.text(); appFolder.children.push({ type: 'file', name: 'info.json', content: infoContent }); } else { appFolder.children.push({ type: 'file', name: 'info.json', content: JSON.stringify(app, null, 2) }); } } catch (e) { appFolder.children.push({ type: 'file', name: 'info.json', content: JSON.stringify(app, null, 2) }); }
+                    try { const iconRes = await fetch(`/apps/${app.path}/icon.svg`); if (iconRes.ok) { const iconContent = await iconRes.text(); appFolder.children.push({ type: 'file', name: 'icon.svg', content: iconContent }); } } catch (e) {}
                     const mainFiles = ['index.html', 'style.css', 'app.js'];
                     const mainFolder = appFolder.children.find(c => c.name === 'main');
-                    for (const mf of mainFiles) {
-                        try { const res = await fetch(`/apps/${app.path}/main/${mf}`); if (res.ok) { const content = await res.text(); mainFolder.children.push({ type: 'file', name: mf, content }); } } catch (e) {}
-                    }
+                    for (const mf of mainFiles) { try { const res = await fetch(`/apps/${app.path}/main/${mf}`); if (res.ok) { const content = await res.text(); mainFolder.children.push({ type: 'file', name: mf, content }); } } catch (e) {} }
                     appDir.children.push(appFolder);
                 }
             }
@@ -140,9 +131,7 @@ class DesktopManager {
             if (!langDir) { langDir = { type: 'folder', name: 'languages', children: [] }; fs.children.push(langDir); }
             if (!langDir.children) langDir.children = [];
             const langFiles = [{ file: 'cmn.json', path: '/languages/cmn.json' }, { file: 'eng.json', path: '/languages/eng.json' }, { file: 'jpn.json', path: '/languages/jpn.json' }];
-            for (const lang of langFiles) {
-                if (!langDir.children.find(c => c.name === lang.file)) { try { const res = await fetch(lang.path); const content = await res.text(); langDir.children.push({ type: 'file', name: lang.file, content }); } catch (e) {} }
-            }
+            for (const lang of langFiles) { if (!langDir.children.find(c => c.name === lang.file)) { try { const res = await fetch(lang.path); const content = await res.text(); langDir.children.push({ type: 'file', name: lang.file, content }); } catch (e) {} } }
             const user = this.userManager.getCurrentUser();
             if (user) {
                 const username = user.username;
@@ -155,9 +144,7 @@ class DesktopManager {
                         let appInfoDir = uDir.children.find(c => c.name === 'appinfo' && c.type === 'folder');
                         if (!appInfoDir) { appInfoDir = { type: 'folder', name: 'appinfo', children: [] }; uDir.children.push(appInfoDir); }
                         if (!appInfoDir.children) appInfoDir.children = [];
-                        if (!appInfoDir.children.find(c => c.name === 'browser.app')) {
-                            appInfoDir.children.push({ type: 'folder', name: 'browser.app', children: [{ type: 'file', name: 'history.json', content: '[]' }, { type: 'file', name: 'bookmarks.json', content: '[]' }] });
-                        }
+                        if (!appInfoDir.children.find(c => c.name === 'browser.app')) { appInfoDir.children.push({ type: 'folder', name: 'browser.app', children: [{ type: 'file', name: 'history.json', content: '[]' }, { type: 'file', name: 'bookmarks.json', content: '[]' }] }); }
                     }
                 }
             }
@@ -166,7 +153,7 @@ class DesktopManager {
     }
     setupWallpaper() {
         this.loadWallpaper();
-        document.addEventListener('wallpaper-changed', (e) => { const { type, value } = e.detail; this.applyWallpaper(type, value); this.saveWallpaperToFS(type, value); });
+        document.addEventListener('wallpaper-changed', (e) => { const wp = e.detail; this.applyWallpaper(wp); this.saveWallpaperToFS(wp); });
     }
     setupTaskbarAutohideListener() {
         document.addEventListener('taskbar-autohide-changed', (e) => { const { enabled } = e.detail; this.setTaskbarAutohide(enabled); });
@@ -177,37 +164,34 @@ class DesktopManager {
             const username = user ? user.username : 'public';
             const path = `/user/${username}/info/wallpaper.json`;
             const data = this.storage.loadJSON(path);
-            if (data) { this.applyWallpaper(data.type, data.value); return; }
+            if (data) { this.applyWallpaper(data); return; }
         } catch (e) {}
         const saved = localStorage.getItem('webos-wallpaper');
-        if (saved) {
-            try { const wallpaper = JSON.parse(saved); this.applyWallpaper(wallpaper.type, wallpaper.value); } catch (e) { this.applyWallpaper('ocean'); }
-        } else {
-            this.applyWallpaper('ocean');
-        }
+        if (saved) { try { const wallpaper = JSON.parse(saved); this.applyWallpaper(wallpaper); } catch (e) { this.applyWallpaper({ type: 'gradient', start: '#0c3547', end: '#14a085', direction: '135deg' }); } }
+        else { this.applyWallpaper({ type: 'gradient', start: '#0c3547', end: '#14a085', direction: '135deg' }); }
     }
-    saveWallpaperToFS(type, value) {
-        try { const user = this.userManager.getCurrentUser(); const username = user ? user.username : 'public'; const wallpaper = { type, value }; this.storage.saveJSON(`/user/${username}/info/wallpaper.json`, wallpaper); } catch (e) {}
+    saveWallpaperToFS(wp) {
+        try { const user = this.userManager.getCurrentUser(); const username = user ? user.username : 'public'; this.storage.saveJSON(`/user/${username}/info/wallpaper.json`, wp); } catch (e) {}
     }
     applyWallpaper(type, value) {
-        const desktop = document.getElementById('desktop');
-        if (!desktop) return;
-        const video = this.wallpaperVideoEl || document.getElementById('wallpaper-video');
-        if (video) { video.pause(); video.classList.remove('active'); video.removeAttribute('src'); video.load(); }
-        const presets = {
-            default: 'linear-gradient(135deg, #0c3547 0%, #0d7377 50%, #14a085 100%)',
-            ocean: 'linear-gradient(135deg, #0c3547 0%, #0d7377 50%, #14a085 100%)',
-            dark: '#0a0a0a',
-            gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            sunset: 'linear-gradient(135deg, #2c1810 0%, #c0392b 50%, #e67e22 100%)',
-            forest: 'linear-gradient(135deg, #0d1f0d 0%, #1e4d2b 50%, #2d7a3e 100%)'
-        };
-        if (type === 'color') { desktop.style.background = value; desktop.style.backgroundImage = 'none'; }
-        else if (type === 'gradient') { desktop.style.background = value; }
-        else if (type === 'image') { desktop.style.background = `url(${value}) center/cover fixed`; }
-        else if (type === 'video') { if (video && value) { desktop.style.background = '#000'; video.src = value; video.classList.add('active'); video.play().catch(() => {}); } }
-        else if (presets[type]) { desktop.style.background = presets[type]; }
-        else { desktop.style.background = presets.ocean; }
+        try {
+            const desktop = document.getElementById('desktop');
+            if (!desktop) return;
+            const video = this.wallpaperVideoEl || document.getElementById('wallpaper-video');
+            if (video) { video.pause(); video.classList.remove('active'); video.removeAttribute('src'); video.load(); }
+            let wp;
+            if (typeof type === 'object' && type !== null) { wp = type; } else { wp = { type, value }; }
+            const presets = { default: 'linear-gradient(135deg, #0c3547 0%, #0d7377 50%, #14a085 100%)', ocean: 'linear-gradient(135deg, #0c3547 0%, #0d7377 50%, #14a085 100%)', dark: '#0a0a0a', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', sunset: 'linear-gradient(135deg, #2c1810 0%, #c0392b 50%, #e67e22 100%)', forest: 'linear-gradient(135deg, #0d1f0d 0%, #1e4d2b 50%, #2d7a3e 100%)' };
+            if (wp.type === 'solid' || wp.type === 'color') { desktop.style.background = wp.color || wp.value || '#0c3547'; desktop.style.backgroundImage = 'none'; }
+            else if (wp.type === 'gradient') {
+                if (wp.start && wp.end) { const dir = wp.direction || '135deg'; if (dir === 'circle') { desktop.style.background = `radial-gradient(circle, ${wp.start} 0%, ${wp.end} 100%)`; } else { desktop.style.background = `linear-gradient(${dir}, ${wp.start} 0%, ${wp.end} 100%)`; } }
+                else if (wp.value) { desktop.style.background = wp.value; } else { desktop.style.background = presets.ocean; }
+            }
+            else if (wp.type === 'image') { const data = wp.data || wp.value; if (data) { desktop.style.background = `url(${data}) center/cover fixed`; } else { desktop.style.background = presets.ocean; } }
+            else if (wp.type === 'video') { const data = wp.data || wp.value; if (video && data) { desktop.style.background = '#000'; video.src = data; video.classList.add('active'); video.play().catch(() => {}); } else { desktop.style.background = presets.ocean; } }
+            else if (presets[wp.type]) { desktop.style.background = presets[wp.type]; }
+            else { desktop.style.background = presets.ocean; }
+        } catch (e) { console.warn('applyWallpaper failed:', e); }
     }
     async switchUser(username) {
         const currentUser = this.userManager.getCurrentUser();
@@ -227,21 +211,11 @@ class DesktopManager {
     saveStateToPath(path) {
         try {
             const windows = this.windowManager.getAllWindows();
-            const state = { windows: windows.map(win => {
-                const winState = { id: win.id, title: win.title, windowType: win.windowType || 'default', x: parseInt(win.element.style.left) || 0, y: parseInt(win.element.style.top) || 0, width: parseInt(win.element.style.width) || 600, height: parseInt(win.element.style.height) || 400, isMinimized: win.isMinimized, zIndex: parseInt(win.element.style.zIndex) || 0 };
-                if (win.windowType === 'terminal' && this.terminalWindows.has(win.id)) { const terminal = this.terminalWindows.get(win.id); winState.currentPath = terminal.fs.getCurrentPath(); }
-                if (win.windowType === 'app') { winState.appPath = win.appPath; winState.appParams = win.appParams; }
-                return winState;
-            }) };
+            const state = { windows: windows.map(win => { const winState = { id: win.id, title: win.title, windowType: win.windowType || 'default', x: parseInt(win.element.style.left) || 0, y: parseInt(win.element.style.top) || 0, width: parseInt(win.element.style.width) || 600, height: parseInt(win.element.style.height) || 400, isMinimized: win.isMinimized, zIndex: parseInt(win.element.style.zIndex) || 0 }; if (win.windowType === 'terminal' && this.terminalWindows.has(win.id)) { const terminal = this.terminalWindows.get(win.id); winState.currentPath = terminal.fs.getCurrentPath(); } if (win.windowType === 'app') { winState.appPath = win.appPath; winState.appParams = win.appParams; } return winState; }) };
             state.windows.sort((a, b) => a.zIndex - b.zIndex);
             const parts = path.split('/'); const fileName = parts.pop(); const folderPath = parts.join('/') || '/';
             let node = this.storage.fs;
-            for (const part of folderPath.split('/').filter(p => p)) {
-                if (!node.children) node.children = [];
-                let child = node.children.find(c => c.name === part && c.type === 'folder');
-                if (!child) { child = { type: 'folder', name: part, children: [] }; node.children.push(child); }
-                node = child;
-            }
+            for (const part of folderPath.split('/').filter(p => p)) { if (!node.children) node.children = []; let child = node.children.find(c => c.name === part && c.type === 'folder'); if (!child) { child = { type: 'folder', name: part, children: [] }; node.children.push(child); } node = child; }
             if (!node.children) node.children = [];
             const existingIndex = node.children.findIndex(c => c.name === fileName && c.type === 'file');
             const fileData = { type: 'file', name: fileName, content: JSON.stringify(state) };
@@ -249,7 +223,10 @@ class DesktopManager {
             this.storage.saveFS();
         } catch (e) { console.warn('Failed to save GUI state:', e); }
     }
-    setupUserSwitchListener() { document.addEventListener('request-user-switch', (e) => { this.switchUser(e.detail.username); }); }
+    setupUserSwitchListener() {
+        document.addEventListener('request-user-switch', (e) => { this.switchUser(e.detail.username); });
+        document.addEventListener('user-avatar-changed', () => { this.updateTaskbarUser(); });
+    }
     setupTaskbarUser() {
         const taskbarUser = this.desktopEl.querySelector('#taskbar-user');
         if (taskbarUser) { taskbarUser.addEventListener('click', (e) => { e.stopPropagation(); this.userSwitcher.toggle(); }); }
@@ -260,7 +237,9 @@ class DesktopManager {
         if (user && this.taskbarUserNameEl) { this.taskbarUserNameEl.textContent = user.username; }
         if (user && this.compactTaskbarNameEl) { this.compactTaskbarNameEl.textContent = user.username; }
         if (user && this.compactTaskbarAvatarEl) {
-            const avatar = localStorage.getItem('webos-user-avatar');
+            let avatar = null;
+            try { const username = user.username || 'public'; const avatarData = this.storage.loadJSON(`/user/${username}/info/avatar.json`); if (avatarData && avatarData.data) { avatar = avatarData.data; } } catch (e) {}
+            if (!avatar) { avatar = localStorage.getItem('webos-user-avatar'); }
             if (avatar) { this.compactTaskbarAvatarEl.innerHTML = `<img src="${avatar}" alt="avatar">`; }
             else { this.compactTaskbarAvatarEl.textContent = (user.username || 'U').charAt(0).toUpperCase(); }
         }
@@ -268,27 +247,17 @@ class DesktopManager {
     setupCompactTaskbar() {
         if (!this.compactExpandBtn) return;
         this.compactExpandBtn.addEventListener('click', (e) => { e.stopPropagation(); this.expandTaskbarFromCompact(); });
-        if (this.compactTaskbarEl) {
-            const compactUser = this.compactTaskbarEl.querySelector('#taskbar-compact-user');
-            if (compactUser) { compactUser.addEventListener('click', (e) => { e.stopPropagation(); this.userSwitcher.toggle(); }); }
-        }
+        if (this.compactTaskbarEl) { const compactUser = this.compactTaskbarEl.querySelector('#taskbar-compact-user'); if (compactUser) { compactUser.addEventListener('click', (e) => { e.stopPropagation(); this.userSwitcher.toggle(); }); } }
     }
     setTaskbarAutohide(enabled) {
         this._taskbarAutohide = enabled;
-        if (enabled) {
-            if (this.compactTaskbarEl) this.compactTaskbarEl.style.display = 'flex';
-            if (this.taskbarEl) { this.taskbarEl.classList.add('autohide-hidden'); this.taskbarEl.classList.remove('autohide-visible'); }
-        } else {
-            if (this.compactTaskbarEl) this.compactTaskbarEl.style.display = 'none';
-            if (this.taskbarEl) { this.taskbarEl.classList.remove('autohide-hidden'); this.taskbarEl.classList.remove('autohide-visible'); }
-            this._clearAutohideTimer();
-        }
+        if (enabled) { if (this.compactTaskbarEl) this.compactTaskbarEl.style.display = 'flex'; if (this.taskbarEl) { this.taskbarEl.classList.add('autohide-hidden'); this.taskbarEl.classList.remove('autohide-visible'); } }
+        else { if (this.compactTaskbarEl) this.compactTaskbarEl.style.display = 'none'; if (this.taskbarEl) { this.taskbarEl.classList.remove('autohide-hidden'); this.taskbarEl.classList.remove('autohide-visible'); } this._clearAutohideTimer(); }
     }
     expandTaskbarFromCompact() {
         if (!this._taskbarAutohide) return;
         if (this.taskbarEl) { this.taskbarEl.classList.remove('autohide-hidden'); this.taskbarEl.classList.add('autohide-visible'); }
-        this._setupAutohideMouseLeave();
-        this._resetAutohideTimer();
+        this._setupAutohideMouseLeave(); this._resetAutohideTimer();
     }
     _setupAutohideMouseLeave() {
         if (!this.taskbarEl) return;
@@ -297,78 +266,33 @@ class DesktopManager {
     }
     _resetAutohideTimer() {
         this._clearAutohideTimer();
-        this._taskbarAutohideTimer = setTimeout(() => {
-            if (this._taskbarAutohide && this.taskbarEl) { this.taskbarEl.classList.remove('autohide-visible'); this.taskbarEl.classList.add('autohide-hidden'); }
-        }, 1500);
+        this._taskbarAutohideTimer = setTimeout(() => { if (this._taskbarAutohide && this.taskbarEl) { this.taskbarEl.classList.remove('autohide-visible'); this.taskbarEl.classList.add('autohide-hidden'); } }, 1500);
     }
-    _clearAutohideTimer() {
-        if (this._taskbarAutohideTimer) { clearTimeout(this._taskbarAutohideTimer); this._taskbarAutohideTimer = null; }
-    }
+    _clearAutohideTimer() { if (this._taskbarAutohideTimer) { clearTimeout(this._taskbarAutohideTimer); this._taskbarAutohideTimer = null; } }
     setupDesktopPanning() {
         const desktop = this.desktopEl;
         if (!desktop) return;
         desktop.addEventListener('wheel', (e) => {
-            if (e.target.closest('.window') || e.target.closest('.desktop-icon') ||
-                e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') ||
-                e.target.closest('.user-switcher') || e.target.closest('.lock-screen')) {
-                return;
-            }
+            if (e.target.closest('.window') || e.target.closest('.desktop-icon') || e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') || e.target.closest('.user-switcher') || e.target.closest('.lock-screen')) { return; }
             e.preventDefault();
-            let dx = e.deltaX;
-            let dy = e.deltaY;
+            let dx = e.deltaX; let dy = e.deltaY;
             if (e.shiftKey && dx === 0) { dx = dy; dy = 0; }
-            this.viewX -= dx;
-            this.viewY -= dy;
-            this.applyViewTransform();
+            this.viewX -= dx; this.viewY -= dy; this.applyViewTransform();
         }, { passive: false });
         desktop.addEventListener('mousedown', (e) => {
-            if (e.target.closest('.window') || e.target.closest('.desktop-icon') ||
-                e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') ||
-                e.target.closest('.user-switcher') || e.target.closest('.lock-screen') ||
-                e.button !== 0) {
-                return;
-            }
-            this._isPanning = true;
-            this._panStartX = e.clientX;
-            this._panStartY = e.clientY;
-            this._panStartViewX = this.viewX;
-            this._panStartViewY = this.viewY;
-            desktop.classList.add('panning');
-            e.preventDefault();
+            if (e.target.closest('.window') || e.target.closest('.desktop-icon') || e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') || e.target.closest('.user-switcher') || e.target.closest('.lock-screen') || e.button !== 0) { return; }
+            this._isPanning = true; this._panStartX = e.clientX; this._panStartY = e.clientY; this._panStartViewX = this.viewX; this._panStartViewY = this.viewY; desktop.classList.add('panning'); e.preventDefault();
         });
-        document.addEventListener('mousemove', (e) => {
-            if (!this._isPanning) return;
-            const dx = e.clientX - this._panStartX;
-            const dy = e.clientY - this._panStartY;
-            this.viewX = this._panStartViewX + dx;
-            this.viewY = this._panStartViewY + dy;
-            this.applyViewTransform();
-        });
-        document.addEventListener('mouseup', () => {
-            if (this._isPanning) {
-                this._isPanning = false;
-                desktop.classList.remove('panning');
-            }
-        });
+        document.addEventListener('mousemove', (e) => { if (!this._isPanning) return; const dx = e.clientX - this._panStartX; const dy = e.clientY - this._panStartY; this.viewX = this._panStartViewX + dx; this.viewY = this._panStartViewY + dy; this.applyViewTransform(); });
+        document.addEventListener('mouseup', () => { if (this._isPanning) { this._isPanning = false; desktop.classList.remove('panning'); } });
     }
-    applyViewTransform() {
-        if (this.windowsContainerEl) {
-            this.windowsContainerEl.style.transform = `translate(${this.viewX}px, ${this.viewY}px)`;
-        }
-    }
+    applyViewTransform() { if (this.windowsContainerEl) { this.windowsContainerEl.style.transform = `translate(${this.viewX}px, ${this.viewY}px)`; } }
     centerWindowInView(win) {
         if (!win || !win.element) return;
-        const winLeft = parseInt(win.element.style.left) || 0;
-        const winTop = parseInt(win.element.style.top) || 0;
-        const winWidth = parseInt(win.element.style.width) || 600;
-        const winHeight = parseInt(win.element.style.height) || 400;
-        const viewCenterX = (window.innerWidth - 110) / 2;
-        const viewCenterY = (window.innerHeight - 48) / 2;
-        const winCenterX = winLeft + winWidth / 2;
-        const winCenterY = winTop + winHeight / 2;
-        this.viewX = viewCenterX - winCenterX;
-        this.viewY = viewCenterY - winCenterY;
-        this.applyViewTransform();
+        const winLeft = parseInt(win.element.style.left) || 0; const winTop = parseInt(win.element.style.top) || 0; const winWidth = parseInt(win.element.style.width) || 600; const winHeight = parseInt(win.element.style.height) || 400;
+        const viewCenterX = (window.innerWidth - 110) / 2; const viewCenterY = (window.innerHeight - 48) / 2;
+        const winCenterX = winLeft + winWidth / 2; const winCenterY = winTop + winHeight / 2;
+        this.viewX = viewCenterX - winCenterX; this.viewY = viewCenterY - winCenterY; this.applyViewTransform();
     }
     lock() { this.lockScreen.show(); }
     setupAppLaunchListeners() {
@@ -378,8 +302,7 @@ class DesktopManager {
         document.addEventListener('open-media-player', (e) => { const filePath = e.detail.path; this.openAppByPath({ path: 'mediaviewer.app', name: this.t('app.mediaviewer', '媒体查看器'), params: { path: filePath } }); });
     }
     async scanApps() {
-        try { const res = await fetch('/apps/manifest.json'); if (!res.ok) return; this.apps = await res.json(); this._systemAppPaths = new Set(this.apps.map(a => a.path)); }
-        catch (e) { console.warn('扫描应用失败:', e); this.apps = []; }
+        try { const res = await fetch('/apps/manifest.json'); if (!res.ok) return; this.apps = await res.json(); this._systemAppPaths = new Set(this.apps.map(a => a.path)); } catch (e) { console.warn('扫描应用失败:', e); this.apps = []; }
     }
     setupDesktopIcons() {
         const desktopIcons = this.desktopEl.querySelector('.desktop-icons');
@@ -391,12 +314,7 @@ class DesktopManager {
         if (filemanagerIcon) { const label = filemanagerIcon.querySelector('.icon-label'); if (label) label.textContent = this.t('app.filemanager', '文件管理器'); filemanagerIcon.addEventListener('click', () => { this.openAppByPath({ path: 'filemanager.app', name: this.t('app.filemanager', '文件管理器') }); }); }
         this.apps.forEach(app => {
             let iconEl = desktopIcons.querySelector(`[data-app="${app.id}"]`);
-            if (!iconEl) {
-                iconEl = document.createElement('div'); iconEl.className = 'desktop-icon'; iconEl.setAttribute('data-app', app.id);
-                const key = 'app.' + app.path.replace('.app', ''); const displayName = this.t(key, app.name);
-                iconEl.innerHTML = `<div class="icon-image"><img src="/apps/${app.path}/icon.svg" alt="${displayName}" style="width:28px;height:28px;"></div><div class="icon-label">${displayName}</div>`;
-                desktopIcons.appendChild(iconEl);
-            }
+            if (!iconEl) { iconEl = document.createElement('div'); iconEl.className = 'desktop-icon'; iconEl.setAttribute('data-app', app.id); const key = 'app.' + app.path.replace('.app', ''); const displayName = this.t(key, app.name); iconEl.innerHTML = `<div class="icon-image"><img src="/apps/${app.path}/icon.svg" alt="${displayName}" style="width:28px;height:28px;"></div><div class="icon-label">${displayName}</div>`; desktopIcons.appendChild(iconEl); }
             iconEl.addEventListener('click', () => { const key = 'app.' + app.path.replace('.app', ''); this.openAppByPath({ ...app, name: this.t(key, app.name) }); });
         });
     }
@@ -435,13 +353,7 @@ class DesktopManager {
     generateAppHtml(vfsApp, params = null) {
         if (!vfsApp || !vfsApp.files) return null;
         let html = vfsApp.files['index.html'] || '<html><body><h1>App load failed</h1></body></html>';
-        if (params && Object.keys(params).length > 0) {
-            const paramsJson = JSON.stringify(params);
-            const injectScript = `<script>window.__APP_PARAMS__=${paramsJson};try{Object.defineProperty(window.location,'search',{get:function(){return '?'+new URLSearchParams(window.__APP_PARAMS__).toString();}});}catch(e){}</script>`;
-            if (html.includes('<head>')) { html = html.replace('<head>', '<head>' + injectScript); }
-            else if (html.includes('<body>')) { html = html.replace('<body>', injectScript + '<body>'); }
-            else { html = injectScript + html; }
-        }
+        if (params && Object.keys(params).length > 0) { const paramsJson = JSON.stringify(params); const injectScript = `<script>window.__APP_PARAMS__=${paramsJson};try{Object.defineProperty(window.location,'search',{get:function(){return '?'+new URLSearchParams(window.__APP_PARAMS__).toString();}});}catch(e){}</script>`; if (html.includes('<head>')) { html = html.replace('<head>', '<head>' + injectScript); } else if (html.includes('<body>')) { html = html.replace('<body>', injectScript + '<body>'); } else { html = injectScript + html; } }
         html = html.replace(/<link[^>]*href=["']([^"']+\.css)["'][^>]*>/gi, (match, href) => { const fileName = href.split('/').pop(); if (vfsApp.files[fileName]) { return `<style>${vfsApp.files[fileName]}</style>`; } return match; });
         html = html.replace(/<script[^>]*src=["']([^"']+\.js)["'][^>]*><\/script>/gi, (match, src) => { const fileName = src.split('/').pop(); if (vfsApp.files[fileName]) { return `<script>${vfsApp.files[fileName]}</script>`; } return match; });
         html = html.replace(/<img[^>]*src=["']([^"']+\.svg)["'][^>]*>/gi, (match, src) => { const fileName = src.split('/').pop(); if (vfsApp.files[fileName]) { const svgContent = vfsApp.files[fileName]; return match.replace(src, `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgContent)))}`); } return match; });
@@ -506,11 +418,7 @@ class DesktopManager {
             const iconEl = document.createElement('img'); iconEl.className = 'taskbar-icon'; iconEl.src = win.appIcon || ''; iconEl.alt = win.appName || win.title || '窗口'; iconEl.style.width = '20px'; iconEl.style.height = '20px';
             item.appendChild(iconEl);
             if (topWindow && win.id === topWindow.id && !win.isMinimized) { item.classList.add('active'); }
-            item.addEventListener('click', () => {
-                if (win.isMinimized) { win.restore(); this.centerWindowInView(win); }
-                else if (topWindow && win.id === topWindow.id) { win.minimize(); }
-                else { win.focus(); this.centerWindowInView(win); }
-            });
+            item.addEventListener('click', () => { if (win.isMinimized) { win.restore(); this.centerWindowInView(win); } else if (topWindow && win.id === topWindow.id) { win.minimize(); } else { win.focus(); this.centerWindowInView(win); } });
             this.taskbarItemsEl.appendChild(item);
         });
     }
@@ -524,12 +432,7 @@ class DesktopManager {
         if (window._isSavingDisabled) { return; } if (this._isLoadingState) { return; }
         try {
             const windows = this.windowManager.getAllWindows();
-            const state = { windows: windows.map(win => {
-                const winState = { id: win.id, title: win.title, windowType: win.windowType || 'default', x: parseInt(win.element.style.left) || 0, y: parseInt(win.element.style.top) || 0, width: parseInt(win.element.style.width) || 600, height: parseInt(win.element.style.height) || 400, isMinimized: win.isMinimized, zIndex: parseInt(win.element.style.zIndex) || 0 };
-                if (win.windowType === 'terminal' && this.terminalWindows.has(win.id)) { const terminal = this.terminalWindows.get(win.id); winState.currentPath = terminal.fs.getCurrentPath(); }
-                if (win.windowType === 'app') { winState.appPath = win.appPath; winState.appParams = win.appParams; }
-                return winState;
-            }) };
+            const state = { windows: windows.map(win => { const winState = { id: win.id, title: win.title, windowType: win.windowType || 'default', x: parseInt(win.element.style.left) || 0, y: parseInt(win.element.style.top) || 0, width: parseInt(win.element.style.width) || 600, height: parseInt(win.element.style.height) || 400, isMinimized: win.isMinimized, zIndex: parseInt(win.element.style.zIndex) || 0 }; if (win.windowType === 'terminal' && this.terminalWindows.has(win.id)) { const terminal = this.terminalWindows.get(win.id); winState.currentPath = terminal.fs.getCurrentPath(); } if (win.windowType === 'app') { winState.appPath = win.appPath; winState.appParams = win.appParams; } return winState; }) };
             state.windows.sort((a, b) => a.zIndex - b.zIndex);
             const path = this.getStateFilePath(); const parts = path.split('/'); const fileName = parts.pop(); const folderPath = parts.join('/') || '/';
             let node = this.storage.fs;
