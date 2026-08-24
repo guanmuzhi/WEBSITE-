@@ -41,12 +41,12 @@ class SettingsApp {
         });
     }
     loadSystemInfo() {
-        document.getElementById('sys-name').textContent = 'Web Terminal OS';
+        document.getElementById('sys-name').textContent = 'navore OS';
         document.getElementById('sys-browser').textContent = navigator.userAgent.split(') ')[0] + ')';
         document.getElementById('sys-os').textContent = navigator.platform || 'Unknown';
-        document.getElementById('sys-resolution').textContent = window.screen.width + ' x ' + window.screen.height;
+        document.getElementById('sys-resolution').textContent = `${window.screen.width} x ${window.screen.height}`;
         document.getElementById('sys-online').textContent = navigator.onLine ? '在线' : '离线';
-        document.getElementById('sys-version').textContent = 'v1.0.0';
+        document.getElementById('sys-version').textContent = 'v1.5';
     }
     loadUserInfo() {
         try {
@@ -57,9 +57,58 @@ class SettingsApp {
                 document.getElementById('user-created').textContent = user.createdAt || '未知';
             }
         } catch (e) {}
+        this.setupUserAvatar();
+    }
+    setupUserAvatar() {
+        const avatarPreview = document.getElementById('user-avatar-preview');
+        const avatarInput = document.getElementById('user-avatar-input');
+        const avatarUploadBtn = document.getElementById('user-avatar-upload');
+        const avatarRemoveBtn = document.getElementById('user-avatar-remove');
+        const savedAvatar = localStorage.getItem('webos-user-avatar');
+        if (avatarPreview && savedAvatar) {
+            avatarPreview.src = savedAvatar;
+            avatarPreview.style.display = 'block';
+        }
+        if (avatarUploadBtn && avatarInput) {
+            avatarUploadBtn.addEventListener('click', () => avatarInput.click());
+            avatarInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) {
+                    alert('请选择图片文件');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const dataUrl = ev.target.result;
+                    localStorage.setItem('webos-user-avatar', dataUrl);
+                    if (avatarPreview) {
+                        avatarPreview.src = dataUrl;
+                        avatarPreview.style.display = 'block';
+                    }
+                    try {
+                        window.parent.document.dispatchEvent(new CustomEvent('user-avatar-changed', { detail: { avatar: dataUrl } }));
+                    } catch (err) {}
+                };
+                reader.readAsDataURL(file);
+                e.target.value = '';
+            });
+        }
+        if (avatarRemoveBtn) {
+            avatarRemoveBtn.addEventListener('click', () => {
+                localStorage.removeItem('webos-user-avatar');
+                if (avatarPreview) {
+                    avatarPreview.src = '';
+                    avatarPreview.style.display = 'none';
+                }
+                try {
+                    window.parent.document.dispatchEvent(new CustomEvent('user-avatar-changed', { detail: { avatar: null } }));
+                } catch (err) {}
+            });
+        }
     }
     loadPersonalization() {
-        const wallpaper = localStorage.getItem('webos-wallpaper') || 'default';
+        const wallpaper = localStorage.getItem('webos-wallpaper') || 'ocean';
         document.querySelectorAll('input[name="wallpaper"]').forEach(radio => {
             radio.checked = radio.value === wallpaper;
             radio.addEventListener('change', (e) => {
@@ -80,7 +129,7 @@ class SettingsApp {
         }
         this.setupWallpaperUploads();
         this.loadCustomWallpaper();
-        const accentColor = localStorage.getItem('webos-accent-color') || '#3498db';
+        const accentColor = localStorage.getItem('webos-accent-color') || '#1abc9c';
         document.querySelectorAll('.accent-color').forEach(el => {
             if (el.dataset.color === accentColor) el.classList.add('active');
             el.addEventListener('click', () => {
@@ -223,7 +272,7 @@ class SettingsApp {
                 video.load();
             }
             if (type === 'image') {
-                desktop.style.background = 'url(' + dataUrl + ') center/cover fixed';
+                desktop.style.background = `url(${dataUrl}) center/cover fixed`;
             } else if (type === 'video') {
                 desktop.style.background = '#000';
                 if (video) {
@@ -239,7 +288,7 @@ class SettingsApp {
             const desktop = window.parent.document.getElementById('desktop');
             if (!desktop) return;
             const wallpapers = {
-                default: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                default: 'linear-gradient(135deg, #0c3547 0%, #0d7377 50%, #14a085 100%)',
                 dark: '#0a0a0a',
                 custom: localStorage.getItem('webos-custom-color') || '#1a1a2e',
                 gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -248,8 +297,12 @@ class SettingsApp {
                 forest: 'linear-gradient(135deg, #0d1f0d 0%, #1e4d2b 50%, #2d7a3e 100%)'
             };
             const bg = wallpapers[type] || wallpapers.default;
-            desktop.style.background = bg;
-            if (type === 'custom') desktop.style.backgroundImage = 'none';
+            if (type === 'custom') {
+                desktop.style.background = bg;
+                desktop.style.backgroundImage = 'none';
+            } else {
+                desktop.style.background = bg;
+            }
         } catch (e) {}
     }
     applyAccentColor(color) {
@@ -263,11 +316,19 @@ class SettingsApp {
                 styleEl.id = styleId;
                 window.parent.document.head.appendChild(styleEl);
             }
-            styleEl.textContent = '.taskbar-item.active { background-color: ' + color + ' !important; } .window-titlebar { background-color: ' + color + ' !important; }';
+            styleEl.textContent = `
+                .taskbar-item.active { background-color: ${color} !important; }
+                .window-titlebar { background-color: ${color} !important; }
+                .window-btn.btn-close { background-color: #e74c3c !important; }
+                .window-btn.btn-minimize { background-color: #f1c40f !important; }
+            `;
         } catch (e) {}
     }
     applyFontSize(size) {
-        try { window.parent.document.documentElement.style.fontSize = size + 'px'; } catch (e) {}
+        try {
+            const root = window.parent.document.documentElement;
+            root.style.fontSize = size + 'px';
+        } catch (e) {}
     }
     applyWindowOpacity(value) {
         try {
@@ -279,7 +340,7 @@ class SettingsApp {
                 window.parent.document.head.appendChild(styleEl);
             }
             const opacity = value / 100;
-            styleEl.textContent = '.window { opacity: ' + opacity + '; } .window:hover { opacity: 1; }';
+            styleEl.textContent = `.window { opacity: ${opacity}; } .window:hover { opacity: 1; }`;
         } catch (e) {}
     }
     applyAnimations(enabled) {
@@ -291,7 +352,11 @@ class SettingsApp {
                 styleEl.id = styleId;
                 window.parent.document.head.appendChild(styleEl);
             }
-            styleEl.textContent = enabled ? '' : '* { transition: none !important; animation: none !important; }';
+            if (enabled) {
+                styleEl.textContent = '';
+            } else {
+                styleEl.textContent = `* { transition: none !important; animation: none !important; }`;
+            }
         } catch (e) {}
     }
     applyTaskbarAutohide(enabled) {
@@ -330,11 +395,42 @@ class SettingsApp {
             const el = document.querySelector('#' + id + ' h2');
             if (el && strings[key]) el.textContent = strings[key];
         });
+        const sysLabels = { 'sys-name-label': 'settings.sys_name', 'sys-browser-label': 'settings.sys_browser', 'sys-os-label': 'settings.sys_os', 'sys-resolution-label': 'settings.sys_resolution', 'sys-online-label': 'settings.sys_online', 'sys-version-label': 'version' };
+        Object.entries(sysLabels).forEach(([id, key]) => {
+            const el = document.getElementById(id);
+            if (el && strings[key]) el.textContent = strings[key];
+        });
+        const userLabels = { 'user-name-label': 'settings.user_name', 'user-created-label': 'settings.user_created' };
+        Object.entries(userLabels).forEach(([id, key]) => {
+            const el = document.getElementById(id);
+            if (el && strings[key]) el.textContent = strings[key];
+        });
+        const persLabels = {
+            'pers-wallpaper-title': 'settings.wallpaper',
+            'pers-wallpaper-default': 'settings.wallpaper_default',
+            'pers-wallpaper-dark': 'settings.wallpaper_dark',
+            'pers-wallpaper-custom': 'settings.wallpaper_custom',
+            'pers-wallpaper-gradient': 'settings.wallpaper_gradient',
+            'pers-custom-color-label': 'settings.custom_color',
+            'pers-accent-title': 'settings.accent_color',
+            'pers-appearance-title': 'settings.appearance',
+            'pers-fontsize-label': 'settings.font_size',
+            'pers-opacity-label': 'settings.window_opacity',
+            'pers-animations-label': 'settings.window_animations',
+            'pers-taskbar-autohide-label': 'settings.taskbar_autohide'
+        };
+        Object.entries(persLabels).forEach(([id, key]) => {
+            const el = document.getElementById(id);
+            if (el && strings[key]) el.textContent = strings[key];
+        });
         const langLabels = { 'lang-select-label': 'settings.select_language' };
         Object.entries(langLabels).forEach(([id, key]) => {
             const el = document.getElementById(id);
             if (el && strings[key]) el.textContent = strings[key];
         });
+        const versionEl = document.getElementById('settings-version');
+        if (versionEl && strings['version']) versionEl.textContent = strings['version'] + ' v1.5';
+        if (strings['app.settings']) document.title = strings['app.settings'];
     }
 }
 document.addEventListener('DOMContentLoaded', () => { new SettingsApp(); });
