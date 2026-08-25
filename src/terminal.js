@@ -5,7 +5,9 @@ import AppManager from './app-manager.js?v=15';
 const HISTORY_KEY = 'web-terminal-os-history';
 const COMMANDS = [
     'ls', 'pwd', 'cd', 'new', 'delete', 'rename', 'open', 'clear',
-    'tree', 'move', 'copy', 'export', 'import', 'account', 'help', 'run'
+    'tree', 'move', 'copy', 'export', 'import', 'account', 'help', 'run',
+    'wallpaper', 'theme', 'font', 'opacity', 'animations', 'autohide',
+    'language', 'apps', 'settings', 'whoami', 'date', 'echo', 'cat'
 ];
 class Terminal {
     constructor(options = {}) {
@@ -123,7 +125,7 @@ class Terminal {
         return COMMANDS.filter(cmd => cmd.startsWith(input.toLowerCase()));
     }
     completeFilename(input) {
-        const items = this.fs.ls(true); // include hidden for tab completion
+        const items = this.fs.ls(true);
         const matches = items.filter(item => {
             return item.name.startsWith(input);
         }).map(item => {
@@ -269,6 +271,45 @@ class Terminal {
             case 'run':
                 this.handleRun(args);
                 break;
+            case 'wallpaper':
+                this.handleWallpaper(args);
+                break;
+            case 'theme':
+                this.handleTheme(args);
+                break;
+            case 'font':
+                this.handleFont(args);
+                break;
+            case 'opacity':
+                this.handleOpacity(args);
+                break;
+            case 'animations':
+                this.handleAnimations(args);
+                break;
+            case 'autohide':
+                this.handleAutohide(args);
+                break;
+            case 'language':
+                this.handleLanguage(args);
+                break;
+            case 'apps':
+                this.handleApps(args);
+                break;
+            case 'settings':
+                this.handleSettings();
+                break;
+            case 'whoami':
+                this.print(this.currentUser.username);
+                break;
+            case 'date':
+                this.print(new Date().toLocaleString('zh-CN'));
+                break;
+            case 'echo':
+                this.print(args.join(' '));
+                break;
+            case 'cat':
+                this.handleOpen(args);
+                break;
             default:
                 this.print(`未知命令: ${command}，输入 "help" 查看可用命令`, 'error');
         }
@@ -337,7 +378,6 @@ class Terminal {
             this.print('用法: new folder <文件夹名> 或 new file <文件名>', 'error');
             return;
         }
-        // Read-only check for system paths
         if (this.fs.isSystemPath(this.fs.getCurrentPath())) {
             this.print('系统目录为只读，无法在此创建文件或文件夹', 'error');
             return;
@@ -787,25 +827,14 @@ class Terminal {
         this.print(`当前目录: ${this.fs.getCurrentPath()}`, 'success');
         document.dispatchEvent(new CustomEvent('request-user-switch', { detail: { username } }));
     }
-    /**
-     * Permission check:
-     * - System paths (/application, /languages): readable by all, but write-blocked elsewhere
-     * - Own user home: full access
-     * - Other users' homes: ALWAYS denied (user data isolation)
-     * - /user listing: allowed (can see usernames, can't enter)
-     */
     checkPathPermission(targetPath) {
         const owner = this.fs.getPathOwner(targetPath);
         if (owner === null) {
-            // Not under /user/ — system area, readable
             return { allowed: true };
         }
         if (owner === this.currentUser.username) {
             return { allowed: true };
         }
-        // Path is /user/<someone-else> or deeper
-        // Allow listing /user itself (owner would be null for /user)
-        // But deny entering or reading other users' content
         return {
             allowed: false,
             message: `权限被拒绝：无法访问用户 "${owner}" 的私有目录`
@@ -827,9 +856,7 @@ class Terminal {
                 const info = await res.json();
                 this.print(`正在启动应用: ${info.name} v${info.version}`, 'success');
                 const event = new CustomEvent('app-launch-real', {
-                    detail: {
-                        path: filename
-                    }
+                    detail: { path: filename }
                 });
                 document.dispatchEvent(event);
                 return;
@@ -856,14 +883,115 @@ class Terminal {
             }
             this.print(`正在启动应用: ${appData.info.name} v${appData.info.version}`, 'success');
             const event = new CustomEvent('app-launch', {
-                detail: {
-                    appData: appData
-                }
+                detail: { appData: appData }
             });
             document.dispatchEvent(event);
         } catch (e) {
             this.print(`运行应用失败: ${e.message}`, 'error');
         }
+    }
+    handleWallpaper(args) {
+        if (args.length === 0) {
+            this.print('用法: wallpaper <solid|gradient|image|video> [参数...]', 'error');
+            this.print('  wallpaper solid #ff0000');
+            this.print('  wallpaper gradient #ff0000 #0000ff 135deg');
+            return;
+        }
+        const type = args[0].toLowerCase();
+        let wp;
+        if (type === 'solid') {
+            wp = { type: 'solid', color: args[1] || '#0c3547' };
+        } else if (type === 'gradient') {
+            wp = { type: 'gradient', start: args[1] || '#0c3547', end: args[2] || '#14a085', direction: args[3] || '135deg' };
+        } else {
+            this.print(`不支持的壁纸类型: ${type}`, 'error');
+            return;
+        }
+        document.dispatchEvent(new CustomEvent('wallpaper-changed', { detail: wp }));
+        this.print(`壁纸已设置为 ${type}`, 'success');
+    }
+    handleTheme(args) {
+        if (args.length === 0) {
+            this.print('用法: theme <颜色值>', 'error');
+            this.print('  theme #1abc9c');
+            return;
+        }
+        const color = args[0];
+        localStorage.setItem('webos-accent-color', color);
+        document.dispatchEvent(new CustomEvent('accent-color-changed', { detail: { color } }));
+        try {
+            const root = document.documentElement;
+            root.style.setProperty('--accent-color', color);
+        } catch (e) {}
+        this.print(`主题色已设置为 ${color}`, 'success');
+    }
+    handleFont(args) {
+        if (args.length === 0) {
+            this.print('用法: font <大小>', 'error');
+            this.print('  font 14');
+            return;
+        }
+        const size = args[0];
+        localStorage.setItem('webos-font-size', size);
+        try { document.documentElement.style.fontSize = size + 'px'; } catch (e) {}
+        this.print(`字体大小已设置为 ${size}px`, 'success');
+    }
+    handleOpacity(args) {
+        if (args.length === 0) {
+            this.print('用法: opacity <70-100>', 'error');
+            return;
+        }
+        const value = args[0];
+        localStorage.setItem('webos-window-opacity', value);
+        this.print(`窗口透明度已设置为 ${value}%`, 'success');
+    }
+    handleAnimations(args) {
+        const enabled = args[0] === 'on' || args[0] === 'true';
+        localStorage.setItem('webos-animations', enabled ? 'true' : 'false');
+        this.print(`窗口动画已${enabled ? '开启' : '关闭'}`, 'success');
+    }
+    handleAutohide(args) {
+        const enabled = args[0] === 'on' || args[0] === 'true';
+        localStorage.setItem('webos-taskbar-autohide', enabled ? 'true' : 'false');
+        document.dispatchEvent(new CustomEvent('taskbar-autohide-changed', { detail: { enabled } }));
+        this.print(`任务栏自动隐藏已${enabled ? '开启' : '关闭'}`, 'success');
+    }
+    handleLanguage(args) {
+        if (args.length === 0) {
+            this.print('用法: language <cmn|eng|jpn>', 'error');
+            return;
+        }
+        const lang = args[0];
+        localStorage.setItem('webos-language', lang);
+        document.dispatchEvent(new CustomEvent('language-changed', { detail: { lang } }));
+        this.print(`语言已切换为 ${lang}`, 'success');
+    }
+    handleApps(args) {
+        if (args.length === 0 || args[0] === 'list') {
+            this.print('已安装的应用:');
+            try {
+                const apps = window.getInstalledApps ? window.getInstalledApps() : [];
+                if (apps.length === 0) {
+                    this.print('  (无第三方应用)');
+                } else {
+                    apps.forEach(app => {
+                        this.print(`  ${app.path} - ${app.name} v${app.version || '1.0.0'}`);
+                    });
+                }
+            } catch (e) {
+                this.print('  无法获取应用列表', 'error');
+            }
+        } else if (args[0] === 'run' && args[1]) {
+            const appPath = args[1].endsWith('.app') ? args[1] : args[1] + '.app';
+            document.dispatchEvent(new CustomEvent('app-launch-real', { detail: { path: appPath } }));
+            this.print(`正在启动 ${appPath}...`, 'success');
+        } else {
+            this.print('用法: apps [list|run <应用名>]', 'error');
+        }
+    }
+    handleSettings() {
+        document.dispatchEvent(new CustomEvent('app-launch-real', { detail: { path: 'settings.app' } }));
+        this.print('正在打开设置...', 'success');
     }
     handleHelp() {
         this.print('可用命令:');
@@ -882,6 +1010,19 @@ class Terminal {
         this.print('  export <文件/文件夹>       - 导出文件或文件夹为zip');
         this.print('  import [URL]              - 导入本地文件或从URL导入');
         this.print('  run <appname.app>         - 运行 .app 应用程序');
+        this.print('  wallpaper <类型> [参数]    - 设置壁纸 (solid/gradient)');
+        this.print('  theme <颜色>               - 设置主题色');
+        this.print('  font <大小>                - 设置字体大小');
+        this.print('  opacity <70-100>          - 设置窗口透明度');
+        this.print('  animations <on|off>       - 开关窗口动画');
+        this.print('  autohide <on|off>         - 开关任务栏自动隐藏');
+        this.print('  language <cmn|eng|jpn>   - 切换语言');
+        this.print('  apps [list|run <名称>]    - 管理应用程序');
+        this.print('  settings                   - 打开设置');
+        this.print('  whoami                     - 显示当前用户');
+        this.print('  date                       - 显示当前时间');
+        this.print('  echo <文本>                - 输出文本');
+        this.print('  cat <文件>                 - 查看文件内容');
         this.print('  account new <用户名> [密码]  - 创建新用户');
         this.print('  account switch <用户名>     - 切换用户');
         this.print('  account delete <用户名>     - 删除用户');
