@@ -54,5 +54,13 @@
     "description": "查看和管理已安装的应用",
     "category": "system",
     "version": "1.0.0"
+  },
+  {
+    "id": "agent",
+    "name": "AI 助手",
+    "path": "agent.app",
+    "description": "支持多模型配置、工具调用和终端命令执行的 AI 对话助手",
+    "category": "productivity",
+    "version": "1.0.0"
   }
 ]
