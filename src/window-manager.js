@@ -18,6 +18,7 @@ class WindowManager {
         winEl.style.width = width + 'px';
         winEl.style.height = height + 'px';
         winEl.style.zIndex = this.zIndexCounter++;
+        winEl.classList.add('window-opening');
         const containerRect = this.container.getBoundingClientRect();
         let x = options.x !== undefined ? options.x : (containerRect.width - width) / 2;
         let y = options.y !== undefined ? options.y : (containerRect.height - height) / 2;
@@ -86,6 +87,9 @@ class WindowManager {
             restore: () => {
                 winObj.isMinimized = false;
                 winEl.style.display = 'flex';
+                winEl.classList.remove('window-opening');
+                void winEl.offsetWidth;
+                winEl.classList.add('window-opening');
                 this.focusWindow(id);
             },
             close: () => {
@@ -98,7 +102,6 @@ class WindowManager {
         let dragOffsetY = 0;
         const onMouseDown = (e) => {
             if (e.target.closest('.window-controls')) return;
-            
             isDragging = true;
             const rect = winEl.getBoundingClientRect();
             const containerRect = this.container.getBoundingClientRect();
@@ -131,7 +134,6 @@ class WindowManager {
         titlebar.addEventListener('mousedown', onMouseDown);
         const onTouchStart = (e) => {
             if (e.target.closest('.window-controls')) return;
-            
             e.preventDefault();
             isDragging = true;
             const touch = e.touches[0];
@@ -186,7 +188,6 @@ class WindowManager {
         let resizeStartWidth = 0;
         let resizeStartHeight = 0;
         const onResizeMouseDown = (e) => {
-            console.log('resize mousedown', e.clientX, e.clientY);
             e.stopPropagation();
             e.preventDefault();
             isResizing = true;
@@ -200,7 +201,6 @@ class WindowManager {
         };
         const onResizeMouseMove = (e) => {
             if (!isResizing) return;
-            console.log('resize mousemove', isResizing, e.clientX, e.clientY);
             e.preventDefault();
             const newWidth = Math.max(300, resizeStartWidth + e.clientX - resizeStartX);
             const newHeight = Math.max(200, resizeStartHeight + e.clientY - resizeStartY);
@@ -266,13 +266,16 @@ class WindowManager {
     focusWindow(id) {
         const win = this.getWindow(id);
         if (!win) return;
+        this.windows.forEach(w => w.element.classList.remove('window-focused'));
+        win.element.classList.add('window-focused');
         win.element.style.zIndex = this.zIndexCounter++;
     }
     closeWindow(id) {
         const index = this.windows.findIndex(w => w.id === id);
         if (index === -1) return;
         const win = this.windows[index];
-        win.element.remove();
+        win.element.classList.add('window-closing');
+        setTimeout(() => { win.element.remove(); }, 200);
         this.windows.splice(index, 1);
         if (win.onClose && typeof win.onClose === 'function') {
             win.onClose();
