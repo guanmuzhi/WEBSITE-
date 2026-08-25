@@ -1,7 +1,7 @@
-import WindowManager from './window-manager.js?v=20';
-import DesktopManager from './desktop.js?v=20';
-import UserManager from './user-manager.js?v=20';
-import LockScreen from './lock-screen.js?v=20';
+import WindowManager from './window-manager.js?v=21';
+import DesktopManager from './desktop.js?v=21';
+import UserManager from './user-manager.js?v=21';
+import LockScreen from './lock-screen.js?v=21';
 class BootManager {
     constructor(terminalClass) {
         this.terminalClass = terminalClass;
