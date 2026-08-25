@@ -253,6 +253,27 @@ body {
     overflow: hidden;
     min-width: 300px;
     min-height: 200px;
+    animation: windowOpen 0.2s ease-out;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.window-focused {
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+    border-color: var(--accent-color, #1abc9c);
+}
+.window-opening {
+    animation: windowOpen 0.2s ease-out;
+}
+.window-closing {
+    animation: windowClose 0.2s ease-in forwards;
+    pointer-events: none;
+}
+@keyframes windowOpen {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+@keyframes windowClose {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.95); }
 }
 .window-titlebar {
     height: 32px;
@@ -394,7 +415,7 @@ body {
     background-color: rgba(0, 0, 0, 0.45);
 }
 .taskbar-item.active {
-    background-color: #2980b9;
+    background-color: var(--accent-color, #1abc9c);
 }
 .taskbar-icon {
     width: 20px;
@@ -597,7 +618,7 @@ body {
     background: rgba(20, 20, 35, 0.9);
     border-radius: 20px;
     padding: 32px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     width: 380px;
@@ -965,4 +986,49 @@ body {
 .taskbar.autohide-visible {
     transform: translateY(0);
     transition: transform 0.3s ease;
+}
+/* ===== 主题色全局贯通 ===== */
+:root {
+    --accent-color: #1abc9c;
+}
+/* 桌面图标悬停 */
+.desktop-icon:hover .icon-image {
+    background-color: var(--accent-color, #1abc9c);
+}
+/* 用户切换器 */
+.user-switcher-item.current {
+    background: rgba(26, 188, 156, 0.2);
+}
+.user-switcher-item:hover {
+    background: rgba(26, 188, 156, 0.1);
+}
+.user-switcher-confirm-btn {
+    background: var(--accent-color, #1abc9c);
+}
+.user-switcher-confirm-btn:hover {
+    background: #16a085;
+}
+/* 锁屏 */
+.lock-screen .lock-unlock-btn {
+    background: linear-gradient(135deg, var(--accent-color, #1abc9c) 0%, #16a085 100%);
+    box-shadow: 0 4px 15px rgba(26, 188, 156, 0.3);
+}
+.lock-screen .lock-password-input:focus {
+    border-color: var(--accent-color, #1abc9c);
+    background: rgba(26, 188, 156, 0.1);
+}
+.lock-screen .lock-user-item-current {
+    background: rgba(26, 188, 156, 0.1);
+}
+/* 按钮通用焦点 */
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--accent-color, #1abc9c);
+    outline-offset: 1px;
+}
+/* 链接 */
+a {
+    color: var(--accent-color, #1abc9c);
+}
+a:hover {
+    color: #16a085;
 }
