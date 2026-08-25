@@ -52,7 +52,7 @@ class DesktopManager {
         this.compactTaskbarNameEl = this.desktopEl.querySelector('#taskbar-compact-name');
         this.compactTaskbarAvatarEl = this.desktopEl.querySelector('#taskbar-compact-avatar');
         this.compactExpandBtn = this.desktopEl.querySelector('#taskbar-compact-expand');
-        this.wallpaperVideoEl = this.desktopEl.querySelector('.wallpaper-video');
+        this.wallpaperVideoEl = this.desktopEl.querySelector('#wallpaper-video');
         this.windowsContainerEl = this.desktopEl.querySelector('.windows-container');
         this.setupCompactTaskbar();
         this.setupDesktopPanning();
@@ -78,6 +78,8 @@ class DesktopManager {
         this.setupUserSwitchListener();
         this.setupWallpaper();
         this.setupTaskbarAutohideListener();
+        this.setupTerminalCommandListener();
+        this.setupDesktopClick();
         window.openApp = this.openAppById.bind(this);
         window.installAppFromFile = this.installAppFromFile.bind(this);
         window.getInstalledApps = () => this.apps.filter(a => !this._systemAppPaths.has(a.path));
@@ -141,6 +143,9 @@ class DesktopManager {
                     let uDir = userDir.children.find(c => c.name === username && c.type === 'folder');
                     if (uDir) {
                         if (!uDir.children) uDir.children = [];
+                        let infoDir = uDir.children.find(c => c.name === 'info' && c.type === 'folder');
+                        if (!infoDir) { infoDir = { type: 'folder', name: 'info', children: [] }; uDir.children.push(infoDir); }
+                        if (!infoDir.children) infoDir.children = [];
                         let appInfoDir = uDir.children.find(c => c.name === 'appinfo' && c.type === 'folder');
                         if (!appInfoDir) { appInfoDir = { type: 'folder', name: 'appinfo', children: [] }; uDir.children.push(appInfoDir); }
                         if (!appInfoDir.children) appInfoDir.children = [];
@@ -157,6 +162,45 @@ class DesktopManager {
     }
     setupTaskbarAutohideListener() {
         document.addEventListener('taskbar-autohide-changed', (e) => { const { enabled } = e.detail; this.setTaskbarAutohide(enabled); });
+    }
+    setupTerminalCommandListener() {
+        document.addEventListener('run-terminal-command', async (e) => {
+            const { command, callbackId } = e.detail || {};
+            if (!command) return;
+            try {
+                let terminal = null;
+                let termWin = null;
+                for (const [winId, term] of this.terminalWindows) { terminal = term; termWin = this.windowManager.getWindow(winId); break; }
+                if (!terminal) {
+                    termWin = this.openTerminalWindow();
+                    await new Promise(r => setTimeout(r, 100));
+                    for (const [, term] of this.terminalWindows) { terminal = term; break; }
+                }
+                if (!terminal) {
+                    document.dispatchEvent(new CustomEvent('terminal-command-result', { detail: { callbackId, output: '无法创建终端' } }));
+                    return;
+                }
+                if (termWin) { termWin.focus(); this.centerWindowInView(termWin); }
+                const outputLines = [];
+                const origPrint = terminal.print.bind(terminal);
+                terminal.print = (text, cls) => { outputLines.push(text); origPrint(text, cls); };
+                terminal.executeCommand(command);
+                terminal.print = origPrint;
+                const output = outputLines.join('\n');
+                document.dispatchEvent(new CustomEvent('terminal-command-result', { detail: { callbackId, output } }));
+            } catch (err) {
+                document.dispatchEvent(new CustomEvent('terminal-command-result', { detail: { callbackId, output: '执行出错: ' + err.message } }));
+            }
+        });
+    }
+    setupDesktopClick() {
+        this.desktopEl.addEventListener('mousedown', (e) => {
+            if (e.target === this.desktopEl || e.target.classList.contains('windows-container')) {
+                const windows = this.windowManager.getAllWindows();
+                windows.forEach(w => { w.element.classList.remove('window-focused'); });
+                this.updateTaskbar();
+            }
+        });
     }
     loadWallpaper() {
         try {
@@ -273,14 +317,24 @@ class DesktopManager {
         const desktop = this.desktopEl;
         if (!desktop) return;
         desktop.addEventListener('wheel', (e) => {
-            if (e.target.closest('.window') || e.target.closest('.desktop-icon') || e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') || e.target.closest('.user-switcher') || e.target.closest('.lock-screen')) { return; }
+            const overUI = e.target.closest('.window') || e.target.closest('.desktop-icon') ||
+                e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') ||
+                e.target.closest('.user-switcher') || e.target.closest('.lock-screen');
+            if (overUI && !e.altKey) return;
             e.preventDefault();
             let dx = e.deltaX; let dy = e.deltaY;
             if (e.shiftKey && dx === 0) { dx = dy; dy = 0; }
             this.viewX -= dx; this.viewY -= dy; this.applyViewTransform();
         }, { passive: false });
         desktop.addEventListener('mousedown', (e) => {
-            if (e.target.closest('.window') || e.target.closest('.desktop-icon') || e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') || e.target.closest('.user-switcher') || e.target.closest('.lock-screen') || e.button !== 0) { return; }
+            const overUI = e.target.closest('.window') || e.target.closest('.desktop-icon') ||
+                e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') ||
+                e.target.closest('.user-switcher') || e.target.closest('.lock-screen');
+            if ((overUI && !e.altKey) || e.button !== 0) return;
+            this._isPanning = true; this._panStartX = e.clientX; this._panStartY = e.clientY; this._panStartViewX = this.viewX; this._panStartViewY = this.viewY; desktop.classList.add('panning'); e.preventDefault(); e.stopPropagation();
+        });
+        document.addEventListener('mousedown', (e) => {
+            if (!e.altKey || e.button !== 0 || this._isPanning) return;
             this._isPanning = true; this._panStartX = e.clientX; this._panStartY = e.clientY; this._panStartViewX = this.viewX; this._panStartViewY = this.viewY; desktop.classList.add('panning'); e.preventDefault();
         });
         document.addEventListener('mousemove', (e) => { if (!this._isPanning) return; const dx = e.clientX - this._panStartX; const dy = e.clientY - this._panStartY; this.viewX = this._panStartViewX + dx; this.viewY = this._panStartViewY + dy; this.applyViewTransform(); });
