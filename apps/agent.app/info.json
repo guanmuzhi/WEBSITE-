@@ -1,0 +1,9 @@
+{
+  "id": "agent",
+  "name": "AI 助手",
+  "version": "1.0.0",
+  "description": "支持多模型配置、工具调用和终端命令执行的 AI 对话助手",
+  "category": "productivity",
+  "width": 720,
+  "height": 560
+}
