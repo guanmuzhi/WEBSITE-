@@ -277,7 +277,7 @@ body {
 }
 .window-titlebar {
     height: 32px;
-    background-color: #1abc9c;
+    background-color: var(--accent-color, #1abc9c);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -997,28 +997,28 @@ body {
 }
 /* 用户切换器 */
 .user-switcher-item.current {
-    background: rgba(26, 188, 156, 0.2);
+    background: color-mix(in srgb, var(--accent-color, #1abc9c) 20%, transparent);
 }
 .user-switcher-item:hover {
-    background: rgba(26, 188, 156, 0.1);
+    background: color-mix(in srgb, var(--accent-color, #1abc9c) 10%, transparent);
 }
 .user-switcher-confirm-btn {
     background: var(--accent-color, #1abc9c);
 }
 .user-switcher-confirm-btn:hover {
-    background: #16a085;
+    background: var(--accent-hover, #16a085);
 }
 /* 锁屏 */
 .lock-screen .lock-unlock-btn {
-    background: linear-gradient(135deg, var(--accent-color, #1abc9c) 0%, #16a085 100%);
-    box-shadow: 0 4px 15px rgba(26, 188, 156, 0.3);
+    background: linear-gradient(135deg, var(--accent-color, #1abc9c) 0%, var(--accent-hover, #16a085) 100%);
+    box-shadow: 0 4px 15px color-mix(in srgb, var(--accent-color, #1abc9c) 30%, transparent);
 }
 .lock-screen .lock-password-input:focus {
     border-color: var(--accent-color, #1abc9c);
-    background: rgba(26, 188, 156, 0.1);
+    background: color-mix(in srgb, var(--accent-color, #1abc9c) 10%, transparent);
 }
 .lock-screen .lock-user-item-current {
-    background: rgba(26, 188, 156, 0.1);
+    background: color-mix(in srgb, var(--accent-color, #1abc9c) 10%, transparent);
 }
 /* 按钮通用焦点 */
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
@@ -1030,5 +1030,5 @@ a {
     color: var(--accent-color, #1abc9c);
 }
 a:hover {
-    color: #16a085;
+    color: var(--accent-hover, #16a085);
 }

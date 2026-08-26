@@ -168,7 +168,7 @@ class Browser {
         const nameLabel = document.createElement('div'); nameLabel.style.cssText = 'font-size:12px;color:#888;margin-bottom:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'; nameLabel.textContent = name; dialog.appendChild(nameLabel);
         const folderLabel = document.createElement('div'); folderLabel.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:8px;'; folderLabel.textContent = '选择文件夹：'; dialog.appendChild(folderLabel);
         const folderList = document.createElement('div'); folderList.style.cssText = 'max-height:200px;overflow-y:auto;background:#1e1e1e;border-radius:4px;margin-bottom:12px;';
-        const rootOption = document.createElement('div'); rootOption.style.cssText = 'padding:10px 12px;cursor:pointer;color:#ccc;font-size:13px;background:#3498db30;border-bottom:1px solid #333;'; rootOption.textContent = '📁 收藏夹根目录';
+        const rootOption = document.createElement('div'); rootOption.style.cssText = 'padding:10px 12px;cursor:pointer;color:#ccc;font-size:13px;background:color-mix(in srgb, var(--accent-color,#3498db) 20%, transparent);border-bottom:1px solid #333;'; rootOption.textContent = '📁 收藏夹根目录';
         rootOption.addEventListener('click', () => { this._addBookmark(name, url, null); this.renderBookmarks(); document.body.removeChild(overlay); });
         folderList.appendChild(rootOption);
         const folders = this._getAllFolders();

@@ -81,7 +81,58 @@ function removeTempDoms(){chatBox.querySelectorAll('[data-temp="1"]').forEach(el
 function resetBusy(){isBusy=false;sendBtn.disabled=false;if(abortController){abortController.abort();abortController=null;}}
 function buildApiMessages(history){return history.map(m=>{if(m.role==='tool'){return{role:'tool',tool_call_id:m.tool_call_id,name:m.name,content:m.content};}if(m.role==='assistant'){const o={role:'assistant',content:(m.content&&m.content.trim&&m.content.trim()!=='')?m.content:(m.tool_calls?null:m.content||'')};if(m.tool_calls&&m.tool_calls.length){o.tool_calls=m.tool_calls.map(tc=>({id:tc.id,type:tc.type||'function',function:{name:tc.function.name,arguments:tc.function.arguments}}));}return o;}return{role:'user',content:m.content};});}
 function safeTruncateHistory(history,maxPair){if(!maxPair||maxPair<=0)return history;const cutoff=history.findIndex(m=>m.role==='tool'||(m.role==='assistant'&&m.tool_calls));const safeStart=cutoff===-1?0:cutoff;const allowed=maxPair*2;let toRemove=history.length-allowed;if(toRemove<=0)return history;toRemove=Math.min(toRemove,safeStart);return history.slice(toRemove);}
-function buildRequestTools(activeCfg,fullCfg){const tools=[];if(!activeCfg.toolCallingEnabled)return tools;tools.push({type:'function',function:{name:'get_weather',description:'获取指定城市的当前天气信息，包括温度、湿度、风速。',parameters:{type:'object',properties:{city:{type:'string',description:'城市名，如 北京、上海'}},required:['city']}});tools.push({type:'function',function:{name:'get_current_time',description:'获取当前日期和时间。',parameters:{type:'object',properties:{},required:[]}});tools.push({type:'function',function:{name:'run_terminal_command',description:'在 navore OS 终端中执行一条命令并返回输出。可用于文件操作、系统查询、运行程序等。',parameters:{type:'object',properties:{command:{type:'string',description:'要执行的终端命令，如 ls、pwd、cat file.txt'}},required:['command']}});const ws=fullCfg.webSearch||{};if(ws.enabled){tools.push({type:'function',function:{name:'web_search',description:'使用搜索引擎查询互联网信息。当用户询问时事、事实、需要最新资料的问题时调用。',parameters:{type:'object',properties:{query:{type:'string',description:'搜索关键词'}},required:['query']}});}return tools;}
+function buildRequestTools(activeCfg,fullCfg){
+    const tools=[];
+    if(!activeCfg.toolCallingEnabled)return tools;
+    tools.push({
+        type:'function',
+        function:{
+            name:'get_weather',
+            description:'获取指定城市的当前天气信息，包括温度、湿度、风速。',
+            parameters:{
+                type:'object',
+                properties:{city:{type:'string',description:'城市名，如 北京、上海'}},
+                required:['city']
+            }
+        }
+    });
+    tools.push({
+        type:'function',
+        function:{
+            name:'get_current_time',
+            description:'获取当前日期和时间。',
+            parameters:{type:'object',properties:{},required:[]}
+        }
+    });
+    tools.push({
+        type:'function',
+        function:{
+            name:'run_terminal_command',
+            description:'在 navore OS 终端中执行一条命令并返回输出。可用于文件操作、系统查询、运行程序等。',
+            parameters:{
+                type:'object',
+                properties:{command:{type:'string',description:'要执行的终端命令，如 ls、pwd、cat file.txt'}},
+                required:['command']
+            }
+        }
+    });
+    const ws=fullCfg.webSearch||{};
+    if(ws.enabled){
+        tools.push({
+            type:'function',
+            function:{
+                name:'web_search',
+                description:'使用搜索引擎查询互联网信息。当用户询问时事、事实、需要最新资料的问题时调用。',
+                parameters:{
+                    type:'object',
+                    properties:{query:{type:'string',description:'搜索关键词'}},
+                    required:['query']
+                }
+            }
+        });
+    }
+    return tools;
+}
 async function sendMessage(){if(isBusy)return;const fullCfg=loadConfig();const cfg=getActiveConfig(fullCfg);let conv=getCurrentConv();if(!conv){newConversation();conv=getCurrentConv();}const textRaw=userInput.value.trim();if(!cfg.apiKey){alert("请先在右上角设置填入API‑Key");openSetting();return;}let userContent;if(pendingAttachments.length>0){userContent=[];if(textRaw){userContent.push({type:"text",text:textRaw});}pendingAttachments.forEach(at=>userContent.push(at));}else{userContent=textRaw;}let workingHistory=[...conv.history];workingHistory.push({role:"user",content:userContent});workingHistory=safeTruncateHistory(workingHistory,cfg.maxCtx);conv.history=workingHistory;autoUpdateTitle(conv);saveConversations();renderConvList();userInput.value="";pendingAttachments=[];renderAttachUI();appendMessageDom({role:"user",content:userContent});resetBusy();isBusy=true;sendBtn.disabled=true;await processTurn(conv,0,cfg,fullCfg);}
 async function processTurn(conv,round,cfg,fullCfg){abortController=new AbortController();const apiMessages=buildApiMessages(conv.history);const apiUrl=cfg.baseUrl.trim();if(!apiUrl){alert("请先在设置中填写 Base‑URL");openSetting();resetBusy();return;}const reqBody={model:cfg.model,temperature:cfg.temp,stream:cfg.stream,messages:apiMessages};const tools=buildRequestTools(cfg,fullCfg);if(tools.length>0){reqBody.tools=tools;reqBody.tool_choice="auto";}const tempAi=appendMessageDom({role:"assistant",content:"",reasoning:""},true);const rDom=tempAi.querySelector('.reasoning-text');const tDom=tempAi.querySelector('.tool-calls');const aDom=tempAi.querySelector('.answer-text');let reasoningBuf="";let answerBuf="";let toolCalls=[];try{const res=await fetch(apiUrl,{method:"POST",headers:{"Authorization":`Bearer ${cfg.apiKey}`,"Content-Type":"application/json"},body:JSON.stringify(reqBody),signal:abortController.signal});if(!res.ok){const errText=await res.text().catch(()=>'');throw new Error(`HTTP ${res.status} ${errText}`);}if(cfg.stream){const reader=res.body.getReader();const decoder=new TextDecoder("utf-8",{fatal:false});let buf="";while(true){const{done,value}=await reader.read();if(done)break;buf+=decoder.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();for(let line of lines){if(!line.startsWith('data: '))continue;const d=line.slice(6);if(d==="[DONE]")continue;try{const j=JSON.parse(d);const delta=j.choices?.[0]?.delta||{};if(delta.reasoning!==undefined&&delta.reasoning!==null){reasoningBuf+=delta.reasoning;const box=rDom&&rDom.parentElement;if(box)box.style.display='';if(rDom){rDom.classList.add('open');rDom.innerHTML=md.renderInline(reasoningBuf);}}if(delta.content!==undefined){answerBuf+=delta.content;aDom.innerHTML=md.render(answerBuf);}if(delta.tool_calls){for(const tc of delta.tool_calls){const idx=tc.index;if(!toolCalls[idx])toolCalls[idx]={id:'',type:'function',function:{name:'',arguments:''}};if(tc.id)toolCalls[idx].id=tc.id;if(tc.type)toolCalls[idx].type=tc.type;if(tc.function?.name)toolCalls[idx].function.name+=tc.function.name;if(tc.function?.arguments)toolCalls[idx].function.arguments+=tc.function.arguments;}renderToolCalls(tDom,toolCalls.filter(Boolean));}scrollBottom();}catch(e){}}}toolCalls=toolCalls.filter(Boolean);}else{const json=await res.json();const msg=json.choices[0].message;answerBuf=msg.content||"";reasoningBuf=msg.reasoning||"";toolCalls=msg.tool_calls||[];if(rDom){rDom.innerHTML=md.renderInline(reasoningBuf);if(reasoningBuf.trim()){rDom.classList.add('open');const box=rDom.parentElement;if(box)box.style.display='';const toggle=box&&box.querySelector('.reasoning-toggle');if(toggle)toggle.textContent='隐藏思考过程';}}aDom.innerHTML=md.render(answerBuf);renderToolCalls(tDom,toolCalls);scrollBottom();}delete tempAi.dataset.temp;const assistantMsg={role:"assistant",content:answerBuf||null,reasoning:reasoningBuf,tool_calls:toolCalls.length?toolCalls.map(tc=>({id:tc.id,type:tc.type||'function',function:{name:tc.function.name,arguments:tc.function.arguments}})):undefined};conv.history.push(assistantMsg);saveConversations();if(toolCalls.length>0){await executeTools(conv,toolCalls,tDom,cfg);if(round+1<cfg.maxToolRounds){await processTurn(conv,round+1,cfg,fullCfg);}else{appendNote('已达到最大工具轮数('+cfg.maxToolRounds+')，停止自动调用。');resetBusy();}}else{resetBusy();}}catch(err){if(err&&err.name==='AbortError'){appendNote('请求已中止。');}else{alert("请求失败："+err.message);removeTempDoms();console.error(err);}resetBusy();}}
 async function executeTools(conv,toolCalls,tDom,cfg){for(const tc of toolCalls){const name=tc.function.name;let args={};try{args=JSON.parse(tc.function.arguments||'{}');}catch(e){args={};}let result;const handler=toolHandlers[name];if(handler&&cfg.autoExecuteTools){try{result=await handler(args);}catch(e){result='执行出错: '+e.message;}}else{result=await askUserToolResult(name,args);}tc.result=(typeof result==='string')?result:JSON.stringify(result);renderToolCalls(tDom,toolCalls);conv.history.push({role:"tool",tool_call_id:tc.id,name,content:tc.result});}saveConversations();}

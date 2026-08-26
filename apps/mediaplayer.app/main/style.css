@@ -116,7 +116,7 @@ body {
 .play-button-large {
     width: 80px;
     height: 80px;
-    background: rgba(102, 187, 106, 0.9);
+    background: var(--accent-color);
     border: none;
     border-radius: 50%;
     color: #fff;
@@ -130,7 +130,7 @@ body {
 }
 
 .play-button-large:hover {
-    background: #66bb6a;
+    background: var(--accent-color);
     transform: scale(1.1);
 }
 
@@ -189,7 +189,7 @@ body {
 
 .wave-bar {
     width: 6px;
-    background: #66bb6a;
+    background: var(--accent-color);
     border-radius: 3px;
     animation: wave 1s ease-in-out infinite;
 }
@@ -253,14 +253,14 @@ body {
 .control-btn.play {
     width: 44px;
     height: 44px;
-    background: rgba(102, 187, 106, 0.9);
+    background: var(--accent-color);
     border-radius: 50%;
     color: #fff;
     font-size: 20px;
 }
 
 .control-btn.play:hover {
-    background: #66bb6a;
+    background: var(--accent-color);
 }
 
 .progress-container {
@@ -281,12 +281,12 @@ body {
 }
 
 .progress-bar:hover .progress-fill {
-    background: #81c784;
+    background: var(--accent-hover);
 }
 
 .progress-fill {
     height: 100%;
-    background: #66bb6a;
+    background: var(--accent-color);
     border-radius: 3px;
     transition: width 0.1s linear;
 }
@@ -347,7 +347,7 @@ body {
 
 .volume-fill {
     height: 100%;
-    background: #66bb6a;
+    background: var(--accent-color);
     border-radius: 2px;
 }
 

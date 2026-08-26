@@ -1,6 +1,6 @@
 :root {
-    --primary-color: #3498db;
-    --primary-hover: #2980b9;
+    --primary-color: var(--accent-color, #3498db);
+    --primary-hover: var(--accent-hover, #2980b9);
     --bg-dark: #1a1a2e;
     --bg-card: #16213e;
     --bg-hover: #0f3460;

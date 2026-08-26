@@ -303,8 +303,8 @@ body {
 }
 
 .fm-landrop-mode.active {
-    background: #3498db;
-    border-color: #3498db;
+    background: var(--accent-color, #3498db);
+    border-color: var(--accent-color, #3498db);
     color: #fff;
 }
 
@@ -325,7 +325,7 @@ body {
 .fm-landrop-filebtn {
     flex: 1;
     padding: 12px;
-    background: #3498db;
+    background: var(--accent-color, #3498db);
     border: none;
     border-radius: 6px;
     color: #fff;
@@ -336,7 +336,7 @@ body {
 }
 
 .fm-landrop-filebtn:hover {
-    background: #2980b9;
+    background: var(--accent-hover, #2980b9);
 }
 
 .fm-landrop-status {
@@ -382,7 +382,7 @@ body {
 }
 
 .fm-landrop-code:focus {
-    border-color: #3498db;
+    border-color: var(--accent-color, #3498db);
 }
 
 .fm-landrop-code[readonly] {
@@ -437,7 +437,7 @@ body {
 
 .fm-landrop-progress-fill {
     height: 100%;
-    background: #3498db;
+    background: var(--accent-color, #3498db);
     width: 0%;
     transition: width 0.15s;
     border-radius: 4px;
@@ -478,7 +478,7 @@ body {
 
 .fm-landrop-device:hover {
     background: #333;
-    border-color: #3498db;
+    border-color: var(--accent-color, #3498db);
 }
 
 .fm-landrop-device-icon {

@@ -87,7 +87,7 @@ body {
     background: rgba(255, 255, 255, 0.1);
 }
 .tab.active {
-    background: #3498db;
+    background: var(--accent-color, #3498db);
 }
 .tab-title {
     font-size: 12px;
@@ -136,7 +136,7 @@ body {
     min-width: 200px;
 }
 .address-bar-container:focus-within {
-    border-color: #3498db;
+    border-color: var(--accent-color, #3498db);
 }
 .address-bar {
     flex: 1;
@@ -206,8 +206,8 @@ body {
     background: rgba(52, 152, 219, 0.3);
 }
 .bookmark-add-folder {
-    color: #3498db;
-    border: 1px dashed #3498db50;
+    color: var(--accent-color, #3498db);
+    border: 1px dashed color-mix(in srgb, var(--accent-color, #3498db) 31%, transparent);
 }
 .bookmark-folder {
     font-weight: 500;
@@ -415,11 +415,11 @@ body {
     color: #fff;
 }
 .error-btn.primary {
-    background: #3498db;
-    border-color: #3498db;
+    background: var(--accent-color, #3498db);
+    border-color: var(--accent-color, #3498db);
     color: #fff;
 }
 .error-btn.primary:hover {
-    background: #2980b9;
-    border-color: #2980b9;
+    background: var(--accent-hover, #2980b9);
+    border-color: var(--accent-hover, #2980b9);
 }

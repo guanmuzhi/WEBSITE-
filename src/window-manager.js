@@ -119,7 +119,7 @@ class WindowManager {
             const maxX = containerRect.width - 50;
             const maxY = containerRect.height - 50;
             newX = Math.max(-winEl.offsetWidth + 50, Math.min(newX, maxX));
-            newY = Math.max(0, Math.min(newY, maxY));
+            newY = Math.max(-winEl.offsetHeight + 50, Math.min(newY, maxY));
             winEl.style.left = newX + 'px';
             winEl.style.top = newY + 'px';
         };
@@ -155,7 +155,7 @@ class WindowManager {
             const maxX = containerRect.width - 50;
             const maxY = containerRect.height - 50;
             newX = Math.max(-winEl.offsetWidth + 50, Math.min(newX, maxX));
-            newY = Math.max(0, Math.min(newY, maxY));
+            newY = Math.max(-winEl.offsetHeight + 50, Math.min(newY, maxY));
             winEl.style.left = newX + 'px';
             winEl.style.top = newY + 'px';
         };

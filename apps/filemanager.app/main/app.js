@@ -112,9 +112,9 @@ class FileManager {
             dialog.appendChild(msg);
             const okBtn = document.createElement('button');
             okBtn.textContent = this.t('common.ok', '确定');
-            okBtn.style.cssText = 'padding:8px 24px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
-            okBtn.addEventListener('mouseenter', () => { okBtn.style.background = '#2980b9'; });
-            okBtn.addEventListener('mouseleave', () => { okBtn.style.background = '#3498db'; });
+            okBtn.style.cssText = 'padding:8px 24px;background:var(--accent-color,#3498db);border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
+            okBtn.addEventListener('mouseenter', () => { okBtn.style.background = 'var(--accent-hover,#2980b9)'; });
+            okBtn.addEventListener('mouseleave', () => { okBtn.style.background = 'var(--accent-color,#3498db)'; });
             okBtn.addEventListener('click', () => { document.body.removeChild(overlay); resolve(); });
             dialog.appendChild(okBtn);
             overlay.appendChild(dialog);
@@ -148,9 +148,9 @@ class FileManager {
             btnContainer.appendChild(cancelBtn);
             const confirmBtn = document.createElement('button');
             confirmBtn.textContent = this.t('common.ok', '确定');
-            confirmBtn.style.cssText = 'padding:8px 16px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
-            confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = '#2980b9'; });
-            confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = '#3498db'; });
+            confirmBtn.style.cssText = 'padding:8px 16px;background:var(--accent-color,#3498db);border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
+            confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = 'var(--accent-hover,#2980b9)'; });
+            confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = 'var(--accent-color,#3498db)'; });
             confirmBtn.addEventListener('click', () => { document.body.removeChild(overlay); resolve(true); });
             btnContainer.appendChild(confirmBtn);
             dialog.appendChild(btnContainer);
@@ -178,7 +178,7 @@ class FileManager {
             input.type = 'text';
             input.value = defaultValue;
             input.style.cssText = 'width:100%;padding:10px 12px;background:#1e1e1e;border:1px solid #3d3d3d;border-radius:4px;color:#ddd;font-size:13px;font-family:inherit;margin-bottom:12px;outline:none;';
-            input.addEventListener('focus', () => { input.style.borderColor = '#3498db'; });
+            input.addEventListener('focus', () => { input.style.borderColor = 'var(--accent-color,#3498db)'; });
             input.addEventListener('blur', () => { input.style.borderColor = '#3d3d3d'; });
             dialog.appendChild(input);
             const btnContainer = document.createElement('div');
@@ -192,9 +192,9 @@ class FileManager {
             btnContainer.appendChild(cancelBtn);
             const confirmBtn = document.createElement('button');
             confirmBtn.textContent = this.t('common.ok', '确定');
-            confirmBtn.style.cssText = 'padding:8px 16px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
-            confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = '#2980b9'; });
-            confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = '#3498db'; });
+            confirmBtn.style.cssText = 'padding:8px 16px;background:var(--accent-color,#3498db);border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
+            confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = 'var(--accent-hover,#2980b9)'; });
+            confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = 'var(--accent-color,#3498db)'; });
             confirmBtn.addEventListener('click', () => { document.body.removeChild(overlay); resolve(input.value); });
             btnContainer.appendChild(confirmBtn);
             dialog.appendChild(btnContainer);
@@ -773,7 +773,7 @@ class FileManager {
             const input = document.createElement('input');
             input.type = 'password'; input.placeholder = '密码';
             input.style.cssText = 'width:100%;padding:10px 12px;background:#1e1e1e;border:1px solid #3d3d3d;border-radius:4px;color:#ddd;font-size:13px;font-family:inherit;margin-bottom:8px;outline:none;';
-            input.addEventListener('focus', () => { input.style.borderColor = '#3498db'; });
+            input.addEventListener('focus', () => { input.style.borderColor = 'var(--accent-color,#3498db)'; });
             input.addEventListener('blur', () => { input.style.borderColor = '#3d3d3d'; });
             dialog.appendChild(input);
             const errorMsg = document.createElement('div');
@@ -790,9 +790,9 @@ class FileManager {
             btnContainer.appendChild(cancelBtn);
             const confirmBtn = document.createElement('button');
             confirmBtn.textContent = this.t('common.ok', '确定');
-            confirmBtn.style.cssText = 'padding:8px 16px;background:#3498db;border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
-            confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = '#2980b9'; });
-            confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = '#3498db'; });
+            confirmBtn.style.cssText = 'padding:8px 16px;background:var(--accent-color,#3498db);border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
+            confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = 'var(--accent-hover,#2980b9)'; });
+            confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = 'var(--accent-color,#3498db)'; });
             const submit = () => {
                 const userInfo = this.getUserInfo(username);
                 if (userInfo && userInfo.password === input.value) {

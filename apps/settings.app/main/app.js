@@ -308,10 +308,7 @@ class SettingsApp {
         try {
             const root = window.parent.document.documentElement;
             root.style.setProperty('--accent-color', color);
-            const styleId = 'webos-accent-style';
-            let styleEl = window.parent.document.getElementById(styleId);
-            if (!styleEl) { styleEl = window.parent.document.createElement('style'); styleEl.id = styleId; window.parent.document.head.appendChild(styleEl); }
-            styleEl.textContent = `.taskbar-item.active { background-color: ${color} !important; } .window-titlebar { background-color: ${color} !important; } .window-btn.btn-close { background-color: #e74c3c !important; } .window-btn.btn-minimize { background-color: #f1c40f !important; }`;
+            window.parent.document.dispatchEvent(new CustomEvent('accent-color-changed', { detail: { color } }));
         } catch (e) {}
     }
     applyFontSize(size) { try { const root = window.parent.document.documentElement; root.style.fontSize = size + 'px'; } catch (e) {} }

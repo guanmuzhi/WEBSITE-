@@ -38,6 +38,53 @@ class DesktopManager {
         this.windowsContainerEl = null;
     }
     isMobile() { return window.innerWidth < 768; }
+    darkenHex(hex, amount = 0.15) {
+        let c = String(hex || '').replace('#', '');
+        if (!c) return '#1abc9c';
+        if (c.length === 3) c = c.split('').map(x => x + x).join('');
+        const num = parseInt(c, 16);
+        if (isNaN(num)) return '#1abc9c';
+        const r = Math.max(0, Math.round(((num >> 16) & 255) * (1 - amount)));
+        const g = Math.max(0, Math.round(((num >> 8) & 255) * (1 - amount)));
+        const b = Math.max(0, Math.round((num & 255) * (1 - amount)));
+        return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+    getCurrentAccent() {
+        return localStorage.getItem('webos-accent-color') || '#1abc9c';
+    }
+    buildThemeDetail(color) {
+        color = color || this.getCurrentAccent();
+        return { color, hover: this.darkenHex(color, 0.15) };
+    }
+    applyThemeToIframe(iframe, detail) {
+        if (!iframe) return;
+        try {
+            const doc = iframe.contentDocument;
+            if (!doc || !doc.documentElement) {
+                iframe.addEventListener('load', () => this.applyThemeToIframe(iframe, detail), { once: true });
+                return;
+            }
+            doc.documentElement.style.setProperty('--accent-color', detail.color);
+            doc.documentElement.style.setProperty('--accent-hover', detail.hover);
+        } catch (e) {}
+    }
+    applyThemeColor(color) {
+        const detail = this.buildThemeDetail(color);
+        const root = document.documentElement;
+        root.style.setProperty('--accent-color', detail.color);
+        root.style.setProperty('--accent-hover', detail.hover);
+        this.windowManager.getAllWindows().forEach(win => {
+            const iframe = win.element && win.element.querySelector('iframe');
+            this.applyThemeToIframe(iframe, detail);
+        });
+        return detail;
+    }
+    setupThemeListener() {
+        this.applyThemeColor(this.getCurrentAccent());
+        document.addEventListener('accent-color-changed', (e) => {
+            this.applyThemeColor(e.detail && e.detail.color);
+        });
+    }
     getStateFilePath() {
         const user = this.userManager.getCurrentUser();
         const username = user ? user.username : 'default';
@@ -78,6 +125,7 @@ class DesktopManager {
         this.setupUserSwitchListener();
         this.setupWallpaper();
         this.setupTaskbarAutohideListener();
+        this.setupThemeListener();
         this.setupTerminalCommandListener();
         this.setupDesktopClick();
         window.openApp = this.openAppById.bind(this);
@@ -453,6 +501,9 @@ class DesktopManager {
         if (vfsApp) { const appHtml = this.generateAppHtml(vfsApp, app.params || null); if (appHtml) { iframe.srcdoc = appHtml; } else { iframe.src = `/apps/${app.path}/main/index.html`; } }
         else { let src = `/apps/${app.path}/main/index.html`; if (app.params) { const params = new URLSearchParams(app.params); src += '?' + params.toString(); } iframe.src = src; }
         contentContainer.appendChild(iframe);
+        iframe.addEventListener('load', () => {
+            this.applyThemeToIframe(iframe, this.buildThemeDetail());
+        });
         const isMobile = this.isMobile();
         const win = this.windowManager.createWindow({ title: app.name, icon: iconUrl, content: contentContainer, width: isMobile ? window.innerWidth : (app.width || info.width || 380), height: isMobile ? (window.innerHeight - 56) : (app.height || info.height || 580), x: isMobile ? 0 : (app.x || 0), y: isMobile ? 0 : (app.y || 0), windowType: 'app', onMoveEnd: () => { this.saveState(); } });
         win.appName = app.name; win.appIcon = iconUrl; win.appPath = app.path; win.appParams = app.params;
