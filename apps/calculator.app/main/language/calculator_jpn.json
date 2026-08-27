@@ -1,5 +1,6 @@
 {
     "strings": {
+        "app.calculator": "電卓",
         "calculator.error": "エラー",
         "calculator.clear": "クリア",
         "calculator.delete": "削除",

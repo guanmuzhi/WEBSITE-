@@ -1,14 +1,6 @@
 {
     "strings": {
-        "_comment": "Root language file holds only desktop & lock-screen strings. App strings live in each app's main/language/ folder.",
-        "app.agent": "AI Assistant",
-        "app.appstore": "App Store",
-        "app.browser": "Browser",
-        "app.calculator": "Calculator",
-        "app.filemanager": "File Manager",
-        "app.mediaviewer": "Media Viewer",
-        "app.settings": "Settings",
-        "app.texteditor": "Text Editor",
+        "_comment": "Root language file holds only desktop & lock-screen strings. App strings live in each app's main/language/ folder. App names are provided by each app's language file.",
         "app.terminal": "Terminal",
         "lock.title": "Locked",
         "lock.minimize": "Minimize",

@@ -1,5 +1,6 @@
 {
     "strings": {
+        "app.calculator": "计算器",
         "calculator.error": "错误",
         "calculator.clear": "清除",
         "calculator.delete": "删除",

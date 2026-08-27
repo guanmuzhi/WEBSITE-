@@ -1,5 +1,6 @@
 {
     "strings": {
+        "app.calculator": "Calculator",
         "calculator.error": "Error",
         "calculator.clear": "Clear",
         "calculator.delete": "Delete",

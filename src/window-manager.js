@@ -20,10 +20,11 @@ class WindowManager {
         winEl.style.zIndex = this.zIndexCounter++;
         winEl.classList.add('window-opening');
         const containerRect = this.container.getBoundingClientRect();
-        let x = options.x !== undefined ? options.x : (containerRect.width - width) / 2;
+        // 以整个视口为中心（扣除程序坞/任务栏占用区域），确保新窗口落在屏幕中央
+        let x = options.x !== undefined ? options.x : (window.innerWidth - width) / 2 - containerRect.left;
         let y = options.y !== undefined ? options.y : (containerRect.height - height) / 2;
-        x = Math.max(0, Math.min(x, containerRect.width - 100));
-        y = Math.max(0, Math.min(y, containerRect.height - 100));
+        x = Math.max(0, Math.min(x, containerRect.width - 60));
+        y = Math.max(0, Math.min(y, containerRect.height - 60));
         winEl.style.left = x + 'px';
         winEl.style.top = y + 'px';
         const titlebar = document.createElement('div');
@@ -102,6 +103,7 @@ class WindowManager {
         let dragOffsetY = 0;
         const onMouseDown = (e) => {
             if (e.target.closest('.window-controls')) return;
+            e.stopPropagation();
             isDragging = true;
             const rect = winEl.getBoundingClientRect();
             const containerRect = this.container.getBoundingClientRect();
@@ -135,6 +137,7 @@ class WindowManager {
         const onTouchStart = (e) => {
             if (e.target.closest('.window-controls')) return;
             e.preventDefault();
+            e.stopPropagation();
             isDragging = true;
             const touch = e.touches[0];
             const rect = winEl.getBoundingClientRect();

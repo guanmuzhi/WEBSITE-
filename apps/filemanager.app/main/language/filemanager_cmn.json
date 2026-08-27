@@ -1,5 +1,6 @@
 {
     "strings": {
+        "app.filemanager": "文件管理器",
         "filemanager.nav": "导航",
         "filemanager.files": "文件",
         "filemanager.network": "LAN Drop",

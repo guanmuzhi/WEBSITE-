@@ -677,7 +677,7 @@ body {
 .lock-screen .lock-user-avatar {
     width: 72px;
     height: 72px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--accent-color, #1abc9c) 0%, var(--accent-hover, #16a085) 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -686,7 +686,7 @@ body {
     font-size: 28px;
     font-weight: 600;
     color: #fff;
-    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--accent-color, #1abc9c) 40%, transparent);
 }
 .lock-screen .lock-username {
     color: #f5f5f5;
@@ -713,8 +713,8 @@ body {
 }
 .lock-screen .lock-password-input:focus {
     outline: none;
-    border-color: #667eea;
-    background: rgba(102, 126, 234, 0.1);
+    border-color: var(--accent-color, #1abc9c);
+    background: color-mix(in srgb, var(--accent-color, #1abc9c) 10%, transparent);
 }
 .lock-screen .lock-password-input::placeholder {
     color: #555;
@@ -722,7 +722,7 @@ body {
 .lock-screen .lock-unlock-btn {
     width: 100%;
     padding: 12px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--accent-color, #1abc9c) 0%, var(--accent-hover, #16a085) 100%);
     border: none;
     border-radius: 10px;
     color: #fff;
@@ -730,11 +730,11 @@ body {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 15px color-mix(in srgb, var(--accent-color, #1abc9c) 30%, transparent);
 }
 .lock-screen .lock-unlock-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--accent-color, #1abc9c) 40%, transparent);
 }
 .lock-screen .lock-unlock-btn:active {
     transform: translateY(0);
@@ -787,8 +787,8 @@ body {
 }
 .lock-screen .lock-create-input:focus {
     outline: none;
-    border-color: #667eea;
-    background: rgba(102, 126, 234, 0.1);
+    border-color: var(--accent-color, #1abc9c);
+    background: color-mix(in srgb, var(--accent-color, #1abc9c) 10%, transparent);
 }
 .lock-screen .lock-create-input::placeholder {
     color: #555;
@@ -816,7 +816,7 @@ body {
 .lock-screen .lock-confirm-btn {
     flex: 1;
     padding: 10px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--accent-color, #1abc9c) 0%, var(--accent-hover, #16a085) 100%);
     border: none;
     border-radius: 10px;
     color: #fff;
@@ -856,16 +856,16 @@ body {
     background: rgba(255, 255, 255, 0.05);
 }
 .lock-screen .lock-user-item-current {
-    background: rgba(102, 126, 234, 0.1);
+    background: color-mix(in srgb, var(--accent-color, #1abc9c) 10%, transparent);
     cursor: default;
 }
 .lock-screen .lock-user-item-current:hover {
-    background: rgba(102, 126, 234, 0.1);
+    background: color-mix(in srgb, var(--accent-color, #1abc9c) 10%, transparent);
 }
 .lock-screen .lock-user-item-avatar {
     width: 36px;
     height: 36px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--accent-color, #1abc9c) 0%, var(--accent-hover, #16a085) 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -905,8 +905,8 @@ body {
     flex-shrink: 0;
 }
 .lock-screen .lock-user-item-rename:hover {
-    background: rgba(102, 126, 234, 0.2);
-    color: #667eea;
+    background: color-mix(in srgb, var(--accent-color, #1abc9c) 20%, transparent);
+    color: var(--accent-color, #1abc9c);
 }
 .lock-screen .lock-user-item-delete:hover {
     background: rgba(231, 76, 60, 0.2);
@@ -936,7 +936,7 @@ body {
     position: fixed;
     left: 0;
     bottom: 0;
-    width: auto;
+    width: 110px;
     height: 48px;
     min-height: 48px;
     background: rgba(26, 188, 156, 0.7);
@@ -970,7 +970,7 @@ body {
 .taskbar-compact-avatar {
     width: 24px;
     height: 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--accent-color, #1abc9c) 0%, var(--accent-hover, #16a085) 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;

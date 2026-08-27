@@ -1,5 +1,6 @@
 {
   "strings": {
+    "app.browser": "浏览器",
     "browser.txt_title": "浏览器",
     "browser.back": "后退",
     "browser.forward": "前进",

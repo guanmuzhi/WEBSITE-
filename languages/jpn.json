@@ -1,14 +1,6 @@
 {
     "strings": {
-        "_comment": "ルートの言語ファイルにはデスクトップとロック画面の文字のみを格納。アプリの文字列は各アプリの main/language/ に配置します。",
-        "app.agent": "AIアシスタント",
-        "app.appstore": "アプリストア",
-        "app.browser": "ブラウザ",
-        "app.calculator": "電卓",
-        "app.filemanager": "ファイルマネージャー",
-        "app.mediaviewer": "メディアビューア",
-        "app.settings": "設定",
-        "app.texteditor": "テキストエディタ",
+        "_comment": "ルートの言語ファイルにはデスクトップとロック画面の文字のみを格納。アプリの文字列は各アプリの main/language/ に配置します。アプリ名は各アプリの言語ファイルが提供します。",
         "app.terminal": "ターミナル",
         "lock.title": "ロック",
         "lock.minimize": "最小化",

@@ -13,8 +13,10 @@ body{background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direc
 .drawer-close{border:none;background:transparent;color:#fff;font-size:20px;cursor:pointer;}
 .new-chat-btn,.new-folder-btn,.icon-btn{padding:9px;border-radius:6px;border:none;background:var(--primary);color:#fff;cursor:pointer;}
 .new-chat-btn{width:100%;margin-bottom:8px;}
-.new-folder-btn{width:100%;margin-bottom:8px;background:#374151;}
-.icon-btn{padding:6px 9px;background:#374151;font-size:14px;}
+.new-folder-btn{width:100%;margin-bottom:8px;background:#374151;display:flex;align-items:center;justify-content:center;gap:6px;}
+.new-folder-btn img{width:15px;height:15px;filter:invert(1);}
+.icon-btn{padding:8px;background:#374151;font-size:14px;display:inline-flex;align-items:center;justify-content:center;}
+.icon-btn img{width:15px;height:15px;filter:invert(1);}
 .icon-btn:hover{background:#4b5563;}
 .folder-wrap{margin-bottom:6px;}
 .folder-head{display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:5px;background:#27272a;cursor:pointer;}

@@ -3,9 +3,11 @@ class SettingsApp {
         this.languagePack = { strings: {} };
         this.currentLang = localStorage.getItem('webos-language') || 'cmn';
         this.currentUser = 'public';
+        this.version = '';
         this.init();
     }
     async init() {
+        await this.loadVersion();
         await this.loadLanguagePack(this.currentLang);
         this.setupNavigation();
         this.loadSystemInfo();
@@ -59,6 +61,15 @@ class SettingsApp {
         const strings = this.languagePack.strings || {};
         return strings[key] !== undefined ? strings[key] : (fallback || key);
     }
+    async loadVersion() {
+        try {
+            const res = await fetch('/apps/settings.app/info.json');
+            if (res.ok) {
+                const info = await res.json();
+                this.version = (info && info.version) || '';
+            }
+        } catch(e) { this.version = ''; }
+    }
     setupNavigation() {
         const navItems = document.querySelectorAll('.settings-nav-item');
         navItems.forEach(item => {
@@ -77,7 +88,7 @@ class SettingsApp {
         document.getElementById('sys-os').textContent = navigator.platform || 'Unknown';
         document.getElementById('sys-resolution').textContent = `${window.screen.width} x ${window.screen.height}`;
         document.getElementById('sys-online').textContent = navigator.onLine ? '在线' : '离线';
-        document.getElementById('sys-version').textContent = 'v1.5';
+        document.getElementById('sys-version').textContent = this.version ? 'v' + this.version : '';
     }
     loadUserInfo() {
         try {
@@ -357,7 +368,7 @@ class SettingsApp {
         const langLabels = { 'lang-select-label': 'settings.select_language' };
         Object.entries(langLabels).forEach(([id, key]) => { const el = document.getElementById(id); if (el && strings[key]) el.textContent = strings[key]; });
         const versionEl = document.getElementById('settings-version');
-        if (versionEl && strings['version']) versionEl.textContent = strings['version'] + ' v1.5';
+        if (versionEl && strings['version']) versionEl.textContent = strings['version'] + (this.version ? ' v' + this.version : '');
         if (strings['app.settings']) document.title = strings['app.settings'];
     }
 }

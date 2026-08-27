@@ -1,14 +1,6 @@
 {
     "strings": {
-        "_comment": "根目录语言文件只包含桌面与锁定界面（不属于任何应用）的文字项。应用自身的语言文件位于各应用 main/language/ 目录。",
-        "app.agent": "AI 助手",
-        "app.appstore": "应用商店",
-        "app.browser": "浏览器",
-        "app.calculator": "计算器",
-        "app.filemanager": "文件管理器",
-        "app.mediaviewer": "媒体查看器",
-        "app.settings": "设置",
-        "app.texteditor": "文本编辑器",
+        "_comment": "根目录语言文件只包含桌面与锁定界面（不属于任何应用）的文字项。应用自身的语言文件位于各应用 main/language/ 目录。应用名翻译由各应用语言文件提供。",
         "app.terminal": "终端",
         "lock.title": "锁定",
         "lock.minimize": "最小化",

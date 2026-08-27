@@ -1,5 +1,4 @@
 import UserManager from './user-manager.js?v=15';
-import UserSwitcher from './user-switcher.js?v=15';
 import LockScreen from './lock-screen.js?v=15';
 import StorageService from './storage.js?v=15';
 class DesktopManager {
@@ -24,9 +23,9 @@ class DesktopManager {
         this.apps = [];
         this._systemAppPaths = new Set();
         this.langStrings = {};
+        this.appLangStrings = {};
         this.userManager = UserManager.getInstance();
         this.storage = StorageService.getInstance();
-        this.userSwitcher = null;
         this.lockScreen = null;
         this.viewX = 0;
         this.viewY = 0;
@@ -110,10 +109,10 @@ class DesktopManager {
         } else {
             this.lockScreen = new LockScreen({ onUnlock: () => { this.updateTaskbarUser(); }, onUserSwitch: (username) => { this.switchUser(username); } });
         }
-        this.userSwitcher = new UserSwitcher({ onSwitch: (username) => { this.switchUser(username); }, onLock: () => { this.lock(); } });
         this.setupTaskbarUser();
         await this.loadLanguageStrings();
         await this.scanApps();
+        await this.refreshAppNames();
         await this.seedSystemDirectories();
         this.setupDesktopIcons();
         this.setupLanguageListener();
@@ -132,16 +131,66 @@ class DesktopManager {
         window.installAppFromFile = this.installAppFromFile.bind(this);
         window.getInstalledApps = () => this.apps.filter(a => !this._systemAppPaths.has(a.path));
     }
-    async loadLanguageStrings() {
-        const lang = localStorage.getItem('webos-language') || 'cmn';
+    getLangCode() { return localStorage.getItem('webos-language') || 'cmn'; }
+    async fetchLangJson(url, cacheKey) {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) { try { return JSON.parse(cached); } catch (e) {} }
+        try {
+            const res = await fetch(url);
+            if (res.ok) { const data = await res.json(); localStorage.setItem(cacheKey, JSON.stringify(data)); return data; }
+        } catch (e) {}
+        return null;
+    }
+    async loadLanguageStrings(lang) {
+        lang = lang || this.getLangCode();
         const langFiles = { cmn: '/languages/cmn.json', eng: '/languages/eng.json', jpn: '/languages/jpn.json' };
-        try { const res = await fetch(langFiles[lang] || langFiles.cmn); const data = await res.json(); this.langStrings = data.strings || {}; } catch (e) { this.langStrings = {}; }
+        const data = await this.fetchLangJson(langFiles[lang] || langFiles.cmn, `webos-lang-root:${lang}`);
+        this.langStrings = (data && data.strings) || {};
+    }
+    async loadAppLanguages(lang) {
+        lang = lang || this.getLangCode();
+        const map = {};
+        if (this.apps && this.apps.length) {
+            await Promise.all(this.apps.map(async (app) => {
+                const id = app.path.replace('.app', '');
+                const url = `/apps/${app.path}/main/language/${id}_${lang}.json`;
+                const data = await this.fetchLangJson(url, `webos-lang:${lang}:${app.path}`);
+                if (data && data.strings) map[app.path] = data.strings;
+            }));
+        }
+        this.appLangStrings = map;
+    }
+    getAppDisplayName(app, fallback) {
+        const id = app.path.replace('.app', '');
+        const strs = (this.appLangStrings && this.appLangStrings[app.path]) || {};
+        if (strs['app.' + id] !== undefined) return strs['app.' + id];
+        if (strs['app.title'] !== undefined) return strs['app.title'];
+        return fallback || app.name;
+    }
+    getAppLabelForPath(path, fallback) {
+        const app = (this.apps || []).find(a => a.path === path);
+        if (app) return this.getAppDisplayName(app, fallback);
+        return fallback;
+    }
+    async refreshAppNames() {
+        await this.loadAppLanguages();
+        this.updateDesktopIconLabels();
+        this.updateAllWindowTitles();
+        this.updateTaskbar();
+    }
+    updateAllWindowTitles() {
+        if (!this.windowManager) return;
+        this.windowManager.getAllWindows().forEach(win => {
+            if (win.windowType === 'app' && win._appObj) { win.setTitle(this.getAppDisplayName(win._appObj, win.appName || win._appObj.name)); }
+            else if (win.windowType === 'terminal') { win.setTitle(this.t('app.terminal', '终端')); }
+        });
     }
     t(key, fallback) { return this.langStrings[key] !== undefined ? this.langStrings[key] : (fallback || key); }
     setupLanguageListener() {
         document.addEventListener('language-changed', async (e) => {
             const { lang, strings } = e.detail || {};
-            if (strings) { this.langStrings = strings; } else if (lang) { await this.loadLanguageStrings(); }
+            if (strings) { this.langStrings = strings; } else { await this.loadLanguageStrings(lang); }
+            await this.refreshAppNames();
             this.updateDesktopIconLabels(); this.updateTaskbar();
         });
     }
@@ -151,12 +200,12 @@ class DesktopManager {
         const terminalLabel = desktopIcons.querySelector('#terminal-icon .icon-label');
         if (terminalLabel) terminalLabel.textContent = this.t('app.terminal', '终端');
         const calcLabel = desktopIcons.querySelector('#calculator-icon .icon-label');
-        if (calcLabel) calcLabel.textContent = this.t('app.calculator', '计算器');
+        if (calcLabel) calcLabel.textContent = this.getAppLabelForPath('calculator.app', '计算器');
         const fmLabel = desktopIcons.querySelector('#filemanager-icon .icon-label');
-        if (fmLabel) fmLabel.textContent = this.t('app.filemanager', '文件管理器');
+        if (fmLabel) fmLabel.textContent = this.getAppLabelForPath('filemanager.app', '文件管理器');
         this.apps.forEach(app => {
             const iconEl = desktopIcons.querySelector(`[data-app="${app.id}"]`);
-            if (iconEl) { const labelEl = iconEl.querySelector('.icon-label'); if (labelEl) { const key = 'app.' + app.path.replace('.app', ''); labelEl.textContent = this.t(key, app.name); } }
+            if (iconEl) { const labelEl = iconEl.querySelector('.icon-label'); if (labelEl) { labelEl.textContent = this.getAppDisplayName(app, app.name); } }
         });
     }
     async seedSystemDirectories() {
@@ -321,8 +370,7 @@ class DesktopManager {
     }
     setupTaskbarUser() {
         const taskbarUser = this.desktopEl.querySelector('#taskbar-user');
-        if (taskbarUser) { taskbarUser.addEventListener('click', (e) => { e.stopPropagation(); this.userSwitcher.toggle(); }); }
-        document.addEventListener('click', (e) => { if (!this.userSwitcher.el.contains(e.target) && !taskbarUser.contains(e.target)) { this.userSwitcher.hide(); } });
+        if (taskbarUser) { taskbarUser.addEventListener('click', (e) => { e.stopPropagation(); this.lock(); }); }
     }
     updateTaskbarUser() {
         const user = this.userManager.getCurrentUser();
@@ -339,7 +387,7 @@ class DesktopManager {
     setupCompactTaskbar() {
         if (!this.compactExpandBtn) return;
         this.compactExpandBtn.addEventListener('click', (e) => { e.stopPropagation(); this.expandTaskbarFromCompact(); });
-        if (this.compactTaskbarEl) { const compactUser = this.compactTaskbarEl.querySelector('#taskbar-compact-user'); if (compactUser) { compactUser.addEventListener('click', (e) => { e.stopPropagation(); this.userSwitcher.toggle(); }); } }
+        if (this.compactTaskbarEl) { const compactUser = this.compactTaskbarEl.querySelector('#taskbar-compact-user'); if (compactUser) { compactUser.addEventListener('click', (e) => { e.stopPropagation(); this.lock(); }); } }
     }
     setTaskbarAutohide(enabled) {
         this._taskbarAutohide = enabled;
@@ -368,7 +416,7 @@ class DesktopManager {
             // 桌布移动优先级最高：仅当指针位于应用内容(iframe)或系统UI(任务栏/用户切换器)内部时让其内部滚动，
             // 其它情况（桌面空白、窗口标题栏/边框、桌面图标）一律用于移动桌布。
             const overIframe = !!e.target.closest('iframe');
-            const overSystemUI = e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') || e.target.closest('.user-switcher');
+            const overSystemUI = e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') || e.target.closest('.user-switcher') || e.target.closest('.desktop-icons');
             if ((overIframe || overSystemUI) && !e.altKey) return;
             e.preventDefault();
             let dx = e.deltaX; let dy = e.deltaY;
@@ -400,9 +448,9 @@ class DesktopManager {
     lock() { this.lockScreen.show(); }
     setupAppLaunchListeners() {
         document.addEventListener('app-launch-real', (e) => { const path = e.detail.path; const app = { path: path, name: path.replace('.app', '') }; this.openAppByPath(app); });
-        document.addEventListener('open-file-in-editor', (e) => { const filePath = e.detail.path; this.openAppByPath({ path: 'texteditor.app', name: this.t('app.texteditor', '文本编辑器'), params: { path: filePath } }); });
-        document.addEventListener('open-image-viewer', (e) => { const filePath = e.detail.path; this.openAppByPath({ path: 'mediaviewer.app', name: this.t('app.mediaviewer', '媒体查看器'), params: { path: filePath } }); });
-        document.addEventListener('open-media-player', (e) => { const filePath = e.detail.path; this.openAppByPath({ path: 'mediaviewer.app', name: this.t('app.mediaviewer', '媒体查看器'), params: { path: filePath } }); });
+        document.addEventListener('open-file-in-editor', (e) => { const filePath = e.detail.path; this.openAppByPath({ path: 'texteditor.app', name: this.getAppLabelForPath('texteditor.app', '文本编辑器'), params: { path: filePath } }); });
+        document.addEventListener('open-image-viewer', (e) => { const filePath = e.detail.path; this.openAppByPath({ path: 'mediaviewer.app', name: this.getAppLabelForPath('mediaviewer.app', '媒体查看器'), params: { path: filePath } }); });
+        document.addEventListener('open-media-player', (e) => { const filePath = e.detail.path; this.openAppByPath({ path: 'mediaviewer.app', name: this.getAppLabelForPath('mediaviewer.app', '媒体查看器'), params: { path: filePath } }); });
     }
     async scanApps() {
         try { const res = await fetch('/apps/manifest.json'); if (!res.ok) return; this.apps = await res.json(); this._systemAppPaths = new Set(this.apps.map(a => a.path)); } catch (e) { console.warn('扫描应用失败:', e); this.apps = []; }
@@ -412,13 +460,13 @@ class DesktopManager {
         const terminalIcon = this.desktopEl.querySelector('#terminal-icon');
         if (terminalIcon) { const label = terminalIcon.querySelector('.icon-label'); if (label) label.textContent = this.t('app.terminal', '终端'); terminalIcon.addEventListener('click', () => { this.openTerminalWindow(); }); }
         const calculatorIcon = this.desktopEl.querySelector('#calculator-icon');
-        if (calculatorIcon) { const label = calculatorIcon.querySelector('.icon-label'); if (label) label.textContent = this.t('app.calculator', '计算器'); calculatorIcon.dataset.manualBound = '1'; calculatorIcon.addEventListener('click', () => { this.openAppByPath({ path: 'calculator.app', name: this.t('app.calculator', '计算器') }); }); }
+        if (calculatorIcon) { const label = calculatorIcon.querySelector('.icon-label'); if (label) label.textContent = this.getAppLabelForPath('calculator.app', '计算器'); calculatorIcon.dataset.manualBound = '1'; calculatorIcon.addEventListener('click', () => { this.openAppByPath({ path: 'calculator.app', name: this.getAppLabelForPath('calculator.app', '计算器') }); }); }
         const filemanagerIcon = this.desktopEl.querySelector('#filemanager-icon');
-        if (filemanagerIcon) { const label = filemanagerIcon.querySelector('.icon-label'); if (label) label.textContent = this.t('app.filemanager', '文件管理器'); filemanagerIcon.dataset.manualBound = '1'; filemanagerIcon.addEventListener('click', () => { this.openAppByPath({ path: 'filemanager.app', name: this.t('app.filemanager', '文件管理器') }); }); }
+        if (filemanagerIcon) { const label = filemanagerIcon.querySelector('.icon-label'); if (label) label.textContent = this.getAppLabelForPath('filemanager.app', '文件管理器'); filemanagerIcon.dataset.manualBound = '1'; filemanagerIcon.addEventListener('click', () => { this.openAppByPath({ path: 'filemanager.app', name: this.getAppLabelForPath('filemanager.app', '文件管理器') }); }); }
         this.apps.forEach(app => {
             let iconEl = desktopIcons.querySelector(`[data-app="${app.id}"]`);
-            if (!iconEl) { iconEl = document.createElement('div'); iconEl.className = 'desktop-icon'; iconEl.setAttribute('data-app', app.id); const key = 'app.' + app.path.replace('.app', ''); const displayName = this.t(key, app.name); iconEl.innerHTML = `<div class="icon-image"><img src="/apps/${app.path}/icon.svg" alt="${displayName}" style="width:28px;height:28px;"></div><div class="icon-label">${displayName}</div>`; desktopIcons.appendChild(iconEl); }
-            if (!iconEl.dataset.manualBound) { iconEl.addEventListener('click', () => { const key = 'app.' + app.path.replace('.app', ''); this.openAppByPath({ ...app, name: this.t(key, app.name) }); }); }
+            if (!iconEl) { iconEl = document.createElement('div'); iconEl.className = 'desktop-icon'; iconEl.setAttribute('data-app', app.id); const displayName = this.getAppDisplayName(app, app.name); iconEl.innerHTML = `<div class="icon-image"><img src="/apps/${app.path}/icon.svg" alt="${displayName}" style="width:28px;height:28px;"></div><div class="icon-label">${displayName}</div>`; desktopIcons.appendChild(iconEl); }
+            if (!iconEl.dataset.manualBound) { iconEl.addEventListener('click', () => { this.openAppByPath({ ...app, name: this.getAppDisplayName(app, app.name) }); }); }
         });
     }
     openTerminalWindow(options = {}) {

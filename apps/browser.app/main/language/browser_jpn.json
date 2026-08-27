@@ -1,5 +1,6 @@
 {
   "strings": {
+    "app.browser": "ブラウザ",
     "browser.txt_title": "ブラウザ",
     "browser.back": "戻る",
     "browser.forward": "進む",
