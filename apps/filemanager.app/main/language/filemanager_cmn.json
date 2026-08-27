@@ -1,0 +1,21 @@
+{
+    "strings": {
+        "filemanager.nav": "导航",
+        "filemanager.files": "文件",
+        "filemanager.network": "LAN Drop",
+        "filemanager.back": "返回上级",
+        "filemanager.home": "根目录",
+        "filemanager.refresh": "刷新",
+        "filemanager.new_folder": "新建文件夹",
+        "filemanager.new_file": "新建文件",
+        "filemanager.upload": "上传文件",
+        "filemanager.paste": "粘贴",
+        "filemanager.empty": "此文件夹为空",
+        "common.close": "关闭",
+        "common.alert": "提示",
+        "common.ok": "确定",
+        "common.confirm": "确认",
+        "common.cancel": "取消",
+        "common.prompt": "输入"
+    }
+}

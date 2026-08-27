@@ -1,0 +1,9 @@
+{
+    "strings": {
+        "calculator.error": "Error",
+        "calculator.clear": "Clear",
+        "calculator.delete": "Delete",
+        "common.ok": "OK",
+        "common.cancel": "Cancel"
+    }
+}

@@ -23,6 +23,11 @@ class Browser {
         this.retryBtn = document.getElementById('retry-btn');
         this.openExternalBtn = document.getElementById('open-external-btn');
         this.bookmarksBar = document.getElementById('bookmarks-bar');
+        this.bookmarksSidebar = document.getElementById('bookmarks-sidebar');
+        this.bookmarksList = document.getElementById('bookmarks-list');
+        this.closeBookmarksBtn = document.getElementById('close-bookmarks');
+        this.bookmarkCurrentBtn = document.getElementById('bookmark-current-btn');
+        this.addFolderBtn = document.getElementById('add-folder-btn');
         this.historySidebar = document.getElementById('history-sidebar');
         this.historyList = document.getElementById('history-list');
         this.closeHistoryBtn = document.getElementById('close-history');
@@ -106,9 +111,12 @@ class Browser {
         this.refreshBtn.addEventListener('click', () => this.refresh());
         this.newTabBtn.addEventListener('click', () => this.openNewTab());
         this.historyBtn.addEventListener('click', () => this.toggleHistory());
-        this.bookmarkBtn.addEventListener('click', () => this.toggleBookmark());
+        this.bookmarkBtn.addEventListener('click', () => this.toggleBookmarks());
+        this.closeBookmarksBtn.addEventListener('click', () => this.toggleBookmarks());
         this.closeHistoryBtn.addEventListener('click', () => this.toggleHistory());
         this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
+        this.bookmarkCurrentBtn.addEventListener('click', () => this.addCurrentPageToBookmarks());
+        this.addFolderBtn.addEventListener('click', () => { const name = prompt('文件夹名称：'); if (name && name.trim()) { this._addFolder(name.trim()); this.renderBookmarks(); this.renderBookmarkDrawer(); } });
         this.goBtn.addEventListener('click', () => this.navigate());
         this.addressInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.navigate(); });
         this._originalWindowOpen = window.open.bind(window);
@@ -116,11 +124,54 @@ class Browser {
         this.browserFrame.addEventListener('load', () => this.onPageLoad());
         this.retryBtn.addEventListener('click', () => { this.hideError(); this.refresh(); });
         this.openExternalBtn.addEventListener('click', () => { const currentTab = this.tabs[this.currentTabIndex]; if (currentTab && currentTab.url && currentTab.url !== 'about:blank') { this._originalWindowOpen(currentTab.url, '_blank', 'noopener,noreferrer'); } this.hideError(); });
-        document.addEventListener('user-switched', (e) => { if (e.detail && e.detail.username) { this.currentUsername = e.detail.username; this._loadData(); this.renderBookmarks(); this.renderHistory(); } });
+        document.addEventListener('user-switched', (e) => { if (e.detail && e.detail.username) { this.currentUsername = e.detail.username; this._loadData(); this.renderBookmarks(); this.renderBookmarkDrawer(); this.renderHistory(); } });
         this.renderBookmarks();
+        this.renderBookmarkDrawer();
         this.renderHistory();
         this.addNewTab('about:blank', '新标签页');
         this.updateNavButtons();
+    }
+    toggleBookmarks() { if (this.historySidebar.style.display === 'block') { this.historySidebar.style.display = 'none'; } if (this.bookmarksSidebar.style.display === 'block') { this.bookmarksSidebar.style.display = 'none'; } else { this.bookmarksSidebar.style.display = 'block'; this.renderBookmarkDrawer(); } }
+    renderBookmarkDrawer() {
+        if (!this.bookmarksList) return;
+        this.bookmarksList.innerHTML = '';
+        if (!this.bookmarks || this.bookmarks.length === 0) { this.bookmarksList.innerHTML = '<div style="padding:20px;color:#888;text-align:center;">暂无收藏</div>'; return; }
+        this.bookmarks.forEach(node => this._renderBookmarkDrawerNode(node, this.bookmarksList, 0));
+    }
+    _renderBookmarkDrawerNode(node, container, depth) {
+        const isFolder = node.type === 'folder';
+        const row = document.createElement('div');
+        row.className = 'bookmark-tree-item' + (isFolder ? ' bookmark-tree-folder' : ' bookmark-tree-link');
+        row.style.paddingLeft = (10 + Math.min(depth, 6) * 12) + 'px';
+        row.title = node.url || node.name;
+        const icon = document.createElement('span'); icon.className = 'bookmark-tree-icon';
+        if (isFolder) {
+            const childWrap = document.createElement('div');
+            childWrap.className = 'bookmark-tree-children';
+            childWrap.style.display = 'block';
+            icon.textContent = '▾';
+            row.addEventListener('click', (e) => { e.stopPropagation(); if (childWrap.style.display === 'none') { childWrap.style.display = 'block'; icon.textContent = '▾'; } else { childWrap.style.display = 'none'; icon.textContent = '▸'; } });
+            const label = document.createElement('span'); label.className = 'bookmark-tree-name'; label.textContent = node.name;
+            row.appendChild(icon); row.appendChild(label);
+            container.appendChild(row);
+            if (node.children && node.children.length) { node.children.forEach(c => this._renderBookmarkDrawerNode(c, childWrap, depth + 1)); } else { const empty = document.createElement('div'); empty.className = 'bookmark-tree-empty'; empty.style.paddingLeft = (10 + (Math.min(depth, 6) + 1) * 12) + 'px'; empty.textContent = '（空文件夹）'; childWrap.appendChild(empty); }
+            container.appendChild(childWrap);
+            row.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); if (confirm(`删除文件夹 "${node.name}" 及其所有收藏？`)) { this._removeBookmark(node.id); this.renderBookmarks(); this.renderBookmarkDrawer(); } });
+        } else {
+            icon.textContent = '›';
+            const label = document.createElement('span'); label.className = 'bookmark-tree-name'; label.textContent = node.name;
+            row.appendChild(icon); row.appendChild(label);
+            row.addEventListener('click', () => { this.addressInput.value = node.url; this.navigate(); });
+            row.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); if (confirm(`删除收藏 "${node.name}"？`)) { this._removeBookmark(node.id); this.renderBookmarks(); this.renderBookmarkDrawer(); } });
+            container.appendChild(row);
+        }
+    }
+    addCurrentPageToBookmarks() {
+        const currentTab = this.tabs[this.currentTabIndex];
+        if (!currentTab || !currentTab.url || currentTab.url === 'about:blank') return;
+        const existing = this._findBookmark(currentTab.url);
+        if (existing) { if (confirm(`已收藏 "${existing.name}"，是否移除？`)) { this._removeBookmark(existing.id); this.renderBookmarks(); this.renderBookmarkDrawer(); } }
+        else { const name = currentTab.title || currentTab.url; this.showBookmarkFolderDialog(name, currentTab.url); }
     }
     toggleHistory() { if (this.historySidebar.style.display === 'block') { this.historySidebar.style.display = 'none'; } else { this.historySidebar.style.display = 'block'; this.renderHistory(); } }
     clearHistory() { if (confirm('确定要清空所有历史记录吗？')) { this.history = []; this._saveHistory(); this.renderHistory(); } }
@@ -152,13 +203,6 @@ class Browser {
         if (this.history.length > 500) { this.history = this.history.slice(0, 500); }
         this._saveHistory();
     }
-    toggleBookmark() {
-        const currentTab = this.tabs[this.currentTabIndex];
-        if (!currentTab || !currentTab.url || currentTab.url === 'about:blank') return;
-        const existing = this._findBookmark(currentTab.url);
-        if (existing) { if (confirm(`已收藏 "${existing.name}"，是否移除？`)) { this._removeBookmark(existing.id); this.renderBookmarks(); } }
-        else { const name = currentTab.title || currentTab.url; this.showBookmarkFolderDialog(name, currentTab.url); }
-    }
     showBookmarkFolderDialog(name, url) {
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
@@ -169,7 +213,7 @@ class Browser {
         const folderLabel = document.createElement('div'); folderLabel.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:8px;'; folderLabel.textContent = '选择文件夹：'; dialog.appendChild(folderLabel);
         const folderList = document.createElement('div'); folderList.style.cssText = 'max-height:200px;overflow-y:auto;background:#1e1e1e;border-radius:4px;margin-bottom:12px;';
         const rootOption = document.createElement('div'); rootOption.style.cssText = 'padding:10px 12px;cursor:pointer;color:#ccc;font-size:13px;background:color-mix(in srgb, var(--accent-color,#3498db) 20%, transparent);border-bottom:1px solid #333;'; rootOption.textContent = '📁 收藏夹根目录';
-        rootOption.addEventListener('click', () => { this._addBookmark(name, url, null); this.renderBookmarks(); document.body.removeChild(overlay); });
+        rootOption.addEventListener('click', () => { this._addBookmark(name, url, null); this.renderBookmarks(); this.renderBookmarkDrawer(); document.body.removeChild(overlay); });
         folderList.appendChild(rootOption);
         const folders = this._getAllFolders();
         if (folders.length === 0) { const empty = document.createElement('div'); empty.style.cssText = 'padding:10px 12px;color:#666;font-size:12px;'; empty.textContent = '暂无文件夹，可在收藏栏点击"+ 文件夹"创建'; folderList.appendChild(empty); }
@@ -178,7 +222,7 @@ class Browser {
                 const item = document.createElement('div'); item.style.cssText = 'padding:10px 12px;cursor:pointer;color:#ccc;font-size:13px;border-bottom:1px solid #333;'; item.textContent = '📂 ' + folder.name;
                 item.addEventListener('mouseenter', () => { item.style.background = '#3d3d3d'; });
                 item.addEventListener('mouseleave', () => { item.style.background = ''; });
-                item.addEventListener('click', () => { this._addBookmark(name, url, folder.id); this.renderBookmarks(); document.body.removeChild(overlay); });
+                item.addEventListener('click', () => { this._addBookmark(name, url, folder.id); this.renderBookmarks(); this.renderBookmarkDrawer(); document.body.removeChild(overlay); });
                 folderList.appendChild(item);
             });
         }

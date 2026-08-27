@@ -26,7 +26,7 @@ class FileManager {
 
     async loadLanguage() {
         const lang = localStorage.getItem('webos-language') || 'cmn';
-        const langFiles = { cmn: '/languages/cmn.json', eng: '/languages/eng.json', jpn: '/languages/jpn.json' };
+        const langFiles = { cmn: '/apps/filemanager.app/main/language/filemanager_cmn.json', eng: '/apps/filemanager.app/main/language/filemanager_eng.json', jpn: '/apps/filemanager.app/main/language/filemanager_jpn.json' };
         try {
             const res = await fetch(langFiles[lang] || langFiles.cmn);
             const data = await res.json();
@@ -35,14 +35,9 @@ class FileManager {
             this.strings = {};
         }
         try {
-            if (window.parent && window.parent !== window) {
-                window.parent.document.addEventListener('language-changed', (e) => {
-                    if (e.detail && e.detail.strings) {
-                        this.strings = e.detail.strings;
-                    }
-                    this.applyLanguage();
-                    this.render();
-                });
+            if (!this._langBound && window.parent && window.parent !== window) {
+                this._langBound = true;
+                window.parent.document.addEventListener('language-changed', () => { this.loadLanguage().then(() => { this.applyLanguage(); this.render(); }); });
             }
         } catch (e) {}
     }

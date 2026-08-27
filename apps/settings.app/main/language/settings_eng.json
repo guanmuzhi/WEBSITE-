@@ -1,0 +1,33 @@
+{
+    "strings": {
+        "app.settings": "Settings",
+        "system": "System Info",
+        "user_info": "User Info",
+        "personalization": "Personalization",
+        "language": "Language",
+        "version": "Version",
+        "settings.sys_name": "System Name",
+        "settings.sys_browser": "Browser",
+        "settings.sys_os": "Operating System",
+        "settings.sys_resolution": "Screen Resolution",
+        "settings.sys_online": "Online Status",
+        "settings.user_name": "Username",
+        "settings.user_created": "Created At",
+        "settings.wallpaper": "Wallpaper",
+        "settings.accent_color": "Accent Color",
+        "settings.appearance": "Appearance",
+        "settings.font_size": "Font Size",
+        "settings.window_opacity": "Window Opacity",
+        "settings.window_animations": "Window Animations",
+        "settings.taskbar_autohide": "Auto-hide Taskbar",
+        "settings.wallpaper_default": "Default Wallpaper",
+        "settings.wallpaper_dark": "Solid Color",
+        "settings.wallpaper_custom": "Custom Color",
+        "settings.wallpaper_gradient": "Gradient Wallpaper",
+        "settings.custom_color": "Custom Color:",
+        "settings.select_language": "Select Language:",
+        "settings.user_avatar": "User Avatar",
+        "settings.upload_avatar": "Upload Avatar",
+        "settings.remove_avatar": "Remove Avatar"
+    }
+}

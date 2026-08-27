@@ -365,10 +365,11 @@ class DesktopManager {
         const desktop = this.desktopEl;
         if (!desktop) return;
         desktop.addEventListener('wheel', (e) => {
-            const overUI = e.target.closest('.window') || e.target.closest('.desktop-icon') ||
-                e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') ||
-                e.target.closest('.user-switcher') || e.target.closest('.lock-screen');
-            if (overUI && !e.altKey) return;
+            // 桌布移动优先级最高：仅当指针位于应用内容(iframe)或系统UI(任务栏/用户切换器)内部时让其内部滚动，
+            // 其它情况（桌面空白、窗口标题栏/边框、桌面图标）一律用于移动桌布。
+            const overIframe = !!e.target.closest('iframe');
+            const overSystemUI = e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') || e.target.closest('.user-switcher');
+            if ((overIframe || overSystemUI) && !e.altKey) return;
             e.preventDefault();
             let dx = e.deltaX; let dy = e.deltaY;
             if (e.shiftKey && dx === 0) { dx = dy; dy = 0; }
@@ -411,13 +412,13 @@ class DesktopManager {
         const terminalIcon = this.desktopEl.querySelector('#terminal-icon');
         if (terminalIcon) { const label = terminalIcon.querySelector('.icon-label'); if (label) label.textContent = this.t('app.terminal', '终端'); terminalIcon.addEventListener('click', () => { this.openTerminalWindow(); }); }
         const calculatorIcon = this.desktopEl.querySelector('#calculator-icon');
-        if (calculatorIcon) { const label = calculatorIcon.querySelector('.icon-label'); if (label) label.textContent = this.t('app.calculator', '计算器'); calculatorIcon.addEventListener('click', () => { this.openAppByPath({ path: 'calculator.app', name: this.t('app.calculator', '计算器') }); }); }
+        if (calculatorIcon) { const label = calculatorIcon.querySelector('.icon-label'); if (label) label.textContent = this.t('app.calculator', '计算器'); calculatorIcon.dataset.manualBound = '1'; calculatorIcon.addEventListener('click', () => { this.openAppByPath({ path: 'calculator.app', name: this.t('app.calculator', '计算器') }); }); }
         const filemanagerIcon = this.desktopEl.querySelector('#filemanager-icon');
-        if (filemanagerIcon) { const label = filemanagerIcon.querySelector('.icon-label'); if (label) label.textContent = this.t('app.filemanager', '文件管理器'); filemanagerIcon.addEventListener('click', () => { this.openAppByPath({ path: 'filemanager.app', name: this.t('app.filemanager', '文件管理器') }); }); }
+        if (filemanagerIcon) { const label = filemanagerIcon.querySelector('.icon-label'); if (label) label.textContent = this.t('app.filemanager', '文件管理器'); filemanagerIcon.dataset.manualBound = '1'; filemanagerIcon.addEventListener('click', () => { this.openAppByPath({ path: 'filemanager.app', name: this.t('app.filemanager', '文件管理器') }); }); }
         this.apps.forEach(app => {
             let iconEl = desktopIcons.querySelector(`[data-app="${app.id}"]`);
             if (!iconEl) { iconEl = document.createElement('div'); iconEl.className = 'desktop-icon'; iconEl.setAttribute('data-app', app.id); const key = 'app.' + app.path.replace('.app', ''); const displayName = this.t(key, app.name); iconEl.innerHTML = `<div class="icon-image"><img src="/apps/${app.path}/icon.svg" alt="${displayName}" style="width:28px;height:28px;"></div><div class="icon-label">${displayName}</div>`; desktopIcons.appendChild(iconEl); }
-            iconEl.addEventListener('click', () => { const key = 'app.' + app.path.replace('.app', ''); this.openAppByPath({ ...app, name: this.t(key, app.name) }); });
+            if (!iconEl.dataset.manualBound) { iconEl.addEventListener('click', () => { const key = 'app.' + app.path.replace('.app', ''); this.openAppByPath({ ...app, name: this.t(key, app.name) }); }); }
         });
     }
     openTerminalWindow(options = {}) {
@@ -505,7 +506,7 @@ class DesktopManager {
             this.applyThemeToIframe(iframe, this.buildThemeDetail());
         });
         const isMobile = this.isMobile();
-        const win = this.windowManager.createWindow({ title: app.name, icon: iconUrl, content: contentContainer, width: isMobile ? window.innerWidth : (app.width || info.width || 380), height: isMobile ? (window.innerHeight - 56) : (app.height || info.height || 580), x: isMobile ? 0 : (app.x || 0), y: isMobile ? 0 : (app.y || 0), windowType: 'app', onMoveEnd: () => { this.saveState(); } });
+        const win = this.windowManager.createWindow({ title: app.name, icon: iconUrl, content: contentContainer, width: isMobile ? window.innerWidth : (app.width || info.width || 380), height: isMobile ? (window.innerHeight - 56) : (app.height || info.height || 580), x: isMobile ? 0 : app.x, y: isMobile ? 0 : app.y, windowType: 'app', onMoveEnd: () => { this.saveState(); } });
         win.appName = app.name; win.appIcon = iconUrl; win.appPath = app.path; win.appParams = app.params;
         const originalClose = win.close; win.close = () => { originalClose.call(win); this.updateTaskbar(); this.saveState(); };
         const originalMinimize = win.minimize; win.minimize = () => { originalMinimize.call(win); this.updateTaskbar(); this.saveState(); };

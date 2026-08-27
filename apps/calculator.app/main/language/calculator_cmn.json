@@ -1,0 +1,9 @@
+{
+    "strings": {
+        "calculator.error": "错误",
+        "calculator.clear": "清除",
+        "calculator.delete": "删除",
+        "common.ok": "确定",
+        "common.cancel": "取消"
+    }
+}

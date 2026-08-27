@@ -1,0 +1,33 @@
+{
+    "strings": {
+        "app.settings": "设置",
+        "system": "系统信息",
+        "user_info": "用户信息",
+        "personalization": "个性化",
+        "language": "语言",
+        "version": "版本",
+        "settings.sys_name": "系统名称",
+        "settings.sys_browser": "浏览器",
+        "settings.sys_os": "操作系统",
+        "settings.sys_resolution": "屏幕分辨率",
+        "settings.sys_online": "在线状态",
+        "settings.user_name": "用户名",
+        "settings.user_created": "创建时间",
+        "settings.wallpaper": "壁纸设置",
+        "settings.accent_color": "强调色",
+        "settings.appearance": "外观",
+        "settings.font_size": "字体大小",
+        "settings.window_opacity": "窗口不透明度",
+        "settings.window_animations": "窗口动画",
+        "settings.taskbar_autohide": "任务栏自动隐藏",
+        "settings.wallpaper_default": "默认壁纸",
+        "settings.wallpaper_dark": "纯色背景",
+        "settings.wallpaper_custom": "自定义颜色",
+        "settings.wallpaper_gradient": "渐变壁纸",
+        "settings.custom_color": "自定义颜色:",
+        "settings.select_language": "选择语言:",
+        "settings.user_avatar": "用户头像",
+        "settings.upload_avatar": "上传头像",
+        "settings.remove_avatar": "移除头像"
+    }
+}

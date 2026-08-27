@@ -1,0 +1,21 @@
+{
+    "strings": {
+        "filemanager.nav": "ナビゲーション",
+        "filemanager.files": "ファイル",
+        "filemanager.network": "LAN Drop",
+        "filemanager.back": "戻る",
+        "filemanager.home": "ルート",
+        "filemanager.refresh": "更新",
+        "filemanager.new_folder": "新規フォルダ",
+        "filemanager.new_file": "新規ファイル",
+        "filemanager.upload": "ファイルをアップロード",
+        "filemanager.paste": "貼り付け",
+        "filemanager.empty": "このフォルダは空です",
+        "common.close": "閉じる",
+        "common.alert": "通知",
+        "common.ok": "OK",
+        "common.confirm": "確認",
+        "common.cancel": "キャンセル",
+        "common.prompt": "入力"
+    }
+}

@@ -45,7 +45,7 @@ class SettingsApp {
         } catch(e) { return null; }
     }
     async loadLanguagePack(lang) {
-        const langFiles = { cmn: '/languages/cmn.json', eng: '/languages/eng.json', jpn: '/languages/jpn.json' };
+        const langFiles = { cmn: '/apps/settings.app/main/language/settings_cmn.json', eng: '/apps/settings.app/main/language/settings_eng.json', jpn: '/apps/settings.app/main/language/settings_jpn.json' };
         try {
             const res = await fetch(langFiles[lang] || langFiles.cmn);
             this.languagePack = await res.json();
@@ -338,7 +338,7 @@ class SettingsApp {
                 const lang = e.target.value;
                 await this.loadLanguagePack(lang);
                 this.applyLanguage();
-                try { if (window.parent && window.parent !== window) { window.parent.document.dispatchEvent(new CustomEvent('language-changed', { detail: { lang, strings: this.languagePack.strings } })); } } catch (err) {}
+                try { if (window.parent && window.parent !== window) { window.parent.document.dispatchEvent(new CustomEvent('language-changed', { detail: { lang } })); } } catch (err) {}
             });
         }
     }

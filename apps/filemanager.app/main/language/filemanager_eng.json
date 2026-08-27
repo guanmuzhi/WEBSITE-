@@ -1,0 +1,21 @@
+{
+    "strings": {
+        "filemanager.nav": "Navigation",
+        "filemanager.files": "Files",
+        "filemanager.network": "LAN Drop",
+        "filemanager.back": "Back",
+        "filemanager.home": "Root",
+        "filemanager.refresh": "Refresh",
+        "filemanager.new_folder": "New Folder",
+        "filemanager.new_file": "New File",
+        "filemanager.upload": "Upload Files",
+        "filemanager.paste": "Paste",
+        "filemanager.empty": "This folder is empty",
+        "common.close": "Close",
+        "common.alert": "Notice",
+        "common.ok": "OK",
+        "common.confirm": "Confirm",
+        "common.cancel": "Cancel",
+        "common.prompt": "Input"
+    }
+}

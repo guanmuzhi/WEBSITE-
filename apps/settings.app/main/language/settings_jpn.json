@@ -1,0 +1,33 @@
+{
+    "strings": {
+        "app.settings": "設定",
+        "system": "システム情報",
+        "user_info": "ユーザー情報",
+        "personalization": "個人設定",
+        "language": "言語",
+        "version": "バージョン",
+        "settings.sys_name": "システム名",
+        "settings.sys_browser": "ブラウザ",
+        "settings.sys_os": "OS",
+        "settings.sys_resolution": "画面解像度",
+        "settings.sys_online": "オンライン状態",
+        "settings.user_name": "ユーザー名",
+        "settings.user_created": "作成日時",
+        "settings.wallpaper": "壁紙",
+        "settings.accent_color": "アクセントカラー",
+        "settings.appearance": "外観",
+        "settings.font_size": "フォントサイズ",
+        "settings.window_opacity": "ウィンドウの不透明度",
+        "settings.window_animations": "ウィンドウアニメーション",
+        "settings.taskbar_autohide": "タスクバーを自動的に隠す",
+        "settings.wallpaper_default": "デフォルト壁紙",
+        "settings.wallpaper_dark": "単色背景",
+        "settings.wallpaper_custom": "カスタムカラー",
+        "settings.wallpaper_gradient": "グラデーション壁紙",
+        "settings.custom_color": "カスタムカラー:",
+        "settings.select_language": "言語を選択:",
+        "settings.user_avatar": "ユーザーアバター",
+        "settings.upload_avatar": "アバターをアップロード",
+        "settings.remove_avatar": "アバターを削除"
+    }
+}

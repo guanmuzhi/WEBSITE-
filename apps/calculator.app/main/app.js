@@ -24,7 +24,7 @@ class Calculator {
 
     async loadLanguage() {
         const lang = localStorage.getItem('webos-language') || 'cmn';
-        const langFiles = { cmn: '/languages/cmn.json', eng: '/languages/eng.json', jpn: '/languages/jpn.json' };
+        const langFiles = { cmn: '/apps/calculator.app/main/language/calculator_cmn.json', eng: '/apps/calculator.app/main/language/calculator_eng.json', jpn: '/apps/calculator.app/main/language/calculator_jpn.json' };
         try {
             const res = await fetch(langFiles[lang] || langFiles.cmn);
             const data = await res.json();
@@ -34,12 +34,9 @@ class Calculator {
         }
         // 监听父窗口语言变更
         try {
-            if (window.parent && window.parent !== window) {
-                window.parent.document.addEventListener('language-changed', (e) => {
-                    if (e.detail && e.detail.strings) {
-                        this.strings = e.detail.strings;
-                    }
-                });
+            if (!this._langBound && window.parent && window.parent !== window) {
+                this._langBound = true;
+                window.parent.document.addEventListener('language-changed', () => { this.loadLanguage(); });
             }
         } catch (e) {}
     }
