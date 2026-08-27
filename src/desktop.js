@@ -181,7 +181,11 @@ class DesktopManager {
     updateAllWindowTitles() {
         if (!this.windowManager) return;
         this.windowManager.getAllWindows().forEach(win => {
-            if (win.windowType === 'app' && win._appObj) { win.setTitle(this.getAppDisplayName(win._appObj, win.appName || win._appObj.name)); }
+            if (win.windowType === 'app') {
+                const path = (win._appObj && win._appObj.path) || win.appPath;
+                const appObj = win._appObj || { path: path, name: win.appName || path };
+                win.setTitle(this.getAppDisplayName(appObj, win.appName || path));
+            }
             else if (win.windowType === 'terminal') { win.setTitle(this.t('app.terminal', '终端')); }
         });
     }
@@ -554,8 +558,9 @@ class DesktopManager {
             this.applyThemeToIframe(iframe, this.buildThemeDetail());
         });
         const isMobile = this.isMobile();
-        const win = this.windowManager.createWindow({ title: app.name, icon: iconUrl, content: contentContainer, width: isMobile ? window.innerWidth : (app.width || info.width || 380), height: isMobile ? (window.innerHeight - 56) : (app.height || info.height || 580), x: isMobile ? 0 : app.x, y: isMobile ? 0 : app.y, windowType: 'app', onMoveEnd: () => { this.saveState(); } });
-        win.appName = app.name; win.appIcon = iconUrl; win.appPath = app.path; win.appParams = app.params;
+        const displayName = this.getAppDisplayName(app, app.name);
+        const win = this.windowManager.createWindow({ title: displayName, icon: iconUrl, content: contentContainer, width: isMobile ? window.innerWidth : (app.width || info.width || 380), height: isMobile ? (window.innerHeight - 56) : (app.height || info.height || 580), x: isMobile ? 0 : app.x, y: isMobile ? 0 : app.y, windowType: 'app', onMoveEnd: () => { this.saveState(); } });
+        win.appName = displayName; win.appIcon = iconUrl; win.appPath = app.path; win.appParams = app.params; win._appObj = app;
         const originalClose = win.close; win.close = () => { originalClose.call(win); this.updateTaskbar(); this.saveState(); };
         const originalMinimize = win.minimize; win.minimize = () => { originalMinimize.call(win); this.updateTaskbar(); this.saveState(); };
         const originalRestore = win.restore; win.restore = () => { originalRestore.call(win); this.updateTaskbar(); this.saveState(); };
