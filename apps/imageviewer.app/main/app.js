@@ -12,10 +12,13 @@ const IMAGE_EXTENSIONS = {
 
 class ImageViewer {
     constructor() {
+        this.strings = {};
+
         this.image = document.getElementById('image');
         this.filenameEl = document.getElementById('filename');
         this.imageInfoEl = document.getElementById('image-info');
         this.placeholder = document.getElementById('placeholder');
+        this.placeholderTextEl = document.getElementById('placeholder-text');
         this.zoomInBtn = document.getElementById('zoom-in');
         this.zoomOutBtn = document.getElementById('zoom-out');
         this.zoomLevelEl = document.getElementById('zoom-level');
@@ -26,13 +29,63 @@ class ImageViewer {
         this.statusFormatEl = document.getElementById('status-format');
 
         this.currentPath = '';
+        this.currentNode = null;
         this.zoomLevel = 100;
         this.minZoom = 25;
         this.maxZoom = 400;
         this.zoomStep = 25;
 
         this.initEvents();
+        this.initLanguage();
+    }
+
+    async initLanguage() {
+        await this.loadLanguage();
+        this.applyLanguage();
         this.checkUrlParam();
+    }
+
+    async loadLanguage() {
+        const lang = localStorage.getItem('webos-language') || 'cmn';
+        const langFiles = { cmn: '/apps/imageviewer.app/main/language/imageviewer_cmn.json', eng: '/apps/imageviewer.app/main/language/imageviewer_eng.json', jpn: '/apps/imageviewer.app/main/language/imageviewer_jpn.json' };
+        try {
+            const res = await fetch(langFiles[lang] || langFiles.cmn);
+            const data = await res.json();
+            this.strings = data.strings || {};
+        } catch (e) {
+            this.strings = {};
+        }
+        try {
+            if (!this._langBound && window.parent && window.parent !== window) {
+                this._langBound = true;
+                window.parent.document.addEventListener('language-changed', () => {
+                    this.loadLanguage().then(() => {
+                        this.applyLanguage();
+                        if (this.currentNode) this.updateStatusBar(this.currentNode);
+                    });
+                });
+            }
+        } catch (e) {}
+    }
+
+    t(key, fallback) {
+        return this.strings[key] !== undefined ? this.strings[key] : (fallback || key);
+    }
+
+    applyLanguage() {
+        if (!this.currentPath) {
+            this.filenameEl.textContent = this.t('iv.no_image_open', '未打开图片');
+        }
+        if (this.placeholderTextEl) this.placeholderTextEl.textContent = this.t('iv.no_image', '暂无图片');
+        this.image.alt = this.t('iv.image', '图片');
+        if (this.loadingEl) this.loadingEl.title = this.t('iv.loading', '加载中');
+        if (this.currentNode) {
+            this.updateStatusBar(this.currentNode);
+            this.imageInfoEl.textContent = `${this.getExtension(this.currentNode.name).toUpperCase()} ${this.t('iv.file', '文件')}`;
+        } else {
+            this.imageInfoEl.textContent = '';
+        }
+        document.title = this.t('app.imageviewer', '图片查看器');
     }
 
     initEvents() {
@@ -124,18 +177,18 @@ class ImageViewer {
         const node = this.getNodeByPath(root, path);
 
         if (!node || node.type !== 'file') {
-            alert(`文件 "${path}" 不存在`);
+            alert(this.t('iv.file_not_found', '文件 "{path}" 不存在').replace('{path}', path));
             return;
         }
 
         if (!this.isImageFile(node.name)) {
-            alert(`不支持的图片格式: ${node.name}`);
+            alert(this.t('iv.unsupported_format', '不支持的图片格式: {name}').replace('{name}', node.name));
             return;
         }
 
         const content = node.content || '';
         if (!content) {
-            alert('图片内容为空');
+            alert(this.t('iv.empty_content', '图片内容为空'));
             return;
         }
 
@@ -154,19 +207,20 @@ class ImageViewer {
 
         this.image.onerror = () => {
             this.loadingEl.style.display = 'none';
-            alert('图片加载失败');
+            alert(this.t('iv.load_failed', '图片加载失败'));
             this.image.classList.remove('visible');
             this.placeholder.classList.remove('hidden');
         };
 
         this.image.src = dataUrl;
+        this.currentNode = node;
         this.filenameEl.textContent = node.name;
         
         const ext = this.getExtension(node.name);
-        this.imageInfoEl.textContent = `${ext.toUpperCase()} 文件`;
+        this.imageInfoEl.textContent = `${ext.toUpperCase()} ${this.t('iv.file', '文件')}`;
         
         this.currentPath = path;
-        document.title = `${node.name} - 图片查看器`;
+        document.title = `${node.name} - ${this.t('app.imageviewer', '图片查看器')}`;
     }
 
     updateStatusBar(node) {
@@ -174,15 +228,15 @@ class ImageViewer {
         const format = ext.toUpperCase();
         const dimensions = `${this.image.naturalWidth} × ${this.image.naturalHeight}`;
         
-        let size = '未知';
+        let size = this.t('iv.unknown', '未知');
         if (node.content) {
             const byteSize = node.content.length * 0.75;
             size = this.formatFileSize(byteSize);
         }
 
-        this.statusSizeEl.textContent = `大小: ${size}`;
-        this.statusDimensionsEl.textContent = `尺寸: ${dimensions}`;
-        this.statusFormatEl.textContent = `格式: ${format}`;
+        this.statusSizeEl.textContent = `${this.t('iv.size', '大小:')} ${size}`;
+        this.statusDimensionsEl.textContent = `${this.t('iv.dimensions', '尺寸:')} ${dimensions}`;
+        this.statusFormatEl.textContent = `${this.t('iv.format', '格式:')} ${format}`;
     }
 
     zoomIn() {

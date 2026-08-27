@@ -1,0 +1,26 @@
+{
+    "strings": {
+        "app.title": "テキストエディタ",
+        "editor.new": "新規",
+        "editor.open": "開く",
+        "editor.save": "保存",
+        "editor.save_as": "名前を付けて保存",
+        "editor.filename_placeholder": "ファイル名...",
+        "editor.textarea_placeholder": "ここにテキストを入力...",
+        "editor.status_chars": "文字: {n}",
+        "editor.status_lines": "行: {n}",
+        "editor.saved": "保存済み",
+        "editor.unsaved": "未保存",
+        "editor.title_info": "通知",
+        "editor.title_input": "入力",
+        "editor.title_confirm": "確認",
+        "editor.ok": "OK",
+        "editor.cancel": "キャンセル",
+        "editor.file_picker_title": "開くファイルを選択",
+        "editor.file_picker_empty": "テキストファイルが見つかりません",
+        "editor.confirm_discard": "現在のファイルは未保存です。続行しますか？",
+        "editor.file_not_found": "ファイル \"{file}\" は存在しません",
+        "editor.prompt_path": "ファイルパスを入力してください（例 /user/public/test.txt）：",
+        "editor.prompt_new_path": "新しいファイルパスを入力してください："
+    }
+}

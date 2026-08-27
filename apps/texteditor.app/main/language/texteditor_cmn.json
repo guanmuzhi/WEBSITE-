@@ -1,0 +1,26 @@
+{
+    "strings": {
+        "app.title": "文本编辑器",
+        "editor.new": "新建",
+        "editor.open": "打开",
+        "editor.save": "保存",
+        "editor.save_as": "另存为",
+        "editor.filename_placeholder": "文件名...",
+        "editor.textarea_placeholder": "在此输入文本...",
+        "editor.status_chars": "字符: {n}",
+        "editor.status_lines": "行: {n}",
+        "editor.saved": "已保存",
+        "editor.unsaved": "未保存",
+        "editor.title_info": "提示",
+        "editor.title_input": "输入",
+        "editor.title_confirm": "确认",
+        "editor.ok": "确定",
+        "editor.cancel": "取消",
+        "editor.file_picker_title": "选择要打开的文件",
+        "editor.file_picker_empty": "没有找到文本文件",
+        "editor.confirm_discard": "当前文件未保存，是否继续？",
+        "editor.file_not_found": "文件 \"{file}\" 不存在",
+        "editor.prompt_path": "请输入文件路径（如 /user/public/test.txt）：",
+        "editor.prompt_new_path": "请输入新文件路径："
+    }
+}

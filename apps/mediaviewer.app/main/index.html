@@ -41,14 +41,14 @@
         <div class="content-area">
             <div id="placeholder" class="placeholder">
                 <div class="placeholder-icon">🎬</div>
-                <div class="placeholder-text">点击"打开"按钮选择文件</div>
-                <div class="placeholder-hint">支持图片、视频、音频格式</div>
+                <div class="placeholder-text" id="placeholder-text">点击"打开"按钮选择文件</div>
+                <div class="placeholder-hint" id="placeholder-hint">支持图片、视频、音频格式</div>
             </div>
 
             <div id="image-viewer" class="image-viewer" style="display: none;">
                 <div id="loading" class="loading" style="display: none;">
                     <div class="spinner"></div>
-                    <span>加载中...</span>
+                    <span id="loading-text">加载中...</span>
                 </div>
                 <div id="image-wrapper" class="image-wrapper">
                     <img id="image" class="image" src="" alt="">

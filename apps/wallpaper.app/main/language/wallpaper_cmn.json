@@ -1,0 +1,18 @@
+{
+    "strings": {
+        "app.title": "壁纸设置",
+        "wallpaper.title": "壁纸设置",
+        "wallpaper.current": "当前壁纸",
+        "wallpaper.solid": "纯色背景",
+        "wallpaper.solid_wallpaper": "纯色壁纸",
+        "wallpaper.custom_color_label": "自定义颜色:",
+        "wallpaper.apply": "应用",
+        "wallpaper.gradient": "渐变壁纸",
+        "wallpaper.image": "图片壁纸",
+        "wallpaper.image_url_label": "图片URL:",
+        "wallpaper.image_url_placeholder": "输入图片URL",
+        "wallpaper.reset": "重置",
+        "wallpaper.reset_default": "恢复默认壁纸",
+        "wallpaper.current_solid": "纯色: {color}"
+    }
+}

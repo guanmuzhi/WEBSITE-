@@ -1,0 +1,33 @@
+{
+    "strings": {
+        "app.mediaviewer": "媒体查看器",
+        "mv.no_file": "未打开文件",
+        "mv.placeholder_text": "点击\"打开\"按钮选择文件",
+        "mv.placeholder_hint": "支持图片、视频、音频格式",
+        "mv.loading": "加载中...",
+        "mv.unknown": "未知",
+        "mv.local_file": "本地文件",
+        "mv.size": "大小:",
+        "mv.dimensions": "尺寸:",
+        "mv.format": "格式:",
+        "mv.duration": "时长:",
+        "mv.image": "图片",
+        "mv.video": "视频",
+        "mv.audio": "音频",
+        "mv.alert": "提示",
+        "mv.ok": "确定",
+        "mv.cancel": "取消",
+        "mv.select_file": "选择文件",
+        "mv.no_media_files": "未找到支持的媒体文件",
+        "mv.file_not_found": "文件 \"{path}\" 不存在",
+        "mv.unsupported_format": "不支持的文件格式: {name}",
+        "mv.empty_content": "图片内容为空",
+        "mv.load_failed": "图片加载失败",
+        "mv.open": "打开文件",
+        "mv.zoom_in": "放大",
+        "mv.zoom_out": "缩小",
+        "mv.play_pause": "播放/暂停",
+        "mv.prev": "上一个",
+        "mv.next": "下一个"
+    }
+}

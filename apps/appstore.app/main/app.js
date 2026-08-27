@@ -1,6 +1,7 @@
 class AppStore {
-    constructor() { this.apps = []; this.currentCategory = 'all'; this.searchQuery = ''; this.init(); }
+    constructor() { this.languagePack = { strings: {} }; this.currentLang = localStorage.getItem('webos-language') || 'cmn'; this.apps = []; this.currentCategory = 'all'; this.searchQuery = ''; this.init(); }
     async init() {
+        await this.loadLanguagePack(this.currentLang);
         this.searchInput = document.getElementById('search-input');
         this.appGrid = document.getElementById('app-grid');
         this.modal = document.getElementById('app-modal');
@@ -18,6 +19,39 @@ class AppStore {
         this.setupEventListeners();
         this.renderApps();
         this.checkUpdates();
+        this.applyLanguage();
+        this.registerLanguageListener();
+    }
+    async loadLanguagePack(lang) {
+        const langFiles = { cmn: '/apps/appstore.app/main/language/appstore_cmn.json', eng: '/apps/appstore.app/main/language/appstore_eng.json', jpn: '/apps/appstore.app/main/language/appstore_jpn.json' };
+        try {
+            const res = await fetch(langFiles[lang] || langFiles.cmn);
+            this.languagePack = await res.json();
+            this.currentLang = lang;
+            localStorage.setItem('webos-language', lang);
+        } catch (e) {
+            this.languagePack = { strings: {} };
+        }
+    }
+    t(key, fallback) { const s = this.languagePack.strings || {}; return s[key] !== undefined ? s[key] : (fallback || key); }
+    fmt(key, vars) { let s = this.t(key); if (vars) { for (const k in vars) { s = s.split('{' + k + '}').join(String(vars[k])); } } return s; }
+    applyLanguage() {
+        const strings = this.languagePack.strings || {};
+        document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (strings[key] !== undefined) el.textContent = strings[key]; });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { const key = el.getAttribute('data-i18n-placeholder'); if (strings[key] !== undefined) el.placeholder = strings[key]; });
+        document.querySelectorAll('[data-i18n-title]').forEach(el => { const key = el.getAttribute('data-i18n-title'); if (strings[key] !== undefined) el.title = strings[key]; });
+        if (strings['app.appstore']) document.title = strings['app.appstore'];
+    }
+    registerLanguageListener() {
+        window.addEventListener('language-changed', (e) => {
+            this.currentLang = (e && e.detail && e.detail.lang) || localStorage.getItem('webos-language') || 'cmn';
+            this.loadLanguagePack(this.currentLang).then(() => {
+                this.applyLanguage();
+                this.renderApps();
+                this.checkUpdates();
+                if (this.currentApp) this.showAppDetail(this.currentApp);
+            });
+        });
     }
     async loadApps() {
         try {
@@ -30,7 +64,7 @@ class AppStore {
                     const installedApps = window.parent.getInstalledApps();
                     for (const app of installedApps) {
                         if (!apps.find(a => a.path === app.path || a.id === app.id)) {
-                            apps.push({ id: app.id, name: app.name, path: app.path, developer: '用户安装', version: app.version || '1.0.0', latestVersion: app.version || '1.0.0', description: app.description || '用户自行安装的应用', category: app.category || 'productivity', icon: this.getAppIconUrl(app.path), installed: true, hasUpdate: false, userInstalled: true });
+                            apps.push({ id: app.id, name: app.name, path: app.path, developer: this.t('appstore.user_installed_developer'), version: app.version || '1.0.0', latestVersion: app.version || '1.0.0', description: app.description || this.t('appstore.user_installed_description'), category: app.category || 'productivity', icon: this.getAppIconUrl(app.path), installed: true, hasUpdate: false, userInstalled: true });
                         }
                     }
                 }
@@ -40,11 +74,11 @@ class AppStore {
     }
     getAppIconUrl(appPath) { return 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>'); }
     async loadAppInfo(app) {
-        const defaultInfo = { id: app.id, name: app.name, path: app.path, developer: 'WebOS', version: app.version || '1.0.0', latestVersion: app.version || '1.0.0', description: app.description || `使用 ${app.name} 应用`, category: app.category || 'productivity', icon: `/apps/${app.path}/icon.svg`, installed: true, hasUpdate: false };
+        const defaultInfo = { id: app.id, name: app.name, path: app.path, developer: this.t('appstore.developer_default'), version: app.version || '1.0.0', latestVersion: app.version || '1.0.0', description: app.description || this.fmt('appstore.use_app', { name: app.name }), category: app.category || 'productivity', icon: `/apps/${app.path}/icon.svg`, installed: true, hasUpdate: false };
         try { const infoResponse = await fetch(`/apps/${app.path}/info.json`); if (infoResponse.ok) { const info = await infoResponse.json(); return { ...defaultInfo, ...info }; } } catch (error) { console.log(`No info.json for ${app.id}`); }
         return defaultInfo;
     }
-    getFallbackApps() { return [{ id: 'calculator', name: '计算器', path: 'calculator.app', developer: 'WebOS', version: '1.0.0', latestVersion: '1.0.0', description: '功能强大的计算器应用', category: 'productivity', icon: '/apps/calculator.app/icon.svg', installed: true, hasUpdate: false }, { id: 'filemanager', name: '文件管理器', path: 'filemanager.app', developer: 'WebOS', version: '1.0.0', latestVersion: '1.0.0', description: '管理您的文件和文件夹', category: 'system', icon: '/apps/filemanager.app/icon.svg', installed: true, hasUpdate: false }, { id: 'browser', name: '浏览器', path: 'browser.app', developer: 'WebOS', version: '1.0.0', latestVersion: '1.0.0', description: '轻量级网页浏览器', category: 'productivity', icon: '/apps/browser.app/icon.svg', installed: true, hasUpdate: false }]; }
+    getFallbackApps() { return [{ id: 'calculator', name: this.t('appstore.app_calculator_name'), path: 'calculator.app', developer: this.t('appstore.developer_default'), version: '1.0.0', latestVersion: '1.0.0', description: this.t('appstore.calculator_desc'), category: 'productivity', icon: '/apps/calculator.app/icon.svg', installed: true, hasUpdate: false }, { id: 'filemanager', name: this.t('appstore.app_filemanager_name'), path: 'filemanager.app', developer: this.t('appstore.developer_default'), version: '1.0.0', latestVersion: '1.0.0', description: this.t('appstore.filemanager_desc'), category: 'system', icon: '/apps/filemanager.app/icon.svg', installed: true, hasUpdate: false }, { id: 'browser', name: this.t('appstore.app_browser_name'), path: 'browser.app', developer: this.t('appstore.developer_default'), version: '1.0.0', latestVersion: '1.0.0', description: this.t('appstore.browser_desc'), category: 'productivity', icon: '/apps/browser.app/icon.svg', installed: true, hasUpdate: false }]; }
     setupEventListeners() {
         this.searchInput.addEventListener('input', (e) => { this.searchQuery = e.target.value.toLowerCase(); this.renderApps(); });
         document.querySelectorAll('.category-btn').forEach(btn => { btn.addEventListener('click', (e) => { document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active')); e.target.classList.add('active'); this.currentCategory = e.target.dataset.category; this.renderApps(); }); });
@@ -55,14 +89,14 @@ class AppStore {
         this.appFileInput.addEventListener('change', async (e) => { const file = e.target.files[0]; if (file) await this.installAppFromFile(file); e.target.value = ''; });
     }
     async installAppFromFile(file) {
-        if (!window.parent || !window.parent.installAppFromFile) { this.showDialog('安装失败', '安装功能不可用', 'error'); return; }
-        this.showDialog('正在安装', '正在解析应用包...', 'info');
+        if (!window.parent || !window.parent.installAppFromFile) { this.showDialog(this.t('appstore.install_failed_title'), this.t('appstore.install_unavailable'), 'error'); return; }
+        this.showDialog(this.t('appstore.installing_title'), this.t('appstore.parsing_package'), 'info');
         this.addAppBtn.disabled = true;
         try {
             const result = await window.parent.installAppFromFile(file);
-            if (result.success) { this.showDialog('安装成功', `应用 "${result.appName}" 已成功安装！`, 'success'); await this.loadApps(); this.renderApps(); }
-            else { this.showDialog('安装失败', result.error || '未知错误', 'error'); }
-        } catch (e) { this.showDialog('安装出错', e.message, 'error'); }
+            if (result.success) { this.showDialog(this.t('appstore.install_success_title'), this.fmt('appstore.app_installed_success', { name: result.appName }), 'success'); await this.loadApps(); this.renderApps(); }
+            else { this.showDialog(this.t('appstore.install_failed_title'), result.error || this.t('appstore.unknown_error'), 'error'); }
+        } catch (e) { this.showDialog(this.t('appstore.install_error'), e.message, 'error'); }
         finally { this.addAppBtn.disabled = false; }
     }
     showDialog(title, message, type = 'info') {
@@ -85,7 +119,7 @@ class AppStore {
         msgEl.textContent = message;
         dialog.appendChild(msgEl);
         const okBtn = document.createElement('button');
-        okBtn.textContent = '确定';
+        okBtn.textContent = this.t('appstore.ok');
         okBtn.style.cssText = `width:100%;padding:10px;background:${color};border:none;border-radius:6px;color:#fff;font-size:14px;cursor:pointer;font-family:inherit;font-weight:500;`;
         okBtn.addEventListener('click', () => document.body.removeChild(overlay));
         dialog.appendChild(okBtn);
@@ -98,14 +132,14 @@ class AppStore {
     renderApps() {
         const filteredApps = this.getFilteredApps();
         this.appGrid.innerHTML = '';
-        if (filteredApps.length === 0) { const emptyState = document.createElement('div'); emptyState.className = 'empty-state'; emptyState.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;margin-bottom:16px;opacity:0.5;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><div>没有找到匹配的应用</div>'; this.appGrid.appendChild(emptyState); return; }
+        if (filteredApps.length === 0) { const emptyState = document.createElement('div'); emptyState.className = 'empty-state'; emptyState.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;margin-bottom:16px;opacity:0.5;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><div>' + this.t('appstore.no_matching_apps') + '</div>'; this.appGrid.appendChild(emptyState); return; }
         filteredApps.forEach(app => this.appGrid.appendChild(this.createAppCard(app)));
     }
     createAppCard(app) {
         const card = document.createElement('div');
         card.className = 'app-card';
         card.addEventListener('click', () => this.showAppDetail(app));
-        card.innerHTML = `<div class="app-card-icon"><img src="${app.icon}" alt="${app.name}" onerror="this.style.display='none';this.parentNode.innerHTML='<svg viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#3498db&quot; stroke-width=&quot;2&quot;><rect x=&quot;3&quot; y=&quot;3&quot; width=&quot;18&quot; height=&quot;18&quot; rx=&quot;2&quot;/></svg>'">${app.hasUpdate ? '<div class="update-indicator">更新</div>' : ''}</div><div class="app-card-name">${app.name}</div><div class="app-card-developer">${app.developer}</div><div class="app-card-description">${app.description}</div><button class="app-card-install ${app.installed ? (app.hasUpdate ? 'update' : 'installed') : ''}" onclick="event.stopPropagation();">${app.installed ? (app.hasUpdate ? '更新' : '已安装') : '安装'}</button>`;
+        card.innerHTML = `<div class="app-card-icon"><img src="${app.icon}" alt="${app.name}" onerror="this.style.display='none';this.parentNode.innerHTML='<svg viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;#3498db&quot; stroke-width=&quot;2&quot;><rect x=&quot;3&quot; y=&quot;3&quot; width=&quot;18&quot; height=&quot;18&quot; rx=&quot;2&quot;/></svg>'">${app.hasUpdate ? '<div class="update-indicator">' + this.t('appstore.update') + '</div>' : ''}</div><div class="app-card-name">${app.name}</div><div class="app-card-developer">${app.developer}</div><div class="app-card-description">${app.description}</div><button class="app-card-install ${app.installed ? (app.hasUpdate ? 'update' : 'installed') : ''}" onclick="event.stopPropagation();">${app.installed ? (app.hasUpdate ? this.t('appstore.update') : this.t('appstore.installed')) : this.t('appstore.install')}</button>`;
         return card;
     }
     showAppDetail(app) {
@@ -117,11 +151,11 @@ class AppStore {
         this.modalIcon.appendChild(img);
         this.modalTitle.textContent = app.name;
         this.modalDeveloper.textContent = app.developer;
-        let versionText = `版本 ${app.version}`;
-        if (app.hasUpdate) versionText += ` <span style="color:#2ecc71;">(最新: ${app.latestVersion})</span>`;
+        let versionText = this.fmt('appstore.version_prefix') + app.version;
+        if (app.hasUpdate) versionText += ' <span style="color:#2ecc71;">' + this.fmt('appstore.latest_version_suffix', { version: app.latestVersion }) + '</span>';
         this.modalVersion.innerHTML = versionText;
         this.modalDescription.textContent = app.description;
-        this.modalInstall.textContent = app.installed ? (app.hasUpdate ? '更新' : '已安装') : '安装';
+        this.modalInstall.textContent = app.installed ? (app.hasUpdate ? this.t('appstore.update') : this.t('appstore.installed')) : this.t('appstore.install');
         this.modalInstall.className = `modal-install ${app.installed ? (app.hasUpdate ? 'update' : 'installed') : ''}`;
         this.modal.classList.add('show');
     }
@@ -129,11 +163,11 @@ class AppStore {
     handleInstallAction(app) {
         if (!app) return;
         if (app.installed && !app.hasUpdate) { if (window.parent && window.parent.openApp) window.parent.openApp(app.id); this.closeModal(); return; }
-        this.modalInstall.textContent = app.hasUpdate ? '更新中...' : '安装中...';
+        this.modalInstall.textContent = app.hasUpdate ? this.t('appstore.updating') : this.t('appstore.installing');
         this.modalInstall.disabled = true;
         setTimeout(() => {
-            if (app.hasUpdate) { app.version = app.latestVersion; app.hasUpdate = false; this.modalInstall.textContent = '已更新'; this.checkUpdates(); }
-            else { app.installed = true; this.modalInstall.textContent = '已安装'; }
+            if (app.hasUpdate) { app.version = app.latestVersion; app.hasUpdate = false; this.modalInstall.textContent = this.t('appstore.updated'); this.checkUpdates(); }
+            else { app.installed = true; this.modalInstall.textContent = this.t('appstore.installed'); }
             this.modalInstall.classList.remove('update');
             this.modalInstall.classList.add('installed');
             this.modalInstall.disabled = false;

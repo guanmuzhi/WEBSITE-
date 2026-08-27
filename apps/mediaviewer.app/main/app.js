@@ -3,7 +3,11 @@ const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg'];
 const AUDIO_EXTENSIONS = ['mp3', 'wav', 'ogg', 'flac'];
 class MediaViewer {
     constructor() {
+        this.strings = {};
         this.placeholder = document.getElementById('placeholder');
+        this.placeholderTextEl = document.getElementById('placeholder-text');
+        this.placeholderHintEl = document.getElementById('placeholder-hint');
+        this.loadingTextEl = document.getElementById('loading-text');
         this.imageViewer = document.getElementById('image-viewer');
         this.mediaPlayer = document.getElementById('media-player');
         this.videoContainer = document.getElementById('video-container');
@@ -39,6 +43,12 @@ class MediaViewer {
         this.statusDurationEl = document.getElementById('status-duration');
         this.currentPath = '';
         this.currentType = '';
+        this.currentFileName = '';
+        this.currentFileType = '';
+        this.currentExt = '';
+        this.currentSizeText = '';
+        this.currentDimensions = '';
+        this.currentDuration = '';
         this.zoomLevel = 100;
         this.minZoom = 25;
         this.maxZoom = 400;
@@ -48,8 +58,67 @@ class MediaViewer {
         this.currentSpeed = 1;
         this.storage = window.parent.StorageService.getInstance();
         this.initEvents();
+        this.initLanguage();
+    }
+    async initLanguage() {
+        await this.loadLanguage();
+        this.applyLanguage();
         this.checkUrlParam();
         this.updateVolumeDisplay();
+    }
+    async loadLanguage() {
+        const lang = localStorage.getItem('webos-language') || 'cmn';
+        const langFiles = { cmn: '/apps/mediaviewer.app/main/language/mediaviewer_cmn.json', eng: '/apps/mediaviewer.app/main/language/mediaviewer_eng.json', jpn: '/apps/mediaviewer.app/main/language/mediaviewer_jpn.json' };
+        try {
+            const res = await fetch(langFiles[lang] || langFiles.cmn);
+            const data = await res.json();
+            this.strings = data.strings || {};
+        } catch (e) {
+            this.strings = {};
+        }
+        try {
+            if (!this._langBound && window.parent && window.parent !== window) {
+                this._langBound = true;
+                window.parent.document.addEventListener('language-changed', () => {
+                    this.loadLanguage().then(() => this.applyLanguage());
+                });
+            }
+        } catch (e) {}
+    }
+    t(key, fallback) {
+        return this.strings[key] !== undefined ? this.strings[key] : (fallback || key);
+    }
+    getTypeName(type) {
+        const map = { image: this.t('mv.image', '图片'), video: this.t('mv.video', '视频'), audio: this.t('mv.audio', '音频') };
+        return map[type] || '';
+    }
+    applyLanguage() {
+        this.filenameEl.textContent = this.currentFileName ? this.currentFileName : this.t('mv.no_file', '未打开文件');
+        if (this.placeholderTextEl) this.placeholderTextEl.textContent = this.t('mv.placeholder_text', '点击"打开"按钮选择文件');
+        if (this.placeholderHintEl) this.placeholderHintEl.textContent = this.t('mv.placeholder_hint', '支持图片、视频、音频格式');
+        if (this.loadingTextEl) this.loadingTextEl.textContent = this.t('mv.loading', '加载中...');
+        if (this.currentFileType !== 'audio') {
+            this.audioTitle.textContent = this.t('mv.unknown', '未知');
+            this.audioArtist.textContent = this.t('mv.local_file', '本地文件');
+        }
+        this.statusSizeEl.textContent = this.t('mv.size', '大小:') + ' ' + (this.currentSizeText || this.t('mv.unknown', '未知'));
+        this.statusFormatEl.textContent = this.t('mv.format', '格式:') + ' ' + (this.currentExt ? this.currentExt.toUpperCase() : this.t('mv.unknown', '未知'));
+        this.statusDimensionsEl.textContent = this.t('mv.dimensions', '尺寸:') + ' ' + (this.currentDimensions || this.t('mv.unknown', '未知'));
+        this.statusDurationEl.textContent = this.t('mv.duration', '时长:') + ' ' + (this.currentDuration || this.t('mv.unknown', '未知'));
+        if (this.currentFileName && this.currentFileType) {
+            this.fileInfoEl.textContent = this.getTypeName(this.currentFileType) + ' · ' + (this.currentExt || '').toUpperCase();
+        } else {
+            this.fileInfoEl.textContent = '';
+        }
+        this.openBtn.title = this.t('mv.open', '打开文件');
+        this.zoomInBtn.title = this.t('mv.zoom_in', '放大');
+        this.zoomOutBtn.title = this.t('mv.zoom_out', '缩小');
+        this.playBtn.title = this.t('mv.play_pause', '播放/暂停');
+        this.prevBtn.title = this.t('mv.prev', '上一个');
+        this.nextBtn.title = this.t('mv.next', '下一个');
+        document.title = this.currentFileName
+            ? this.currentFileName + ' - ' + this.t('app.mediaviewer', '媒体查看器')
+            : this.t('app.mediaviewer', '媒体查看器');
     }
     initEvents() {
         this.zoomInBtn.addEventListener('click', () => this.zoomIn());
@@ -106,14 +175,14 @@ class MediaViewer {
             dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
             const title = document.createElement('div');
             title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
-            title.textContent = '提示';
+            title.textContent = this.t('mv.alert', '提示');
             dialog.appendChild(title);
             const msg = document.createElement('div');
             msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:16px;';
             msg.textContent = message;
             dialog.appendChild(msg);
             const okBtn = document.createElement('button');
-            okBtn.textContent = '确定';
+            okBtn.textContent = this.t('mv.ok', '确定');
             okBtn.style.cssText = 'padding:8px 24px;background:var(--accent-color,#3498db);border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
             okBtn.addEventListener('mouseenter', () => { okBtn.style.background = 'var(--accent-hover,#2980b9)'; });
             okBtn.addEventListener('mouseleave', () => { okBtn.style.background = 'var(--accent-color,#3498db)'; });
@@ -126,14 +195,14 @@ class MediaViewer {
     }
     showFilePicker() {
         const files = this.collectMediaFiles(this.storage.fs, '/');
-        if (files.length === 0) { this.showAlert('未找到支持的媒体文件'); return; }
+        if (files.length === 0) { this.showAlert(this.t('mv.no_media_files', '未找到支持的媒体文件')); return; }
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
         const dialog = document.createElement('div');
         dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:400px;color:#ddd;font-family:inherit;';
         const title = document.createElement('div');
         title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
-        title.textContent = '选择文件';
+        title.textContent = this.t('mv.select_file', '选择文件');
         dialog.appendChild(title);
         const list = document.createElement('div');
         list.style.cssText = 'max-height:300px;overflow-y:auto;background:#1e1e1e;border-radius:4px;margin-bottom:16px;';
@@ -148,7 +217,7 @@ class MediaViewer {
         });
         dialog.appendChild(list);
         const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = '取消';
+        cancelBtn.textContent = this.t('mv.cancel', '取消');
         cancelBtn.style.cssText = 'padding:8px 24px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;';
         cancelBtn.addEventListener('mouseenter', () => { cancelBtn.style.background = '#4d4d4d'; });
         cancelBtn.addEventListener('mouseleave', () => { cancelBtn.style.background = '#3d3d3d'; });
@@ -170,30 +239,33 @@ class MediaViewer {
     }
     async openFileByPath(path) {
         const content = this.storage.readFile(path);
-        if (content === null) { await this.showAlert('文件 "' + path + '" 不存在'); return; }
+        if (content === null) { await this.showAlert(this.t('mv.file_not_found', '文件 "{path}" 不存在').replace('{path}', path)); return; }
         const fileName = path.split('/').pop();
         const fileType = this.getFileType(fileName);
-        if (!fileType) { await this.showAlert('不支持的文件格式: ' + fileName); return; }
-        this.currentPath = path; this.currentType = fileType; this.filenameEl.textContent = fileName;
+        if (!fileType) { await this.showAlert(this.t('mv.unsupported_format', '不支持的文件格式: {name}').replace('{name}', fileName)); return; }
         const ext = this.getExtension(fileName);
-        const typeNames = { image: '图片', video: '视频', audio: '音频' };
-        this.fileInfoEl.textContent = typeNames[fileType] + ' · ' + ext.toUpperCase();
-        this.statusSizeEl.textContent = '大小: ' + this.formatFileSize((content || '').length * 0.75);
-        this.statusFormatEl.textContent = '格式: ' + ext.toUpperCase();
-        this.statusDimensionsEl.textContent = '尺寸: 未知';
-        this.statusDurationEl.textContent = '时长: 未知';
+        this.currentPath = path; this.currentType = fileType; this.currentFileName = fileName; this.currentFileType = fileType; this.currentExt = ext;
+        this.currentSizeText = this.formatFileSize((content || '').length * 0.75);
+        this.currentDimensions = '';
+        this.currentDuration = '';
+        this.filenameEl.textContent = fileName;
+        this.fileInfoEl.textContent = this.getTypeName(fileType) + ' · ' + ext.toUpperCase();
+        this.statusSizeEl.textContent = this.t('mv.size', '大小:') + ' ' + this.currentSizeText;
+        this.statusFormatEl.textContent = this.t('mv.format', '格式:') + ' ' + ext.toUpperCase();
+        this.statusDimensionsEl.textContent = this.t('mv.dimensions', '尺寸:') + ' ' + this.t('mv.unknown', '未知');
+        this.statusDurationEl.textContent = this.t('mv.duration', '时长:') + ' ' + this.t('mv.unknown', '未知');
         const fileNode = { name: fileName, content: content };
         if (fileType === 'image') { this.showImageViewer(fileNode); } else { this.showMediaPlayer(fileNode, fileType); }
-        document.title = fileName + ' - 媒体查看器';
+        document.title = fileName + ' - ' + this.t('app.mediaviewer', '媒体查看器');
     }
     showImageViewer(node) {
         this.placeholder.style.display = 'none'; this.imageViewer.style.display = 'flex'; this.mediaPlayer.style.display = 'none'; this.zoomControls.style.display = 'flex';
         const content = node.content || '';
-        if (!content) { this.showAlert('图片内容为空'); return; }
+        if (!content) { this.showAlert(this.t('mv.empty_content', '图片内容为空')); return; }
         const dataUrl = this.buildDataUrl(content, node.name);
         this.loadingEl.style.display = 'flex'; this.resetZoom();
-        this.image.onload = () => { this.loadingEl.style.display = 'none'; const dimensions = this.image.naturalWidth + ' × ' + this.image.naturalHeight; this.statusDimensionsEl.textContent = '尺寸: ' + dimensions; };
-        this.image.onerror = () => { this.loadingEl.style.display = 'none'; this.showAlert('图片加载失败'); };
+        this.image.onload = () => { this.loadingEl.style.display = 'none'; const dimensions = this.image.naturalWidth + ' × ' + this.image.naturalHeight; this.currentDimensions = dimensions; this.statusDimensionsEl.textContent = this.t('mv.dimensions', '尺寸:') + ' ' + dimensions; };
+        this.image.onerror = () => { this.loadingEl.style.display = 'none'; this.showAlert(this.t('mv.load_failed', '图片加载失败')); };
         this.image.src = dataUrl;
     }
     showMediaPlayer(node, mediaType) {
@@ -201,7 +273,7 @@ class MediaViewer {
         const extension = this.getExtension(node.name);
         const dataUrl = this.buildDataUrl(node.content || '', extension);
         this.player.src = dataUrl;
-        if (mediaType === 'audio') { this.videoContainer.style.display = 'none'; this.audioMode.style.display = 'flex'; this.audioTitle.textContent = node.name.replace(/\.[^/.]+$/, ''); this.audioArtist.textContent = '本地文件'; }
+        if (mediaType === 'audio') { this.videoContainer.style.display = 'none'; this.audioMode.style.display = 'flex'; this.audioTitle.textContent = node.name.replace(/\.[^/.]+$/, ''); this.audioArtist.textContent = this.t('mv.local_file', '本地文件'); }
         else { this.videoContainer.style.display = 'flex'; this.audioMode.style.display = 'none'; }
         this.player.load(); this.player.play().catch(() => {});
     }
@@ -217,7 +289,7 @@ class MediaViewer {
     skip(seconds) { this.player.currentTime = Math.max(0, Math.min(this.player.currentTime + seconds, this.player.duration || 0)); }
     seek(e) { const rect = this.progressBar.getBoundingClientRect(); const percent = (e.clientX - rect.left) / rect.width; this.player.currentTime = percent * (this.player.duration || 0); }
     updateProgress() { if (isNaN(this.player.duration)) return; const percent = (this.player.currentTime / this.player.duration) * 100; this.progressFill.style.width = percent + '%'; const current = this.formatTime(this.player.currentTime); const total = this.formatTime(this.player.duration); this.timeDisplay.textContent = current + ' / ' + total; }
-    updateMetadata() { if (!isNaN(this.player.duration)) { const duration = this.formatTime(this.player.duration); this.statusDurationEl.textContent = '时长: ' + duration; } }
+    updateMetadata() { if (!isNaN(this.player.duration)) { const duration = this.formatTime(this.player.duration); this.currentDuration = duration; this.statusDurationEl.textContent = this.t('mv.duration', '时长:') + ' ' + duration; } }
     toggleMute() { this.player.muted = !this.player.muted; this.volumeBtn.textContent = this.player.muted ? '🔇' : '🔊'; }
     setVolume(e) { const rect = this.volumeSlider.getBoundingClientRect(); const percent = (e.clientX - rect.left) / rect.width; this.volume = Math.max(0, Math.min(1, percent)); this.player.volume = this.volume; this.player.muted = false; this.updateVolumeDisplay(); }
     updateVolumeDisplay() { const displayVolume = this.player.muted ? 0 : this.player.volume; this.volumeFill.style.width = (displayVolume * 100) + '%'; if (this.player.muted || displayVolume === 0) { this.volumeBtn.textContent = '🔇'; } else if (displayVolume < 0.5) { this.volumeBtn.textContent = '🔉'; } else { this.volumeBtn.textContent = '🔊'; } }

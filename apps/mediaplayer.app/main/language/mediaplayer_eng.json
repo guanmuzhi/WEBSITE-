@@ -1,0 +1,21 @@
+{
+    "strings": {
+        "app.mediaplayer": "Media Player",
+        "mp.no_file": "No file selected",
+        "mp.no_audio": "No audio selected",
+        "mp.unknown_artist": "Unknown Artist",
+        "mp.no_media": "No media files",
+        "mp.local_file": "Local file",
+        "mp.video": "Video",
+        "mp.audio": "Audio",
+        "mp.duration": "Duration:",
+        "mp.type": "Type:",
+        "mp.file_not_found": "File \"{path}\" does not exist",
+        "mp.unsupported_format": "Unsupported file format: {ext}",
+        "mp.prev": "Previous",
+        "mp.next": "Next",
+        "mp.play_pause": "Play/Pause",
+        "mp.volume": "Volume",
+        "mp.fullscreen": "Fullscreen"
+    }
+}

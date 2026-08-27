@@ -1,0 +1,18 @@
+{
+    "strings": {
+        "app.title": "壁紙設定",
+        "wallpaper.title": "壁紙設定",
+        "wallpaper.current": "現在の壁紙",
+        "wallpaper.solid": "単色背景",
+        "wallpaper.solid_wallpaper": "単色壁紙",
+        "wallpaper.custom_color_label": "カスタムカラー:",
+        "wallpaper.apply": "適用",
+        "wallpaper.gradient": "グラデーション壁紙",
+        "wallpaper.image": "画像壁紙",
+        "wallpaper.image_url_label": "画像URL:",
+        "wallpaper.image_url_placeholder": "画像URLを入力",
+        "wallpaper.reset": "リセット",
+        "wallpaper.reset_default": "デフォルトの壁紙に戻す",
+        "wallpaper.current_solid": "単色: {color}"
+    }
+}

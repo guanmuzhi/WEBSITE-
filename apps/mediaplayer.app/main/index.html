@@ -42,13 +42,13 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="5 3 19 12 5 21 5 3"/>
                 </svg>
-                <p>暂无媒体文件</p>
+                <p id="placeholder-text">暂无媒体文件</p>
             </div>
         </div>
         <div class="controls-bar">
-            <button class="control-btn" id="prev-btn">⏮</button>
-            <button class="control-btn play" id="play-btn">▶</button>
-            <button class="control-btn" id="next-btn">⏭</button>
+            <button class="control-btn" id="prev-btn" title="上一个">⏮</button>
+            <button class="control-btn play" id="play-btn" title="播放/暂停">▶</button>
+            <button class="control-btn" id="next-btn" title="下一个">⏭</button>
             <div class="progress-container">
                 <div class="progress-bar" id="progress-bar">
                     <div class="progress-fill" id="progress-fill"></div>
@@ -56,7 +56,7 @@
                 <div class="time-display" id="time-display">00:00 / 00:00</div>
             </div>
             <div class="volume-container">
-                <button class="volume-btn" id="volume-btn">🔊</button>
+                <button class="volume-btn" id="volume-btn" title="音量">🔊</button>
                 <div class="volume-slider" id="volume-slider">
                     <div class="volume-fill" id="volume-fill"></div>
                 </div>
@@ -69,7 +69,7 @@
                 <option value="1.5">1.5×</option>
                 <option value="2">2×</option>
             </select>
-            <button class="fullscreen-btn" id="fullscreen-btn">⛶</button>
+            <button class="fullscreen-btn" id="fullscreen-btn" title="全屏">⛶</button>
         </div>
         <div class="status-bar">
             <div class="status-left">

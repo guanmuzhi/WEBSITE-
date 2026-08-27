@@ -13,7 +13,7 @@
 <div class="top-bar">
     <button class="menu-btn" id="menuBtn">☰</button>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-width:0;padding:0 8px;">
-        <div id="topConvTitle" class="top-title-label">AI Chat</div>
+        <div id="topConvTitle" class="top-title-label" data-i18n="ai_chat">AI Chat</div>
         <div id="topConfigSub" class="top-sub-label"></div>
     </div>
     <button class="setting-btn" id="settingBtn">⚙</button>
@@ -21,7 +21,7 @@
 <div class="drawer-overlay" id="drawerOverlay">
     <div class="drawer">
         <div class="drawer-header">
-            <h3>对话历史</h3>
+            <h3 data-i18n="conv_history">对话历史</h3>
             <button class="drawer-close" id="drawerClose">×</button>
         </div>
         <button class="new-chat-btn" id="newChatBtn">+ 新建对话</button>
@@ -32,68 +32,68 @@
 <div class="modal-overlay" id="settingModal">
     <div class="modal">
         <div class="modal-head">
-            <h3>模型设置</h3>
+            <h3 data-i18n="model_settings">模型设置</h3>
             <button class="modal-close" id="modalClose">×</button>
         </div>
-        <div class="section-title">模型配置</div>
+        <div class="section-title" data-i18n="model_config">模型配置</div>
         <div class="form-item config-row">
             <select id="configSelect"></select>
-            <button class="icon-btn" id="addConfigBtn" title="新增配置">＋</button>
-            <button class="icon-btn" id="copyConfigBtn" title="复制当前配置">⧉</button>
-            <button class="icon-btn" id="renameConfigBtn" title="重命名">✏</button>
-            <button class="icon-btn" id="delConfigBtn" title="删除">🗑</button>
+            <button class="icon-btn" id="addConfigBtn" data-i18n-title="add_config" title="新增配置">＋</button>
+            <button class="icon-btn" id="copyConfigBtn" data-i18n-title="copy_config" title="复制当前配置">⧉</button>
+            <button class="icon-btn" id="renameConfigBtn" data-i18n-title="rename" title="重命名">✏</button>
+            <button class="icon-btn" id="delConfigBtn" data-i18n-title="delete" title="删除">🗑</button>
         </div>
         <div class="form-item" style="margin-top:6px;">
-            <label style="font-size:12px;color:#aaa;">配置说明</label>
-            <textarea id="configNote" rows="2" placeholder="例如：普通对话用 / 需要联网检索时切到这里"></textarea>
+            <label style="font-size:12px;color:#aaa;" data-i18n="config_note_label">配置说明</label>
+            <textarea id="configNote" rows="2" data-i18n-placeholder="config_note_placeholder" placeholder="例如：普通对话用 / 需要联网检索时切到这里"></textarea>
         </div>
-        <div class="section-title">Base‑URL</div>
-        <div class="form-item"><input id="baseUrl" placeholder="https://xxx/v1/chat/completions"></div>
-        <div class="section-title">API Key</div>
-        <div class="form-item"><input type="password" id="apiKey" placeholder="sk‑xxx"></div>
-        <div class="section-title">模型 ID</div>
-        <div class="form-item"><input id="modelId" placeholder="poolside/laguna-xs-2.1:free"></div>
-        <div class="section-title">Temperature</div>
+        <div class="section-title" data-i18n="base_url">Base‑URL</div>
+        <div class="form-item"><input id="baseUrl" data-i18n-placeholder="base_url_placeholder" placeholder="https://xxx/v1/chat/completions"></div>
+        <div class="section-title" data-i18n="api_key">API Key</div>
+        <div class="form-item"><input type="password" id="apiKey" data-i18n-placeholder="api_key_placeholder" placeholder="sk‑xxx"></div>
+        <div class="section-title" data-i18n="model_id">模型 ID</div>
+        <div class="form-item"><input id="modelId" data-i18n-placeholder="model_id_placeholder" placeholder="poolside/laguna-xs-2.1:free"></div>
+        <div class="section-title" data-i18n="temperature">Temperature</div>
         <div class="form-item"><input type="number" id="temp" value="0.7" min="0" max="2" step="0.1"></div>
-        <div class="section-title">上下文最大轮数(双向)</div>
+        <div class="section-title" data-i18n="max_ctx_rounds">上下文最大轮数(双向)</div>
         <div class="form-item"><input type="number" id="maxCtxLen" value="3" min="0"></div>
-        <div class="check-row"><input type="checkbox" id="streamToggle" checked><label for="streamToggle">启用流式输出</label></div>
-        <div class="section-title">🛠️ 工具调用 (Function Calling)</div>
-        <div class="check-row"><input type="checkbox" id="toolCallingEnabled"><label for="toolCallingEnabled">启用工具调用</label></div>
-        <div class="form-item"><label style="font-size:12px;color:#aaa;">最大工具轮数</label><input type="number" id="maxToolRounds" value="5" min="1" max="20"></div>
-        <div class="check-row"><input type="checkbox" id="autoExecuteTools" checked><label for="autoExecuteTools">自动执行内置工具</label></div>
-        <div class="form-hint">已内置：天气、当前时间、联网搜索、运行终端命令。</div>
-        <div class="section-title">🌐 联网搜索</div>
-        <div class="check-row"><input type="checkbox" id="webSearchEnabled"><label for="webSearchEnabled">启用联网搜索工具 web_search</label></div>
-        <div class="form-item"><label style="font-size:12px;color:#aaa;">自定义搜索 API 地址</label><input id="customSearchApi" placeholder="https://examples-with-fresh.guanmuzhi.deno.net/api/search"></div>
-        <div class="form-item"><label style="font-size:12px;color:#aaa;">搜索超时(毫秒)</label><input type="number" id="searxTimeout" value="25000" min="5000" step="1000"></div>
-        <div class="section-title">多媒体支持</div>
-        <div class="check-row"><input type="checkbox" id="optFile"><label>文件</label></div>
-        <div class="check-row"><input type="checkbox" id="optImage"><label>图像</label></div>
-        <div class="check-row"><input type="checkbox" id="optVideo"><label>视频</label></div>
-        <button class="btn-save" id="saveSetting">保存设置</button>
+        <div class="check-row"><input type="checkbox" id="streamToggle" checked><label for="streamToggle" data-i18n="enable_streaming">启用流式输出</label></div>
+        <div class="section-title" data-i18n="tool_calling">🛠️ 工具调用 (Function Calling)</div>
+        <div class="check-row"><input type="checkbox" id="toolCallingEnabled"><label for="toolCallingEnabled" data-i18n="enable_tool_calling">启用工具调用</label></div>
+        <div class="form-item"><label style="font-size:12px;color:#aaa;" data-i18n="max_tool_rounds">最大工具轮数</label><input type="number" id="maxToolRounds" value="5" min="1" max="20"></div>
+        <div class="check-row"><input type="checkbox" id="autoExecuteTools" checked><label for="autoExecuteTools" data-i18n="auto_execute_tools">自动执行内置工具</label></div>
+        <div class="form-hint" data-i18n="builtin_tools_hint">已内置：天气、当前时间、联网搜索、运行终端命令。</div>
+        <div class="section-title" data-i18n="web_search">🌐 联网搜索</div>
+        <div class="check-row"><input type="checkbox" id="webSearchEnabled"><label for="webSearchEnabled" data-i18n="enable_web_search">启用联网搜索工具 web_search</label></div>
+        <div class="form-item"><label style="font-size:12px;color:#aaa;" data-i18n="custom_search_api">自定义搜索 API 地址</label><input id="customSearchApi" data-i18n-placeholder="custom_search_api_placeholder" placeholder="https://examples-with-fresh.guanmuzhi.deno.net/api/search"></div>
+        <div class="form-item"><label style="font-size:12px;color:#aaa;" data-i18n="search_timeout">搜索超时(毫秒)</label><input type="number" id="searxTimeout" value="25000" min="5000" step="1000"></div>
+        <div class="section-title" data-i18n="media_support">多媒体支持</div>
+        <div class="check-row"><input type="checkbox" id="optFile"><label data-i18n="file">文件</label></div>
+        <div class="check-row"><input type="checkbox" id="optImage"><label data-i18n="image">图像</label></div>
+        <div class="check-row"><input type="checkbox" id="optVideo"><label data-i18n="video">视频</label></div>
+        <button class="btn-save" id="saveSetting" data-i18n="save_settings">保存设置</button>
     </div>
 </div>
 <div class="modal-overlay" id="toolResultModal">
     <div class="modal">
-        <div class="modal-head"><h3>工具执行 · 手动结果</h3><button class="modal-close" id="toolResultClose">×</button></div>
-        <div class="section-title">函数</div><div class="form-item"><div id="toolResultName" style="color:#9ecbff;"></div></div>
-        <div class="section-title">参数</div><div class="form-item"><pre id="toolResultArgs" style="white-space:pre-wrap;background:#1a1a1a;padding:8px;border-radius:6px;font-size:12px;"></pre></div>
-        <div class="section-title">返回结果(字符串)</div><div class="form-item"><textarea id="toolResultInput" rows="4" placeholder="在此输入工具返回的结果…"></textarea></div>
-        <button class="btn-save" id="toolResultSubmit">提交结果</button>
+        <div class="modal-head"><h3 data-i18n="tool_result_title">工具执行 · 手动结果</h3><button class="modal-close" id="toolResultClose">×</button></div>
+        <div class="section-title" data-i18n="function_label">函数</div><div class="form-item"><div id="toolResultName" style="color:#9ecbff;"></div></div>
+        <div class="section-title" data-i18n="parameters">参数</div><div class="form-item"><pre id="toolResultArgs" style="white-space:pre-wrap;background:#1a1a1a;padding:8px;border-radius:6px;font-size:12px;"></pre></div>
+        <div class="section-title" data-i18n="result_string">返回结果(字符串)</div><div class="form-item"><textarea id="toolResultInput" rows="4" data-i18n-placeholder="result_input_placeholder" placeholder="在此输入工具返回的结果…"></textarea></div>
+        <button class="btn-save" id="toolResultSubmit" data-i18n="submit_result">提交结果</button>
     </div>
 </div>
 <div class="chat-box" id="chatContainer"></div>
 <div class="bottom-wrap">
     <div class="media-bar" id="mediaBar">
-        <button class="media-btn" data-type="file">📄 文件</button>
-        <button class="media-btn" data-type="image">🖼️ 图片</button>
-        <button class="media-btn" data-type="video">🎬 视频</button>
+        <button class="media-btn" data-type="file" data-i18n="media_file">📄 文件</button>
+        <button class="media-btn" data-type="image" data-i18n="media_image">🖼️ 图片</button>
+        <button class="media-btn" data-type="video" data-i18n="media_video">🎬 视频</button>
     </div>
     <div class="attach-list" id="attachList"></div>
     <div class="input-row">
-        <textarea id="userInput" placeholder="输入消息… Enter发送，Shift+Enter换行"></textarea>
-        <button id="sendBtn">发送</button>
+        <textarea id="userInput" data-i18n-placeholder="input_placeholder" placeholder="输入消息… Enter发送，Shift+Enter换行"></textarea>
+        <button id="sendBtn" data-i18n="send">发送</button>
     </div>
 </div>
 <script src="app.js"></script>

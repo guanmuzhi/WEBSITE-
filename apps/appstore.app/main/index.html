@@ -10,31 +10,31 @@
 <body>
     <div class="appstore">
         <div class="appstore-header">
-            <div class="appstore-title">应用商店</div>
+            <div class="appstore-title" data-i18n="app.appstore">应用商店</div>
             <div class="appstore-search">
                 <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="11" cy="11" r="8"/>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
-                <input type="text" id="search-input" placeholder="搜索应用...">
+                <input type="text" id="search-input" data-i18n-placeholder="appstore.search_placeholder" placeholder="搜索应用...">
             </div>
-            <button class="add-app-btn" id="add-app-btn" title="从本地安装 .app 应用">
+            <button class="add-app-btn" id="add-app-btn" data-i18n-title="appstore.install_from_local" title="从本地安装 .app 应用">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="17 8 12 3 7 8"/>
                     <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
-                <span>添加应用</span>
+                <span data-i18n="appstore.add_app">添加应用</span>
             </button>
             <input type="file" id="app-file-input" accept=".app,.zip" style="display:none">
             <div class="update-badge" id="update-badge" style="display: none;">0</div>
         </div>
 
         <div class="appstore-categories">
-            <button class="category-btn active" data-category="all">全部</button>
-            <button class="category-btn" data-category="productivity">生产力</button>
-            <button class="category-btn" data-category="media">媒体</button>
-            <button class="category-btn" data-category="system">系统工具</button>
+            <button class="category-btn active" data-category="all" data-i18n="appstore.category_all">全部</button>
+            <button class="category-btn" data-category="productivity" data-i18n="appstore.category_productivity">生产力</button>
+            <button class="category-btn" data-category="media" data-i18n="appstore.category_media">媒体</button>
+            <button class="category-btn" data-category="system" data-i18n="appstore.category_system">系统工具</button>
         </div>
 
         <div class="appstore-content">
@@ -43,7 +43,7 @@
         </div>
 
         <div class="appstore-footer">
-            <div class="footer-text">WebOS 应用商店</div>
+            <div class="footer-text" data-i18n="appstore.footer">WebOS 应用商店</div>
         </div>
     </div>
 
@@ -60,7 +60,7 @@
             <div class="modal-developer" id="modal-developer"></div>
             <div class="modal-version" id="modal-version"></div>
             <div class="modal-description" id="modal-description"></div>
-            <button class="modal-install" id="modal-install">安装</button>
+            <button class="modal-install" id="modal-install" data-i18n="appstore.install">安装</button>
         </div>
     </div>
 

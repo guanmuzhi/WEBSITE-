@@ -5,10 +5,13 @@ const AUDIO_EXTENSIONS = ['mp3', 'wav', 'ogg', 'flac'];
 
 class MediaPlayer {
     constructor() {
+        this.strings = {};
+
         this.player = document.getElementById('media-player');
         this.filenameEl = document.getElementById('filename');
         this.mediaInfoEl = document.getElementById('media-info');
         this.placeholder = document.getElementById('placeholder');
+        this.placeholderTextEl = document.getElementById('placeholder-text');
         this.mediaContainer = document.getElementById('media-container');
         this.audioMode = document.getElementById('audio-mode');
         this.audioTitle = document.getElementById('audio-title');
@@ -30,14 +33,78 @@ class MediaPlayer {
         this.statusType = document.getElementById('status-type');
 
         this.currentPath = '';
+        this.currentNode = null;
+        this.currentMediaType = null;
+        this.currentExtension = '';
+        this.currentFileName = '';
         this.currentType = 'video';
         this.isPlaying = false;
         this.volume = 0.8;
         this.currentSpeed = 1;
 
         this.initEvents();
+        this.initLanguage();
+    }
+
+    async initLanguage() {
+        await this.loadLanguage();
+        this.applyLanguage();
         this.checkUrlParam();
         this.updateVolumeDisplay();
+    }
+
+    async loadLanguage() {
+        const lang = localStorage.getItem('webos-language') || 'cmn';
+        const langFiles = { cmn: '/apps/mediaplayer.app/main/language/mediaplayer_cmn.json', eng: '/apps/mediaplayer.app/main/language/mediaplayer_eng.json', jpn: '/apps/mediaplayer.app/main/language/mediaplayer_jpn.json' };
+        try {
+            const res = await fetch(langFiles[lang] || langFiles.cmn);
+            const data = await res.json();
+            this.strings = data.strings || {};
+        } catch (e) {
+            this.strings = {};
+        }
+        try {
+            if (!this._langBound && window.parent && window.parent !== window) {
+                this._langBound = true;
+                window.parent.document.addEventListener('language-changed', () => {
+                    this.loadLanguage().then(() => this.applyLanguage());
+                });
+            }
+        } catch (e) {}
+    }
+
+    t(key, fallback) {
+        return this.strings[key] !== undefined ? this.strings[key] : (fallback || key);
+    }
+
+    applyLanguage() {
+        if (!this.currentPath) {
+            this.filenameEl.textContent = this.t('mp.no_file', '未选择文件');
+        }
+        if (this.placeholderTextEl) this.placeholderTextEl.textContent = this.t('mp.no_media', '暂无媒体文件');
+
+        if (this.currentPath) {
+            this.filenameEl.textContent = this.currentFileName;
+            this.mediaInfoEl.textContent = `${this.currentMediaType === 'video' ? this.t('mp.video', '视频') : this.t('mp.audio', '音频')} · ${this.currentExtension.toUpperCase()}`;
+            if (this.currentMediaType === 'audio') {
+                this.audioArtist.textContent = this.t('mp.local_file', '本地文件');
+            }
+            if (!isNaN(this.player.duration)) this.updateMetadata();
+        } else {
+            this.mediaInfoEl.textContent = '';
+            this.audioTitle.textContent = this.t('mp.no_audio', '未选择音频');
+            this.audioArtist.textContent = this.t('mp.unknown_artist', '未知艺术家');
+        }
+
+        this.prevBtn.title = this.t('mp.prev', '上一个');
+        this.nextBtn.title = this.t('mp.next', '下一个');
+        this.playBtn.title = this.t('mp.play_pause', '播放/暂停');
+        this.volumeBtn.title = this.t('mp.volume', '音量');
+        this.fullscreenBtn.title = this.t('mp.fullscreen', '全屏');
+
+        document.title = this.currentFileName
+            ? `${this.currentFileName} - ${this.t('app.mediaplayer', '影音播放器')}`
+            : this.t('app.mediaplayer', '影音播放器');
     }
 
     initEvents() {
@@ -126,7 +193,7 @@ class MediaPlayer {
         const node = this.getNodeByPath(root, path);
 
         if (!node || node.type !== 'file') {
-            alert(`文件 "${path}" 不存在`);
+            alert(this.t('mp.file_not_found', '文件 "{path}" 不存在').replace('{path}', path));
             return;
         }
 
@@ -134,31 +201,35 @@ class MediaPlayer {
         const mediaType = this.getMediaType(extension);
 
         if (!mediaType) {
-            alert(`不支持的文件格式: ${extension}`);
+            alert(this.t('mp.unsupported_format', '不支持的文件格式: {ext}').replace('{ext}', extension));
             return;
         }
 
         this.currentPath = path;
         this.currentType = mediaType;
+        this.currentNode = node;
+        this.currentFileName = node.name;
+        this.currentMediaType = mediaType;
+        this.currentExtension = extension;
         
         const dataUrl = this.buildDataUrl(node.content || '', extension);
         this.player.src = dataUrl;
         
         this.filenameEl.textContent = node.name;
-        this.mediaInfoEl.textContent = `${mediaType === 'video' ? '视频' : '音频'} · ${extension.toUpperCase()}`;
+        this.mediaInfoEl.textContent = `${mediaType === 'video' ? this.t('mp.video', '视频') : this.t('mp.audio', '音频')} · ${extension.toUpperCase()}`;
         
         if (mediaType === 'audio') {
             this.mediaContainer.style.display = 'none';
             this.audioMode.style.display = 'flex';
             this.audioTitle.textContent = node.name.replace(/\.[^/.]+$/, '');
-            this.audioArtist.textContent = '本地文件';
+            this.audioArtist.textContent = this.t('mp.local_file', '本地文件');
         } else {
             this.mediaContainer.style.display = 'flex';
             this.audioMode.style.display = 'none';
         }
         
         this.placeholder.classList.add('hidden');
-        document.title = `${node.name} - 影音播放器`;
+        document.title = `${node.name} - ${this.t('app.mediaplayer', '影音播放器')}`;
         
         this.player.load();
         this.player.play().catch(() => {});
@@ -214,8 +285,8 @@ class MediaPlayer {
     updateMetadata() {
         if (!isNaN(this.player.duration)) {
             const duration = this.formatTime(this.player.duration);
-            this.statusDuration.textContent = `时长: ${duration}`;
-            this.statusType.textContent = `类型: ${this.currentType === 'video' ? '视频' : '音频'}`;
+            this.statusDuration.textContent = `${this.t('mp.duration', '时长:')} ${duration}`;
+            this.statusType.textContent = `${this.t('mp.type', '类型:')} ${this.currentType === 'video' ? this.t('mp.video', '视频') : this.t('mp.audio', '音频')}`;
         }
     }
 

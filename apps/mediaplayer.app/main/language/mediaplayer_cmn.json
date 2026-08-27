@@ -1,0 +1,21 @@
+{
+    "strings": {
+        "app.mediaplayer": "影音播放器",
+        "mp.no_file": "未选择文件",
+        "mp.no_audio": "未选择音频",
+        "mp.unknown_artist": "未知艺术家",
+        "mp.no_media": "暂无媒体文件",
+        "mp.local_file": "本地文件",
+        "mp.video": "视频",
+        "mp.audio": "音频",
+        "mp.duration": "时长:",
+        "mp.type": "类型:",
+        "mp.file_not_found": "文件 \"{path}\" 不存在",
+        "mp.unsupported_format": "不支持的文件格式: {ext}",
+        "mp.prev": "上一个",
+        "mp.next": "下一个",
+        "mp.play_pause": "播放/暂停",
+        "mp.volume": "音量",
+        "mp.fullscreen": "全屏"
+    }
+}

@@ -1,5 +1,6 @@
 class TextEditor {
     constructor() {
+        this.strings = {};
         this.textarea = document.getElementById('editor-textarea');
         this.filenameInput = document.getElementById('filename-input');
         this.charCount = document.getElementById('char-count');
@@ -12,6 +13,27 @@ class TextEditor {
         this.initEvents();
         this.updateStats();
         this.checkUrlParam();
+        this.loadLanguage();
+    }
+    t(key, fallback) {
+        return this.strings[key] !== undefined ? this.strings[key] : (fallback || key);
+    }
+    async loadLanguage() {
+        const lang = localStorage.getItem('webos-language') || 'cmn';
+        const langFiles = { cmn: '/apps/texteditor.app/main/language/texteditor_cmn.json', eng: '/apps/texteditor.app/main/language/texteditor_eng.json', jpn: '/apps/texteditor.app/main/language/texteditor_jpn.json' };
+        try {
+            const res = await fetch(langFiles[lang] || langFiles.cmn);
+            const data = await res.json();
+            this.strings = data.strings || {};
+        } catch (e) {
+            this.strings = {};
+        }
+        this.applyLanguage();
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.document.addEventListener('language-changed', () => { this.loadLanguage().then(() => this.applyLanguage()); });
+            }
+        } catch (e) {}
     }
     checkUrlParam() {
         let path = null;
@@ -27,8 +49,17 @@ class TextEditor {
         this.textarea.addEventListener('input', () => { this.isSaved = false; this.updateStats(); this.updateSaveStatus(); });
         this.filenameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { this.saveFile(); } });
     }
-    updateStats() { const text = this.textarea.value; this.charCount.textContent = '字符: ' + text.length; this.lineCount.textContent = '行: ' + text.split('\n').length; }
-    updateSaveStatus() { if (this.isSaved) { this.saveStatus.textContent = '已保存'; this.saveStatus.className = 'saved'; } else { this.saveStatus.textContent = '未保存'; this.saveStatus.className = 'unsaved'; } }
+    updateStats() { const text = this.textarea.value; this.charCount.textContent = this.t('editor.status_chars').replace('{n}', text.length); this.lineCount.textContent = this.t('editor.status_lines').replace('{n}', text.split('\n').length); }
+    updateSaveStatus() { if (this.isSaved) { this.saveStatus.textContent = this.t('editor.saved'); this.saveStatus.className = 'saved'; } else { this.saveStatus.textContent = this.t('editor.unsaved'); this.saveStatus.className = 'unsaved'; } }
+    applyLanguage() {
+        const btnTitles = { 'new-btn': 'editor.new', 'open-btn': 'editor.open', 'save-btn': 'editor.save', 'save-as-btn': 'editor.save_as' };
+        Object.entries(btnTitles).forEach(([id, key]) => { const el = document.getElementById(id); if (el) el.title = this.t(key); });
+        if (this.filenameInput) this.filenameInput.placeholder = this.t('editor.filename_placeholder');
+        if (this.textarea) this.textarea.placeholder = this.t('editor.textarea_placeholder');
+        if (this.t('app.title')) document.title = this.t('app.title');
+        this.updateStats();
+        this.updateSaveStatus();
+    }
     showAlert(message) {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
@@ -37,14 +68,14 @@ class TextEditor {
             dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
             const title = document.createElement('div');
             title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
-            title.textContent = '提示';
+            title.textContent = this.t('editor.title_info');
             dialog.appendChild(title);
             const msg = document.createElement('div');
             msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:16px;';
             msg.textContent = message;
             dialog.appendChild(msg);
             const okBtn = document.createElement('button');
-            okBtn.textContent = '确定';
+            okBtn.textContent = this.t('editor.ok');
             okBtn.style.cssText = 'padding:8px 24px;background:var(--accent-color,#3498db);border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
             okBtn.addEventListener('mouseenter', () => { okBtn.style.background = 'var(--accent-hover,#2980b9)'; });
             okBtn.addEventListener('mouseleave', () => { okBtn.style.background = 'var(--accent-color,#3498db)'; });
@@ -63,12 +94,12 @@ class TextEditor {
         dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:20px;width:420px;max-height:80vh;display:flex;flex-direction:column;color:#ddd;font-family:inherit;';
         const title = document.createElement('div');
         title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
-        title.textContent = '选择要打开的文件';
+        title.textContent = this.t('editor.file_picker_title');
         dialog.appendChild(title);
         if (files.length === 0) {
             const empty = document.createElement('div');
             empty.style.cssText = 'padding:24px;color:#888;text-align:center;font-size:13px;';
-            empty.textContent = '没有找到文本文件';
+            empty.textContent = this.t('editor.file_picker_empty');
             dialog.appendChild(empty);
         } else {
             const list = document.createElement('div');
@@ -92,7 +123,7 @@ class TextEditor {
             dialog.appendChild(list);
         }
         const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = '取消';
+        cancelBtn.textContent = this.t('editor.cancel');
         cancelBtn.style.cssText = 'padding:8px 24px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;align-self:flex-end;';
         cancelBtn.addEventListener('mouseenter', () => { cancelBtn.style.background = '#4d4d4d'; });
         cancelBtn.addEventListener('mouseleave', () => { cancelBtn.style.background = '#3d3d3d'; });
@@ -124,7 +155,7 @@ class TextEditor {
             dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
             const title = document.createElement('div');
             title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
-            title.textContent = '输入';
+            title.textContent = this.t('editor.title_input');
             dialog.appendChild(title);
             const msg = document.createElement('div');
             msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:12px;';
@@ -140,14 +171,14 @@ class TextEditor {
             const btnContainer = document.createElement('div');
             btnContainer.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
             const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = '取消';
+            cancelBtn.textContent = this.t('editor.cancel');
             cancelBtn.style.cssText = 'padding:8px 16px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;';
             cancelBtn.addEventListener('mouseenter', () => { cancelBtn.style.background = '#4d4d4d'; });
             cancelBtn.addEventListener('mouseleave', () => { cancelBtn.style.background = '#3d3d3d'; });
             cancelBtn.addEventListener('click', () => { document.body.removeChild(overlay); resolve(null); });
             btnContainer.appendChild(cancelBtn);
             const confirmBtn = document.createElement('button');
-            confirmBtn.textContent = '确定';
+            confirmBtn.textContent = this.t('editor.ok');
             confirmBtn.style.cssText = 'padding:8px 16px;background:var(--accent-color,#3498db);border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
             confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = 'var(--accent-hover,#2980b9)'; });
             confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = 'var(--accent-color,#3498db)'; });
@@ -168,7 +199,7 @@ class TextEditor {
             dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
             const title = document.createElement('div');
             title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
-            title.textContent = '确认';
+            title.textContent = this.t('editor.title_confirm');
             dialog.appendChild(title);
             const msg = document.createElement('div');
             msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:16px;';
@@ -177,14 +208,14 @@ class TextEditor {
             const btnContainer = document.createElement('div');
             btnContainer.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
             const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = '取消';
+            cancelBtn.textContent = this.t('editor.cancel');
             cancelBtn.style.cssText = 'padding:8px 16px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;';
             cancelBtn.addEventListener('mouseenter', () => { cancelBtn.style.background = '#4d4d4d'; });
             cancelBtn.addEventListener('mouseleave', () => { cancelBtn.style.background = '#3d3d3d'; });
             cancelBtn.addEventListener('click', () => { document.body.removeChild(overlay); resolve(false); });
             btnContainer.appendChild(cancelBtn);
             const confirmBtn = document.createElement('button');
-            confirmBtn.textContent = '确定';
+            confirmBtn.textContent = this.t('editor.ok');
             confirmBtn.style.cssText = 'padding:8px 16px;background:var(--accent-color,#3498db);border:none;border-radius:4px;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;';
             confirmBtn.addEventListener('mouseenter', () => { confirmBtn.style.background = 'var(--accent-hover,#2980b9)'; });
             confirmBtn.addEventListener('mouseleave', () => { confirmBtn.style.background = 'var(--accent-color,#3498db)'; });
@@ -198,7 +229,7 @@ class TextEditor {
     }
     newFile() {
         if (!this.isSaved && this.textarea.value.trim()) {
-            this.showConfirm('当前文件未保存，是否继续？').then((confirmed) => {
+            this.showConfirm(this.t('editor.confirm_discard')).then((confirmed) => {
                 if (confirmed) { this.textarea.value = ''; this.filenameInput.value = ''; this.currentFile = ''; this.currentPath = ''; this.isSaved = true; this.updateStats(); this.updateSaveStatus(); }
             });
             return;
@@ -207,12 +238,12 @@ class TextEditor {
     }
     openFileByPath(path) {
         const content = this.storage.readFile(path);
-        if (content === null) { this.showAlert('文件 "' + path + '" 不存在'); return; }
+        if (content === null) { this.showAlert(this.t('editor.file_not_found').replace('{file}', path)); return; }
         this.textarea.value = content; this.filenameInput.value = path; this.currentFile = path.split('/').pop(); this.currentPath = path; this.isSaved = true; this.updateStats(); this.updateSaveStatus();
     }
     saveFile() {
         let path = this.filenameInput.value.trim();
-        if (!path) { this.showPrompt('请输入文件路径（如 /user/public/test.txt）：').then((inputPath) => { if (inputPath) { this.filenameInput.value = inputPath; this.doSaveFile(inputPath); } }); return; }
+        if (!path) { this.showPrompt(this.t('editor.prompt_path')).then((inputPath) => { if (inputPath) { this.filenameInput.value = inputPath; this.doSaveFile(inputPath); } }); return; }
         this.doSaveFile(path);
     }
     doSaveFile(path) {
@@ -221,7 +252,7 @@ class TextEditor {
         const event = new CustomEvent('file-saved', { detail: { filename: this.currentFile, path, content: this.textarea.value } });
         window.dispatchEvent(event);
     }
-    saveAs() { this.showPrompt('请输入新文件路径：', this.currentPath || '').then((newPath) => { if (newPath) { this.filenameInput.value = newPath; this.saveFile(); } }); }
+    saveAs() { this.showPrompt(this.t('editor.prompt_new_path'), this.currentPath || '').then((newPath) => { if (newPath) { this.filenameInput.value = newPath; this.saveFile(); } }); }
     setContent(content, path = '') { this.textarea.value = content; this.filenameInput.value = path; this.currentPath = path; this.currentFile = path.split('/').pop(); this.isSaved = true; this.updateStats(); this.updateSaveStatus(); }
 }
 document.addEventListener('DOMContentLoaded', () => { window.editor = new TextEditor(); });
