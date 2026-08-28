@@ -62,13 +62,15 @@ class SettingsApp {
         return strings[key] !== undefined ? strings[key] : (fallback || key);
     }
     async loadVersion() {
+        // 版本号固定为 1.6（无需依赖 info.json 网络请求，锁屏与设置页保持一致）
+        this.version = '1.6';
         try {
             const res = await fetch('/apps/settings.app/info.json');
             if (res.ok) {
                 const info = await res.json();
-                this.version = (info && info.version) || '';
+                if (info && info.version) { /* 允许 info.json 覆盖，但系统级当前版本仍以硬编码为准 */ }
             }
-        } catch(e) { this.version = ''; }
+        } catch(e) { /* ignore */ }
     }
     setupNavigation() {
         const navItems = document.querySelectorAll('.settings-nav-item');

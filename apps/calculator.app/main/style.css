@@ -1,3 +1,10 @@
+/* =========================================================
+   计算器样式 — iframe 安全的响应式实现
+   核心：不在 iframe 中使用 vh/vw/vmin/media queries（它们引用外层浏览器视口）
+   替代：html/body 100% 占满 iframe，body 作为 size container，
+   所有相对尺寸使用 cqmin（= min(容器宽度, 容器高度)），完全相对于 iframe 本身。
+   ========================================================= */
+
 :root {
     --primary-bg: #0f0f1a;
     --secondary-bg: #1a1a2e;
@@ -24,19 +31,23 @@
     --btn-active-scale: 0.96;
 }
 
-* {
-    box-sizing: border-box;
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    min-width: 100%;
+    min-height: 100%;
+    /* body 作为尺寸容器，cqw/cqh/cqmin 都相对于 iframe（即 body 本身） */
+    container-type: size;
+    container-name: calc-frame;
 }
 
 body {
     font-family: 'SF Pro Display', 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
     background: #000000;
-    height: 100vh;
-    width: 100vw;
-    min-height: 100vh;
-    min-width: 100vw;
-    margin: 0;
-    padding: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -48,8 +59,8 @@ body {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    padding: clamp(4px, 1.2vmin, 12px);
-    gap: clamp(4px, 0.8vmin, 10px);
+    padding: clamp(4px, 1.2cqmin, 12px);
+    gap: clamp(4px, 0.8cqmin, 10px);
     background: #000000;
     box-sizing: border-box;
 }
@@ -58,31 +69,31 @@ body {
     background: #000000;
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: var(--border-radius);
-    padding: clamp(8px, 1.5vmin, 18px) clamp(12px, 2.2vmin, 20px);
+    padding: clamp(8px, 1.5cqmin, 18px) clamp(12px, 2.2cqmin, 20px);
     text-align: right;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     flex: 0 0 auto;
-    min-height: clamp(56px, 16vmin, 110px);
+    min-height: clamp(56px, 16cqmin, 110px);
     box-shadow: var(--shadow);
 }
 
 .expression {
     color: var(--text-secondary);
-    font-size: clamp(11px, 1.8vmin, 17px);
-    min-height: clamp(16px, 2.6vmin, 22px);
+    font-size: clamp(11px, 1.8cqmin, 17px);
+    min-height: clamp(16px, 2.6cqmin, 22px);
     max-height: 30%;
     overflow: hidden;
     word-break: break-all;
-    margin-bottom: clamp(2px, 0.4vmin, 6px);
+    margin-bottom: clamp(2px, 0.4cqmin, 6px);
     opacity: 0.7;
     line-height: 1.2;
 }
 
 .result {
     color: var(--text-primary);
-    font-size: clamp(22px, 5vmin, 48px);
+    font-size: clamp(22px, 5cqmin, 48px);
     font-weight: 300;
     line-height: 1.1;
     word-break: break-all;
@@ -94,7 +105,7 @@ body {
     flex: 1 1 auto;
     display: grid;
     grid-template-rows: repeat(8, minmax(0, 1fr));
-    gap: clamp(3px, 0.6vmin, 8px);
+    gap: clamp(3px, 0.6cqmin, 8px);
     min-height: 0;
     overflow: hidden;
 }
@@ -102,7 +113,7 @@ body {
 .btn-row {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: clamp(3px, 0.6vmin, 8px);
+    gap: clamp(3px, 0.6cqmin, 8px);
     min-height: 0;
 }
 
@@ -113,8 +124,8 @@ body {
 
 .calculator .btn {
     border: 1px solid transparent;
-    border-radius: max(6px, 0.8vmin);
-    font-size: clamp(12px, 2.4vmin, 22px);
+    border-radius: max(6px, 0.8cqmin);
+    font-size: clamp(12px, 2.4cqmin, 22px);
     font-weight: 500;
     cursor: pointer;
     font-family: inherit;
@@ -126,9 +137,9 @@ body {
     justify-content: center;
     width: 100%;
     height: 100%;
-    min-height: clamp(30px, 7vmin, 60px);
+    min-height: clamp(30px, 7cqmin, 60px);
     line-height: 1;
-    padding: 0 clamp(2px, 0.4vmin, 6px);
+    padding: 0 clamp(2px, 0.4cqmin, 6px);
     position: relative;
     overflow: hidden;
     transition: border-color 150ms ease, transform 80ms ease, background-color 150ms ease;
@@ -159,15 +170,15 @@ body {
 }
 
 .calculator .btn-icon {
-    width: clamp(14px, 3vmin, 22px);
-    height: clamp(14px, 3vmin, 22px);
+    width: clamp(14px, 3cqmin, 22px);
+    height: clamp(14px, 3cqmin, 22px);
     flex-shrink: 0;
 }
 
 .num {
     background: #000000;
     border: 1px solid rgba(255,255,255,0.06);
-    font-size: clamp(14px, 3vmin, 24px);
+    font-size: clamp(14px, 3cqmin, 24px);
 }
 
 .num:hover {
@@ -179,7 +190,7 @@ body {
     background: #000000;
     border: 1px solid rgba(26,188,156,0.25);
     color: var(--accent-color, #1abc9c);
-    font-size: clamp(16px, 3.6vmin, 30px);
+    font-size: clamp(16px, 3.6cqmin, 30px);
 }
 
 .op:hover {
@@ -190,7 +201,7 @@ body {
 .func {
     background: #000000;
     border: 1px solid rgba(255,255,255,0.06);
-    font-size: clamp(11px, 2vmin, 18px);
+    font-size: clamp(11px, 2cqmin, 18px);
     color: var(--text-secondary);
     line-height: 1.1;
 }
@@ -227,7 +238,7 @@ body {
     background: #000000;
     border: 1px solid var(--accent-color, #1abc9c);
     color: var(--accent-color, #1abc9c);
-    font-size: clamp(18px, 4vmin, 34px);
+    font-size: clamp(18px, 4cqmin, 34px);
     font-weight: 600;
 }
 
@@ -237,10 +248,13 @@ body {
     color: var(--accent-hover, #16a085);
 }
 
-/* 移除旧的 zero span 2 规则，避免 = 按钮换行 */
+/* =========================================================
+   容器查询（替代 media query，响应 iframe 自身尺寸）
+   @container calc-frame 引用 body 的 container-name
+   ========================================================= */
 
-/* —— 窄屏（手机竖屏 < 400px 宽）—— */
-@media (max-width: 400px) {
+/* 窄容器（iframe 宽度 < 400px） */
+@container calc-frame (max-width: 400px) {
     .calculator { padding: 4px; gap: 4px; }
     .btn-row { gap: 3px; }
     .buttons { gap: 3px; }
@@ -251,8 +265,8 @@ body {
     .calculator .btn { min-height: 40px; }
 }
 
-/* —— 超矮窗口（横向扁窗，高度 < 360px）：保证功能按钮也能看清 —— */
-@media (max-height: 380px) {
+/* 扁容器（iframe 高度 < 380px） */
+@container calc-frame (max-height: 380px) {
     .calculator .btn {
         min-height: 28px;
         border-radius: 5px;
@@ -266,8 +280,8 @@ body {
     .equals { font-size: 17px; }
 }
 
-/* —— 极矮窗口：降低 display 比例，按钮更小但不挤 —— */
-@media (max-height: 280px) {
+/* 极矮容器 */
+@container calc-frame (max-height: 280px) {
     .display { min-height: 36px; }
     .calculator .btn { min-height: 22px; font-size: 11px; }
     .calculator .btn-icon { width: 14px; height: 14px; }
@@ -275,20 +289,21 @@ body {
     .equals { font-size: 14px !important; }
 }
 
-/* —— 宽屏大窗口：防止按钮无限变大 —— */
-@media (min-width: 520px) and (min-height: 640px) {
+/* 大容器：防止按钮无限变大，居中固定最大宽度 */
+@container calc-frame (min-width: 520px) and (min-height: 640px) {
     .calculator {
         max-width: 420px;
         margin: 0 auto;
     }
 }
 
-/* —— 通用：保证窗口任意尺寸变化，不会因 aspect 失调而裁切内容 —— */
-@supports (aspect-ratio: 1 / 1) {
-    .btn-row {
-        grid-auto-rows: 1fr;
-    }
-    .calculator .btn {
-        /* 保持按钮视觉一致；极端情况下仍以 vmin clamp 兜底 */
+/* 不支持容器查询的老浏览器降级：仍使用 clamp 兜底 */
+@supports not (container-type: size) {
+    body { container-type: normal; }
+    html, body { height: 100%; width: 100%; }
+    .calculator {
+        /* fallback: 用百分比 padding，clamp 内部尺寸仍参考视口但 body 100% 已修复最糟情况 */
+        padding: 2%;
+        gap: 1.5%;
     }
 }

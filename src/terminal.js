@@ -197,7 +197,7 @@ class Terminal {
         }
     }
     printWelcome() {
-        this.print('Web Terminal OS v1.0');
+        this.print('Web Terminal OS v1.6');
         this.print('输入 "help" 查看可用命令');
         this.print('');
     }

@@ -424,20 +424,46 @@ class DesktopManager {
     }
     _clearAutohideTimer() { if (this._taskbarAutohideTimer) { clearTimeout(this._taskbarAutohideTimer); this._taskbarAutohideTimer = null; } }
     setupIframeFocusTracking() {
-        // 点击应用 iframe 内部时 mousedown 会被 iframe 吞掉，导致窗口不前置、任务栏高亮不更新。
-        // 监听主窗口失焦：若焦点转移到某个 iframe，则将其宿主窗口前置并刷新任务栏高亮。
-        window.addEventListener('blur', () => {
-            setTimeout(() => {
-                try {
-                    const ae = document.activeElement;
-                    if (!ae || ae.tagName !== 'IFRAME') return;
+        // === 1) 统一监听 WindowManager.focusWindow 派发的焦点变化事件 ===
+        //     无论什么路径触发 focusWindow（titlebar 拖拽、缩放、winEl mousedown/touchstart、
+        //     新建窗口、win.focus 包装器等），此处都会收到事件并刷新任务栏高亮。
+        const onFocusChanged = () => { this.updateTaskbar(); };
+        document.addEventListener('wm-window-focus-changed', onFocusChanged, true);
+
+        // === 2) 修复 iframe 焦点不前置对应窗口的问题 ===
+        // 根因：<iframe> 内外是不同 document 上下文，用户点击 iframe 内部时，
+        // mousedown / touchstart 事件不会越过 iframe 边界冒泡到父文档，
+        // 导致 window-manager.js 和 desktop.js 的 winEl mousedown 监听都不触发，
+        // focusWindow() 不被调用 → z-index 不更新 → window-focused 类不切换 → 任务栏高亮错误。
+        //
+        // 解决：当用户点击/切进 iframe 时，父文档的 document.activeElement 会变成该 iframe 元素。
+        // 我们用 activeElement 轮询 + iframe 元素自身 focus 事件双通道捕捉这个转移。
+        let lastIframeFocused = null;
+        const checkActive = () => {
+            try {
+                const ae = document.activeElement;
+                if (ae && ae.tagName === 'IFRAME' && ae !== lastIframeFocused) {
                     const winEl = ae.closest ? ae.closest('.window') : null;
-                    if (!winEl) return;
-                    const win = this.windowManager.getAllWindows().find(w => w.element === winEl);
-                    if (win && !win.isMinimized && typeof win.focus === 'function') { win.focus(); }
-                } catch (e) {}
-            }, 0);
-        });
+                    if (winEl) {
+                        const win = this.windowManager.getAllWindows().find(w => w.element === winEl);
+                        if (win && !win.isMinimized && !winEl.classList.contains('window-focused') && typeof win.focus === 'function') {
+                            win.focus(); // 走包装器，会调用 originalFocus → focusWindow → 触发事件 → updateTaskbar
+                        }
+                        lastIframeFocused = ae;
+                    }
+                } else if (!ae || ae.tagName !== 'IFRAME') {
+                    lastIframeFocused = null;
+                }
+            } catch (e) {}
+        };
+        // 轮询（300ms 对用户完全无感，但不会像 blur 监听那样漏掉焦点在文档内部移动的场景）
+        setInterval(checkActive, 300);
+        // 同时在顶层 window 的 blur/focus 时立刻检查（切浏览器 tab 回来等场景）
+        window.addEventListener('blur', () => setTimeout(checkActive, 0));
+        window.addEventListener('focus', () => setTimeout(checkActive, 0));
+        // 用户任意点击后立即检查（用于某些浏览器 activeElement 更新时机比轮询快的场景）
+        document.addEventListener('pointerdown', () => setTimeout(checkActive, 0), true);
+        document.addEventListener('keydown', () => setTimeout(checkActive, 0), true);
     }
     setupDesktopPanning() {
         const desktop = this.desktopEl;
@@ -619,6 +645,13 @@ class DesktopManager {
     }
     _getTopWindow() {
         const windows = this.windowManager.getAllWindows(); if (windows.length === 0) return null;
+        // 优先以 window-focused 类为准（focusWindow 每次都会切换此类，表示真正的当前焦点）
+        let focused = null;
+        for (const w of windows) {
+            if (!w.isMinimized && w.element.classList.contains('window-focused')) { focused = w; break; }
+        }
+        if (focused) return focused;
+        // 兜底：z-index 最大（兼容首次加载 state、或某些路径没设置类的情况）
         let topWin = null; let maxZIndex = -1;
         windows.forEach(win => { if (win.isMinimized) return; const zIndex = parseInt(win.element.style.zIndex) || 0; if (zIndex > maxZIndex) { maxZIndex = zIndex; topWin = win; } });
         return topWin;

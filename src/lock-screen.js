@@ -59,6 +59,11 @@ class LockScreen {
         username.className = 'lock-username';
         header.appendChild(username);
         body.appendChild(header);
+        // 锁屏版本号（style.css 已有 .lock-screen .lock-version 样式）
+        const versionEl = document.createElement('div');
+        versionEl.className = 'lock-version';
+        versionEl.textContent = 'navore OS v1.6';
+        body.appendChild(versionEl);
         // 中部：解锁区域
         const content = document.createElement('div');
         content.className = 'lock-content';

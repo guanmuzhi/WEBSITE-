@@ -272,6 +272,22 @@ class WindowManager {
         this.windows.forEach(w => w.element.classList.remove('window-focused'));
         win.element.classList.add('window-focused');
         win.element.style.zIndex = this.zIndexCounter++;
+        /* 关键修复：通知 desktop 焦点变化，刷新任务栏高亮。
+           之前 focusWindow 被以下场景直接调用（不经过 win.focus 的包装器）：
+           - 窗口任意区域的 mousedown / touchstart (createWindow 内部监听)
+           - 标题栏拖拽开始、缩放手柄开始
+           - 新建窗口时自动聚焦
+           这些路径都没有调用 updateTaskbar()，导致“最高层窗口”判断错误、任务栏高亮不更新。
+           通过派发带 bubbles 的自定义事件，desktop 可在容器或 document 层统一监听。 */
+        try {
+            const detail = { id: win.id, bubbles: true };
+            const evt = new CustomEvent('wm-window-focus-changed', { bubbles: true, detail });
+            if (this.container && typeof this.container.dispatchEvent === 'function') {
+                this.container.dispatchEvent(evt);
+            } else {
+                document.dispatchEvent(evt);
+            }
+        } catch (e) { /* 环境不支持 CustomEvent 时静默 */ }
     }
     closeWindow(id) {
         const index = this.windows.findIndex(w => w.id === id);
