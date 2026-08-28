@@ -81,6 +81,9 @@ input,textarea,select{width:100%;padding:8px 10px;background:var(--input-bg);bor
 .attach-tag{background:#253247;padding:4px 8px;border-radius:4px;font-size:12px;display:flex;gap:6px;align-items:center;}
 .attach-tag button{background:transparent;border:none;color:#ff9494;cursor:pointer;}
 .attach-progress{color:#4db8ff;font-size:11px;margin-left:6px;}
+.attachments-line{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;}
+.attach-inline{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.08);padding:4px 9px;border-radius:6px;font-size:12px;}
+.attach-inline a:hover{text-decoration:underline!important;}
 .input-row{display:flex;gap:10px;align-items:flex-end;}
 #userInput{flex:1;min-height:60px;max-height:160px;resize:vertical;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:#fff;outline:none;}
 #sendBtn{width:86px;height:42px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;flex-shrink:0;}

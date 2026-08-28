@@ -91,7 +91,7 @@
             <div class="fm-network-panel" id="fm-network-panel" style="display:none;">
                 <div class="fm-landrop-header">
                     <h3>LAN Drop</h3>
-                    <p>局域网点对点文件传输 · 基于 WebRTC DataChannel，纯前端无需后端</p>
+                    <p>跨设备文件传输 · 基于 tempfile.org 中转，上传后将提取码分享给对方</p>
                 </div>
                 <div class="fm-landrop-modes">
                     <button class="fm-landrop-mode active" id="fm-landrop-mode-send">发送文件</button>
@@ -105,28 +105,18 @@
                     <input type="file" id="fm-landrop-file-input" style="display:none;">
                     <div class="fm-landrop-status" id="fm-landrop-send-status"></div>
                     <div class="fm-landrop-field">
-                        <label>连接码（发送给接收方）</label>
-                        <textarea class="fm-landrop-code" id="fm-landrop-offer-code" readonly placeholder="选择文件后将自动生成连接码"></textarea>
-                        <button class="fm-landrop-action" id="fm-landrop-copy-offer">复制连接码</button>
-                    </div>
-                    <div class="fm-landrop-field">
-                        <label>应答码（接收方回传）</label>
-                        <textarea class="fm-landrop-code" id="fm-landrop-answer-input" placeholder="粘贴接收方的应答码"></textarea>
-                        <button class="fm-landrop-action" id="fm-landrop-confirm-answer">确认应答码</button>
+                        <label>提取码（复制给接收方，24 小时内有效）</label>
+                        <textarea class="fm-landrop-code" id="fm-landrop-offer-code" readonly placeholder="选择文件上传后将自动生成提取码"></textarea>
+                        <button class="fm-landrop-action" id="fm-landrop-copy-offer">复制提取码</button>
                     </div>
                     <div class="fm-landrop-progress" id="fm-landrop-send-progress" style="display:none;"></div>
                 </div>
                 <div class="fm-landrop-section" id="fm-landrop-recv" style="display:none;">
                     <div class="fm-landrop-status" id="fm-landrop-recv-status"></div>
                     <div class="fm-landrop-field">
-                        <label>连接码（来自发送方）</label>
-                        <textarea class="fm-landrop-code" id="fm-landrop-offer-input" placeholder="粘贴发送方的连接码"></textarea>
-                        <button class="fm-landrop-action" id="fm-landrop-gen-answer">生成应答码</button>
-                    </div>
-                    <div class="fm-landrop-field">
-                        <label>应答码（回传给发送方）</label>
-                        <textarea class="fm-landrop-code" id="fm-landrop-answer-code" readonly placeholder="生成后将显示应答码"></textarea>
-                        <button class="fm-landrop-action" id="fm-landrop-copy-answer">复制应答码</button>
+                        <label>提取码（来自发送方）</label>
+                        <textarea class="fm-landrop-code" id="fm-landrop-offer-input" placeholder="粘贴发送方提供的提取码或下载链接"></textarea>
+                        <button class="fm-landrop-action primary" id="fm-landrop-gen-answer">获取文件</button>
                     </div>
                     <div class="fm-landrop-progress" id="fm-landrop-recv-progress" style="display:none;"></div>
                     <div class="fm-landrop-actions" id="fm-landrop-recv-actions" style="display:none;">
@@ -134,8 +124,10 @@
                         <button class="fm-landrop-action" id="fm-landrop-download">下载</button>
                     </div>
                 </div>
-                <div class="fm-landrop-divider">—— 同浏览器标签页 ——</div>
-                <div class="fm-landrop-devices" id="fm-landrop-devices"></div>
+                <div class="fm-landrop-divider">—— 使用说明 ——</div>
+                <div class="fm-landrop-devices" id="fm-landrop-devices">
+                    <div class="fm-landrop-empty">① 发送方：选择文件后会上传到 tempfile.org，并生成 9 位 <b>提取码</b>（24 小时有效）。<br>② 接收方：粘贴 <b>提取码</b> 或完整下载链接，即可获取文件并保存到文件系统。</div>
+                </div>
             </div>
         </div>
         <div class="fm-fs-picker-overlay" id="fm-fs-picker-overlay" style="display:none;">

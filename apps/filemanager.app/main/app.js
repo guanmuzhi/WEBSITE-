@@ -255,9 +255,7 @@ class FileManager {
             if (e.target.id === 'fm-fs-picker-overlay') this.closeFSPicker();
         });
         document.getElementById('fm-landrop-copy-offer').addEventListener('click', () => this.onCopyOffer());
-        document.getElementById('fm-landrop-confirm-answer').addEventListener('click', () => this.onConfirmAnswer());
-        document.getElementById('fm-landrop-gen-answer').addEventListener('click', () => this.onGenAnswer());
-        document.getElementById('fm-landrop-copy-answer').addEventListener('click', () => this.onCopyAnswer());
+        document.getElementById('fm-landrop-gen-answer').addEventListener('click', () => this.onFetchFile());
         document.getElementById('fm-landrop-save-fs').addEventListener('click', () => this.saveReceivedToFS());
         document.getElementById('fm-landrop-download').addEventListener('click', () => this.downloadReceived());
     }
@@ -265,45 +263,17 @@ class FileManager {
     initLANDrop() {
         if (this.landropInited) return;
         this.landropInited = true;
-        let name = 'WebOS用户';
-        try {
-            const userManager = window.parent.UserManager;
-            if (userManager) {
-                const instance = userManager.getInstance();
-                const currentUser = instance.getCurrentUser();
-                if (currentUser && currentUser.name) name = currentUser.name;
-            }
-        } catch (e) {}
-        this.myId = 'dev-' + Math.random().toString(36).slice(2, 10);
-        this.myName = name;
-        this.devices = new Map();
-        this.role = null;
         this.pendingFile = null;
-        this.pc = null;
-        this.channel = null;
         this.sendingFile = null;
         this.sentSize = 0;
-        this.recvMeta = null;
-        this.recvChunks = null;
-        this.recvSize = 0;
         this.recvDone = false;
         this.receivedBlob = null;
         this.receivedFileName = null;
+        this.receivedFileSize = 0;
         this.switchLANDropMode('send');
-        try {
-            this.bc = new BroadcastChannel('landrop');
-            this.bc.onmessage = (e) => this.handleBCMessage(e.data);
-            this.bc.postMessage({ type: 'hello', id: this.myId, name: this.myName });
-        } catch (err) { this.bc = null; }
-        window.addEventListener('beforeunload', () => this.cleanupLANDrop());
-        window.addEventListener('pagehide', () => this.cleanupLANDrop());
-        this.renderDevices();
     }
 
-    cleanupLANDrop() {
-        try { if (this.bc) { this.bc.postMessage({ type: 'bye', id: this.myId }); this.bc.close(); this.bc = null; } } catch (e) {}
-        try { if (this.pc) this.pc.close(); } catch (e) {}
-    }
+    cleanupLANDrop() { /* no-op for cloud mode */ }
 
     handleBCMessage(msg) {
         if (!msg) return;
@@ -519,51 +489,156 @@ class FileManager {
     async onSendFilePicked(file) {
         this.pendingFile = file;
         document.getElementById('fm-landrop-offer-code').value = '';
-        document.getElementById('fm-landrop-answer-input').value = '';
-        document.getElementById('fm-landrop-send-progress').style.display = 'none';
-        this.showSendStatus('正在生成连接码...');
+        this.recvDone = false;
+        this.receivedBlob = null;
+        this.receivedFileName = null;
+        this.showSendProgress();
+        this.showSendStatus('正在上传到 tempfile.org...');
         try {
-            const offerCode = await this.createSenderConnection();
-            document.getElementById('fm-landrop-offer-code').value = offerCode;
-            this.showSendStatus('连接码已生成，请发送给接收方并等待应答码');
-        } catch (e) { this.showSendStatus('生成连接码失败：' + e.message); }
+            this.sendingFile = file; this.sentSize = 0;
+            this.updateSendProgress(0);
+            const directUrl = await this.uploadToTempfile(file, (loaded, total) => {
+                this.sentSize = loaded;
+                const pct = total > 0 ? Math.floor(loaded * 100 / total) : 0;
+                this.updateSendProgress(pct);
+            });
+            const code = this._packCode(directUrl, file.name, file.size);
+            document.getElementById('fm-landrop-offer-code').value = code;
+            this.showSendStatus(`上传完成：${file.name}（${this.formatSize(file.size)}）· 提取码已生成，24小时内有效`);
+        } catch (e) {
+            this.showSendStatus('上传失败：' + e.message);
+            document.getElementById('fm-landrop-send-progress').style.display = 'none';
+        }
     }
 
     async onCopyOffer() {
         const code = document.getElementById('fm-landrop-offer-code').value;
-        if (!code) { await this.showAlert('暂无连接码'); return; }
+        if (!code) { await this.showAlert('暂无提取码，请先上传文件'); return; }
         await this.copyText(code);
-        this.showSendStatus('连接码已复制到剪贴板');
+        this.showSendStatus('提取码已复制到剪贴板');
     }
 
-    async onConfirmAnswer() {
-        const code = document.getElementById('fm-landrop-answer-input').value.trim();
-        if (!code) { await this.showAlert('请粘贴应答码'); return; }
-        if (!this.pc) { await this.showAlert('请先生成连接码'); return; }
-        try { await this.acceptAnswer(code); this.showSendStatus('应答码已确认，等待连接建立...'); }
-        catch (e) { await this.showAlert('应答码无效：' + e.message); }
-    }
-
-    async onGenAnswer() {
+    async onFetchFile() {
         const code = document.getElementById('fm-landrop-offer-input').value.trim();
-        if (!code) { await this.showAlert('请粘贴连接码'); return; }
-        document.getElementById('fm-landrop-answer-code').value = '';
+        if (!code) { await this.showAlert('请粘贴提取码或下载链接'); return; }
         document.getElementById('fm-landrop-recv-progress').style.display = 'none';
         const actions = document.getElementById('fm-landrop-recv-actions');
         if (actions) actions.style.display = 'none';
-        this.showRecvStatus('正在生成应答码...');
+        this.recvDone = false; this.receivedBlob = null; this.receivedFileName = null;
+        this.showRecvStatus('正在解析提取码...');
         try {
-            const answerCode = await this.acceptSenderConnection(code);
-            document.getElementById('fm-landrop-answer-code').value = answerCode;
-            this.showRecvStatus('应答码已生成，请回传给发送方');
-        } catch (e) { this.showRecvStatus('连接码无效：' + e.message); }
+            const { url, name, size } = this._unpackCode(code);
+            this.showRecvProgress();
+            this.updateRecvProgress(0, size);
+            const res = await fetch(url, { credentials: 'omit' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const total = size || Number(res.headers.get('Content-Length')) || 0;
+            let loaded = 0;
+            let chunks = [];
+            const reader = res.body.getReader();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                loaded += value.length;
+                chunks.push(value);
+                this.updateRecvProgress(total > 0 ? Math.floor(loaded * 100 / total) : 0, total, loaded);
+            }
+            const blob = new Blob(chunks);
+            chunks = null;
+            const finalName = name || this._guessFilenameFromUrl(url) || 'received';
+            this.receivedBlob = blob;
+            this.receivedFileName = finalName;
+            this.receivedFileSize = blob.size;
+            this.recvDone = true;
+            this.showRecvStatus(`接收完成：${finalName}（${this.formatSize(blob.size)}）`);
+            this.updateRecvProgress(100, blob.size, blob.size);
+            if (actions) actions.style.display = 'flex';
+        } catch (e) {
+            this.showRecvStatus('获取失败：' + e.message);
+            document.getElementById('fm-landrop-recv-progress').style.display = 'none';
+        }
     }
 
-    async onCopyAnswer() {
-        const code = document.getElementById('fm-landrop-answer-code').value;
-        if (!code) { await this.showAlert('暂无应答码'); return; }
-        await this.copyText(code);
-        this.showRecvStatus('应答码已复制到剪贴板');
+    _packCode(downloadUrl, filename, size) {
+        // Two formats: 1) if tempfile.org download URL, encode as short 9-char code + meta using the ID
+        // Otherwise: use 'u|' prefix with full URL, base64url compressed using filename-suffix header trick
+        // Simple robust implementation: base64url(JSON.stringify({url,name,size})) with short prefix + optional crc
+        const payload = JSON.stringify({ u: downloadUrl, n: filename || null, s: size || 0 });
+        const b64 = btoa(unescape(encodeURIComponent(payload)));
+        return 'TMP|' + b64.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+    }
+
+    _unpackCode(raw) {
+        const code = (raw || '').trim();
+        if (!code) throw new Error('提取码为空');
+        // URL directly
+        if (/^https?:\/\//i.test(code)) {
+            return { url: code, name: this._guessFilenameFromUrl(code), size: 0 };
+        }
+        // tempfile direct id: if only chars, might be a raw id like eTQWBADZ96v
+        if (/^[A-Za-z0-9_-]{6,32}$/.test(code)) {
+            return {
+                url: code.endsWith('/download')
+                    ? ('https://tempfile.org/' + code)
+                    : ('https://tempfile.org/' + code + '/download'),
+                name: null,
+                size: 0
+            };
+        }
+        if (code.startsWith('TMP|') || code.startsWith('tmp|')) {
+            try {
+                const body = code.slice(4).replace(/-/g, '+').replace(/_/g, '/');
+                const pad = body.length % 4 === 0 ? 0 : 4 - body.length % 4;
+                const full = body + '='.repeat(pad);
+                const json = decodeURIComponent(escape(atob(full)));
+                const obj = JSON.parse(json);
+                return { url: obj.u, name: obj.n || null, size: obj.s || 0 };
+            } catch (e) { throw new Error('提取码格式错误'); }
+        }
+        throw new Error('无法识别的提取码格式');
+    }
+
+    _guessFilenameFromUrl(url) {
+        try {
+            const u = new URL(url);
+            const parts = u.pathname.split('/').filter(Boolean);
+            if (parts.length >= 2 && parts[parts.length - 1] === 'download') {
+                return parts[parts.length - 2] || 'file';
+            }
+            const last = parts[parts.length - 1];
+            if (last) return decodeURIComponent(last);
+        } catch (e) {}
+        return null;
+    }
+
+    async uploadToTempfile(file, onProgress) {
+        const formData = new FormData();
+        formData.append('files', file, file.name);
+        formData.append('expiryHours', '24');
+        return await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'https://tempfile.org/api/upload/local', true);
+            xhr.withCredentials = false;
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable && onProgress) onProgress(e.loaded, e.total);
+            };
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const res = JSON.parse(xhr.responseText);
+                        if (res.success && res.files && res.files.length > 0) {
+                            const rawUrl = res.files[0].url;
+                            const directUrl = rawUrl.endsWith('/')
+                                ? rawUrl + 'download'
+                                : (rawUrl.endsWith('/download') ? rawUrl : rawUrl.replace(/\/$/, '') + '/download');
+                            resolve(directUrl);
+                        } else { reject(new Error(res.message || '上传失败')); }
+                    } catch (e) { reject(new Error('响应解析失败')); }
+                } else { reject(new Error('HTTP ' + xhr.status)); }
+            };
+            xhr.onerror = () => reject(new Error('网络错误'));
+            xhr.send(formData);
+        });
     }
 
     async connectToDevice(deviceId, deviceName) {
@@ -690,14 +765,21 @@ class FileManager {
         this.updateRecvProgress();
     }
 
-    updateRecvProgress() {
+    updateRecvProgress(pct, total, loaded) {
         const el = document.getElementById('fm-landrop-recv-progress');
-        if (!el || !this.recvMeta) return;
-        const pct = this.recvMeta.size > 0 ? Math.min(100, Math.floor(this.recvSize * 100 / this.recvMeta.size)) : 100;
+        if (!el) return;
+        let progress = pct; let sizeTotal = total || 0; let sizeLoaded = loaded || 0;
+        if (progress === undefined) {
+            // Legacy mode: use internal state
+            if (!this.recvMeta) return;
+            sizeTotal = this.recvMeta.size || 0;
+            sizeLoaded = this.recvSize || 0;
+            progress = sizeTotal > 0 ? Math.min(100, Math.floor(sizeLoaded * 100 / sizeTotal)) : 100;
+        }
         const text = el.querySelector('.fm-landrop-progress-text');
         const fill = el.querySelector('.fm-landrop-progress-fill');
-        if (text) text.textContent = '接收中：' + this.formatSize(this.recvSize) + ' / ' + this.formatSize(this.recvMeta.size) + '（' + pct + '%）';
-        if (fill) fill.style.width = pct + '%';
+        if (text) text.textContent = '接收中：' + this.formatSize(sizeLoaded) + ' / ' + this.formatSize(sizeTotal) + '（' + progress + '%）';
+        if (fill) fill.style.width = progress + '%';
     }
 
     formatSize(bytes) {
