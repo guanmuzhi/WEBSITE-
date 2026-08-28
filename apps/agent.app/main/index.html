@@ -60,10 +60,10 @@
         <div class="section-title" data-i18n="temperature">Temperature</div>
         <div class="form-item"><input type="number" id="temp" value="0.7" min="0" max="2" step="0.1"></div>
         <div class="section-title" data-i18n="max_ctx_rounds">上下文最大轮数(双向)</div>
-        <div class="form-item"><input type="number" id="maxCtxLen" value="3" min="0"></div>
+        <div class="form-item"><input type="number" id="maxCtxLen" value="5" min="0"></div>
         <div class="check-row"><input type="checkbox" id="streamToggle" checked><label for="streamToggle" data-i18n="enable_streaming">启用流式输出</label></div>
         <div class="section-title" data-i18n="tool_calling">🛠️ 工具调用 (Function Calling)</div>
-        <div class="check-row"><input type="checkbox" id="toolCallingEnabled"><label for="toolCallingEnabled" data-i18n="enable_tool_calling">启用工具调用</label></div>
+        <div class="check-row"><input type="checkbox" id="toolCallingEnabled" checked><label for="toolCallingEnabled" data-i18n="enable_tool_calling">启用工具调用</label></div>
         <div class="form-item"><label style="font-size:12px;color:#aaa;" data-i18n="max_tool_rounds">最大工具轮数</label><input type="number" id="maxToolRounds" value="5" min="1" max="20"></div>
         <div class="check-row"><input type="checkbox" id="autoExecuteTools" checked><label for="autoExecuteTools" data-i18n="auto_execute_tools">自动执行内置工具</label></div>
         <div class="form-hint" data-i18n="builtin_tools_hint">已内置：天气、当前时间、联网搜索、运行终端命令。</div>

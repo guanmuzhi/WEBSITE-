@@ -35,7 +35,7 @@ const toolResultModal=$('#toolResultModal');const toolResultClose=$('#toolResult
 let toolResultCancel=null;
 const chatBox=$('#chatContainer');const userInput=$('#userInput');const sendBtn=$('#sendBtn');
 const mediaBar=$('#mediaBar');const mediaBtns=[...mediaBar.querySelectorAll('.media-btn')];const attachListEl=$('#attachList');
-function makeEmptyConfig(id,name){return{id,name,baseUrl:'',apiKey:'',model:'',temp:0.7,maxCtx:3,stream:true,media:{file:false,image:false,video:false},toolCallingEnabled:false,maxToolRounds:5,autoExecuteTools:true,tools:[],note:'',systemPrompt:DEFAULT_SYSTEM_PROMPT};}
+function makeEmptyConfig(id,name){return{id,name,baseUrl:'',apiKey:'',model:'',temp:0.7,maxCtx:5,stream:true,media:{file:false,image:false,video:false},toolCallingEnabled:true,maxToolRounds:5,autoExecuteTools:true,tools:[],note:'',systemPrompt:DEFAULT_SYSTEM_PROMPT};}
 const DEFAULT_SEARCH_API='https://examples-with-fresh.guanmuzhi.deno.net/api/search';
 const DEFAULT_SYSTEM_PROMPT='你是一个运行在 WebOS 系统中的 AI 助手，具备调用工具（函数）的能力。'+
 '当需要执行命令、操作文件或查询系统信息时，请调用 run_terminal_command 工具。'+
