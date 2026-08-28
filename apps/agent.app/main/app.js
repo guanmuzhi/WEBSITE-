@@ -28,10 +28,17 @@ const chatBox=$('#chatContainer');const userInput=$('#userInput');const sendBtn=
 const mediaBar=$('#mediaBar');const mediaBtns=[...mediaBar.querySelectorAll('.media-btn')];const attachListEl=$('#attachList');
 const DEFAULT_API_KEY='sk-or-v1-'+'98aee66c3397f6345810d5fa465cfad3feca9db6a0e7d527fb771e47f1f9927d';
 const GLM_API_KEY='5b227192700e48ccb411fe4b9383434d.'+'ei020bPkqJqhSpFN';
-function makeDefaultConfig(){return{id:'cfg_default',name:t('cfg_default_name'),baseUrl:'https://openrouter.ai/api/v1/chat/completions',apiKey:DEFAULT_API_KEY,model:'poolside/laguna-xs-2.1:free',temp:0.3,maxCtx:5,stream:true,media:{file:false,image:false,video:false},toolCallingEnabled:false,maxToolRounds:5,autoExecuteTools:true,tools:[],note:t('cfg_note_default')};}
+function makeDefaultConfig(){return{id:'cfg_default',name:t('cfg_default_name'),baseUrl:'https://openrouter.ai/api/v1/chat/completions',apiKey:DEFAULT_API_KEY,model:'poolside/laguna-xs-2.1:free',temp:0.3,maxCtx:5,stream:true,media:{file:false,image:false,video:false},toolCallingEnabled:true,maxToolRounds:8,autoExecuteTools:true,tools:[],note:t('cfg_note_default')};}
 function makeGLMConfig(){return{id:'cfg_glm',name:t('cfg_glm_name'),baseUrl:'https://open.bigmodel.cn/api/paas/v4/chat/completions',apiKey:GLM_API_KEY,model:'GLM-4-Flash-250414',temp:0.3,maxCtx:5,stream:true,media:{file:false,image:false,video:false},toolCallingEnabled:true,maxToolRounds:5,autoExecuteTools:true,tools:[],note:t('cfg_note_glm')};}
 function makeEmptyConfig(id,name){return{id,name,baseUrl:'',apiKey:'',model:'',temp:0.7,maxCtx:3,stream:true,media:{file:false,image:false,video:false},toolCallingEnabled:false,maxToolRounds:5,autoExecuteTools:true,tools:[],note:''};}
 const DEFAULT_SEARCH_API='https://examples-with-fresh.guanmuzhi.deno.net/api/search';
+const SYSTEM_PROMPT='你是一个运行在 WebOS 系统中的 AI 助手，具备调用工具（函数）的能力。'+
+'当需要执行命令、操作文件或查询系统信息时，请调用 run_terminal_command 工具。'+
+'它会在轻量 Linux 终端中执行一条命令；如果一条命令无法完成，可在同一条命令中用 &&、||、; 连接多个步骤，或分多轮连续调用工具。'+
+'可使用的常用 Unix 命令包括 ls、cat、echo、pwd、find、grep、sed、awk、head、tail、wc、rm、cp、mv、mkdir、chmod 等，均为标准 Linux/Unix 语法。'+
+'工具返回的是命令的标准输出和错误文本，请根据真实输出进行分析，不要臆测结果。'+
+'你可以进行多轮推理与多次工具调用：分析上一次的结果后，可以再次调用工具继续排查或验证，直到获得充分信息后再给出最终答案。'+
+'回答时基于工具返回的真实数据作答，必要时说明你执行的命令与结论。';
 const toolHandlers={
 get_weather:async(args)=>{const city=args.city||'北京';try{const geoRes=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(city)+'&count=1&language=zh');const geo=await geoRes.json();if(!geo.results||!geo.results.length)return JSON.stringify({error:t('city_not_found_prefix')+city});const g=geo.results[0];const wRes=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${g.latitude}&longitude=${g.longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`);const w=await wRes.json();const c=w.current;return JSON.stringify({city:g.name,country:g.country,temperature_c:c.temperature_2m,humidity:c.relative_humidity_2m,wind_kmh:c.wind_speed_10m,weather_code:c.weather_code});}catch(e){return JSON.stringify({error:t('weather_query_failed_prefix')+e.message});}},
 get_current_time:async()=>new Date().toLocaleString('zh-CN'),
@@ -87,7 +94,7 @@ function appendNote(text){const wrap=document.createElement('div');wrap.classNam
 function scrollBottom(){requestAnimationFrame(()=>chatBox.scrollTop=chatBox.scrollHeight);}
 function removeTempDoms(){chatBox.querySelectorAll('[data-temp="1"]').forEach(el=>el.remove());}
 function resetBusy(){isBusy=false;sendBtn.disabled=false;if(abortController){abortController.abort();abortController=null;}}
-function buildApiMessages(history){return history.map(m=>{if(m.role==='tool'){return{role:'tool',tool_call_id:m.tool_call_id,name:m.name,content:m.content};}if(m.role==='assistant'){const o={role:'assistant',content:(m.content&&m.content.trim&&m.content.trim()!=='')?m.content:(m.tool_calls?null:m.content||'')};if(m.tool_calls&&m.tool_calls.length){o.tool_calls=m.tool_calls.map(tc=>({id:tc.id,type:tc.type||'function',function:{name:tc.function.name,arguments:tc.function.arguments}}));}return o;}return{role:'user',content:m.content};});}
+function buildApiMessages(history){return [{role:'system',content:SYSTEM_PROMPT}].concat(history.map(m=>{if(m.role==='tool'){return{role:'tool',tool_call_id:m.tool_call_id,name:m.name,content:m.content};}if(m.role==='assistant'){const o={role:'assistant',content:(m.content&&m.content.trim&&m.content.trim()!=='')?m.content:(m.tool_calls?null:m.content||'')};if(m.tool_calls&&m.tool_calls.length){o.tool_calls=m.tool_calls.map(tc=>({id:tc.id,type:tc.type||'function',function:{name:tc.function.name,arguments:tc.function.arguments}}));}return o;}return{role:'user',content:m.content};}));}
 function safeTruncateHistory(history,maxPair){if(!maxPair||maxPair<=0)return history;const cutoff=history.findIndex(m=>m.role==='tool'||(m.role==='assistant'&&m.tool_calls));const safeStart=cutoff===-1?0:cutoff;const allowed=maxPair*2;let toRemove=history.length-allowed;if(toRemove<=0)return history;toRemove=Math.min(toRemove,safeStart);return history.slice(toRemove);}
 function buildRequestTools(activeCfg,fullCfg){
     const tools=[];

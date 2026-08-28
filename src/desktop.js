@@ -277,8 +277,10 @@ class DesktopManager {
                 let terminal = null;
                 let termWin = null;
                 for (const [winId, term] of this.terminalWindows) { terminal = term; termWin = this.windowManager.getWindow(winId); break; }
+                let newlyCreated = false;
                 if (!terminal) {
                     termWin = this.openTerminalWindow();
+                    newlyCreated = true;
                     await new Promise(r => setTimeout(r, 100));
                     for (const [, term] of this.terminalWindows) { terminal = term; break; }
                 }
@@ -286,7 +288,8 @@ class DesktopManager {
                     emitResult('无法创建终端');
                     return;
                 }
-                if (termWin) { termWin.focus(); this.centerWindowInView(termWin); }
+                // 静默执行：不弹出/前置终端窗口；新创建的终端直接最小化隐藏
+                if (newlyCreated && termWin && typeof termWin.minimize === 'function') { termWin.minimize(); }
                 const outputLines = [];
                 const origPrint = terminal.print.bind(terminal);
                 terminal.print = (text, cls) => { outputLines.push(text); origPrint(text, cls); };
