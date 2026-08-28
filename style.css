@@ -340,6 +340,19 @@ body {
     flex-direction: column;
     min-height: 0;
 }
+/* 关键兜底：窗口容器中的直接子元素（terminalContainer、app contentContainer 等）
+   必须全部显式 height:0，否则基础 CSS 里的 height:100% / 无约束 flex-basis: auto
+   会让子容器撑到父容器的"总尺寸"而非"可用剩余尺寸"，导致子孙滚动容器永远不溢出。*/
+.window-content > * {
+    width: 100%;
+    height: 0;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
 .window-resize-handle {
     position: absolute;
     right: 0;
@@ -368,7 +381,14 @@ body {
     border-color: rgba(255,255,255,0.9);
 }
 .window-content .terminal {
+    /* 关键修复：基础 .terminal 规则含 height:100%（为 boot-screen 全屏设计）。
+       在窗口内嵌套 flex 容器中，height:100% 会让 .terminal 拉伸到超过
+       terminalContainer/.window-content 的实际可用高度，导致 .terminal-body
+       永远不溢出 → 滚动条不出现。
+       此处显式 height:0 + flex:1 让 .terminal 的高度完全由外层 flex 算法约束，
+       剩余空间正确分摊给 .terminal-body（overflow-y:scroll 即可生效）。*/
     width: 100%;
+    height: 0;
     flex: 1;
     min-height: 0;
     display: flex;

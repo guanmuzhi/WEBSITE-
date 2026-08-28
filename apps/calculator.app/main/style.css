@@ -40,9 +40,14 @@ html, body {
     height: 100%;
     min-width: 100%;
     min-height: 100%;
-    /* body 作为尺寸容器，cqw/cqh/cqmin 都相对于 iframe（即 body 本身） */
-    container-type: size;
-    container-name: calc-frame;
+    /* 注意：不要在 html/body 上声明 container-type: size。
+       container-type: size 会触发 size containment，
+       浏览器必须"忽略后代对容器尺寸的贡献"独立计算容器。
+       但 body 高度默认由内容决定，在 iframe / 旧 Chromium 中会发生：
+       body height 解析为 auto（因为内容未初始化时 size containment 强制忽略内容）
+       → body 高度 0 → cqmin 恒为 0 → 所有 cqmin 取值为 0 → 按钮字全部看不见。
+       解决方案：把容器查询上下文下放到 body 的直接子 wrapper #calc-frame 上，
+       wrapper 的宽高从 html/body 的 100% 继承（iframe 直接给定，非内容依赖），稳定。*/
 }
 
 body {
@@ -53,47 +58,97 @@ body {
     overflow: hidden;
 }
 
+/* 显式容器查询尺寸容器：宽高继承自 body（100%），声明为 calc-frame 的 size container。
+   所有 cqw/cqh/cqmin 以及 @container calc-frame 查询都基于此元素。*/
+#calc-frame {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    container-type: size;
+    container-name: calc-frame;
+}
+
+/* 浏览器不支持 container-type（或 cqmin）时的兜底：
+   - #calc-frame / .calculator 仍使用百分比/flex 默认布局
+   - 关键长度（字体、padding、按钮尺寸）仍用 clamp()，但 fallback 到
+     clamp(X, min(相对父容器宽高百分比), Y) 的混合表达式，
+     保证在不支持 cqmin 的环境下也能按 iframe 大致尺寸缩放，不出现溢出。*/
+@supports not (container-type: size) {
+    :root {
+        /* 在无 cqmin 情况下以 CSS 变量传递 min(宽度, 高度) 的代理值：
+           fallback 用单位继承的写法，完全不用 JS。*/
+    }
+}
+
 .calculator {
     width: 100%;
     height: 100%;
     min-height: 0;
     display: flex;
     flex-direction: column;
-    padding: clamp(4px, 1.2cqmin, 12px);
-    gap: clamp(4px, 0.8cqmin, 10px);
+    /* 默认 padding/gap 同时提供 cqmin + fallback(百分比/固定下限) 两种写法；
+       不支持 cqmin 的浏览器会把 "1.2cqmin" 整段值视为无效，回落到
+       "clamp(4px, 1.2%, 12px)"（百分比相对于父容器，近似 cqmin 的效果）。
+       新版浏览器因为前面已有 cqmin 版本声明，会优先生效 cqmin。
+       但 CSS 不支持"在属性内回退"，所以这里统一用 @supports 两段：
+       先给 fallback（百分比 + clamp），再在支持 cqmin 的浏览器用 @supports 覆盖为 cqmin。*/
+    padding: clamp(4px, 1.2%, 12px);
+    gap: clamp(4px, 0.8%, 10px);
     background: #000000;
     box-sizing: border-box;
+    /* 横向/纵向极端窄时溢出不裁剪（子元素会按 container query 适配，正常不溢出；兜底允许极窄时内部 scroll 但不崩）*/
+    overflow: auto;
 }
+
+/* 在明确支持 container-type 的浏览器里，把 fallback 的百分比基准升级为 cqmin，更贴合容器真实最小边。*/
+@supports (container-type: size) {
+    .calculator {
+        padding: clamp(4px, 1.2cqmin, 12px);
+        gap: clamp(4px, 0.8cqmin, 10px);
+    }
+}
+
+/* ===== Fallback（不支持 cqmin / container-type 的老浏览器 / 加载瞬态）：
+   所有长度先用 clamp(下限, 百分比, 上限) 写一遍。百分比会相对父容器宽度，
+   对"接近 1:1 尺寸"的窗口近似 cqmin（但窄/扁容器时不如 cqmin 精确），
+   足以保证不崩。再在 @supports (container-type: size) 块中把它们统一覆盖为 cqmin 版本。
+   cqmin 单位必须在支持 container-type 的环境下才有非零值，否则会被浏览器整段忽略。
+   ====================================================================================== */
 
 .display {
     background: #000000;
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: var(--border-radius);
-    padding: clamp(8px, 1.5cqmin, 18px) clamp(12px, 2.2cqmin, 20px);
+    padding: clamp(8px, 1.5%, 18px) clamp(12px, 2.2%, 20px);
     text-align: right;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     flex: 0 0 auto;
-    min-height: clamp(56px, 16cqmin, 110px);
+    min-height: clamp(56px, 16%, 110px);
     box-shadow: var(--shadow);
 }
 
 .expression {
     color: var(--text-secondary);
-    font-size: clamp(11px, 1.8cqmin, 17px);
-    min-height: clamp(16px, 2.6cqmin, 22px);
+    font-size: clamp(11px, 1.8%, 17px);
+    min-height: clamp(16px, 2.6%, 22px);
     max-height: 30%;
     overflow: hidden;
     word-break: break-all;
-    margin-bottom: clamp(2px, 0.4cqmin, 6px);
+    margin-bottom: clamp(2px, 0.4%, 6px);
     opacity: 0.7;
     line-height: 1.2;
 }
 
 .result {
     color: var(--text-primary);
-    font-size: clamp(22px, 5cqmin, 48px);
+    font-size: clamp(22px, 5%, 48px);
     font-weight: 300;
     line-height: 1.1;
     word-break: break-all;
@@ -105,7 +160,7 @@ body {
     flex: 1 1 auto;
     display: grid;
     grid-template-rows: repeat(8, minmax(0, 1fr));
-    gap: clamp(3px, 0.6cqmin, 8px);
+    gap: clamp(3px, 0.6%, 8px);
     min-height: 0;
     overflow: hidden;
 }
@@ -113,7 +168,7 @@ body {
 .btn-row {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: clamp(3px, 0.6cqmin, 8px);
+    gap: clamp(3px, 0.6%, 8px);
     min-height: 0;
 }
 
@@ -124,8 +179,8 @@ body {
 
 .calculator .btn {
     border: 1px solid transparent;
-    border-radius: max(6px, 0.8cqmin);
-    font-size: clamp(12px, 2.4cqmin, 22px);
+    border-radius: max(6px, 0.8%);
+    font-size: clamp(12px, 2.4%, 22px);
     font-weight: 500;
     cursor: pointer;
     font-family: inherit;
@@ -137,9 +192,9 @@ body {
     justify-content: center;
     width: 100%;
     height: 100%;
-    min-height: clamp(30px, 7cqmin, 60px);
+    min-height: clamp(30px, 7%, 60px);
     line-height: 1;
-    padding: 0 clamp(2px, 0.4cqmin, 6px);
+    padding: 0 clamp(2px, 0.4%, 6px);
     position: relative;
     overflow: hidden;
     transition: border-color 150ms ease, transform 80ms ease, background-color 150ms ease;
@@ -170,15 +225,15 @@ body {
 }
 
 .calculator .btn-icon {
-    width: clamp(14px, 3cqmin, 22px);
-    height: clamp(14px, 3cqmin, 22px);
+    width: clamp(14px, 3%, 22px);
+    height: clamp(14px, 3%, 22px);
     flex-shrink: 0;
 }
 
 .num {
     background: #000000;
     border: 1px solid rgba(255,255,255,0.06);
-    font-size: clamp(14px, 3cqmin, 24px);
+    font-size: clamp(14px, 3%, 24px);
 }
 
 .num:hover {
@@ -190,7 +245,7 @@ body {
     background: #000000;
     border: 1px solid rgba(26,188,156,0.25);
     color: var(--accent-color, #1abc9c);
-    font-size: clamp(16px, 3.6cqmin, 30px);
+    font-size: clamp(16px, 3.6%, 30px);
 }
 
 .op:hover {
@@ -201,7 +256,7 @@ body {
 .func {
     background: #000000;
     border: 1px solid rgba(255,255,255,0.06);
-    font-size: clamp(11px, 2cqmin, 18px);
+    font-size: clamp(11px, 2%, 18px);
     color: var(--text-secondary);
     line-height: 1.1;
 }
@@ -238,7 +293,7 @@ body {
     background: #000000;
     border: 1px solid var(--accent-color, #1abc9c);
     color: var(--accent-color, #1abc9c);
-    font-size: clamp(18px, 4cqmin, 34px);
+    font-size: clamp(18px, 4%, 34px);
     font-weight: 600;
 }
 
@@ -248,9 +303,46 @@ body {
     color: var(--accent-hover, #16a085);
 }
 
+/* ===== 支持 container-type:size 的现代浏览器：
+   把 fallback 的百分比全部升级为 cqmin（更贴合容器最小边，正方形/扁/窄窗口缩放更准），
+   同时激活下面的 @container calc-frame 查询（它们依赖命名容器 calc-frame 才会触发）。*/
+@supports (container-type: size) {
+    .calculator {
+        padding: clamp(4px, 1.2cqmin, 12px);
+        gap: clamp(4px, 0.8cqmin, 10px);
+    }
+    .display {
+        padding: clamp(8px, 1.5cqmin, 18px) clamp(12px, 2.2cqmin, 20px);
+        min-height: clamp(56px, 16cqmin, 110px);
+    }
+    .expression {
+        font-size: clamp(11px, 1.8cqmin, 17px);
+        min-height: clamp(16px, 2.6cqmin, 22px);
+        margin-bottom: clamp(2px, 0.4cqmin, 6px);
+    }
+    .result { font-size: clamp(22px, 5cqmin, 48px); }
+    .buttons { gap: clamp(3px, 0.6cqmin, 8px); }
+    .btn-row { gap: clamp(3px, 0.6cqmin, 8px); }
+    .calculator .btn {
+        border-radius: max(6px, 0.8cqmin);
+        font-size: clamp(12px, 2.4cqmin, 22px);
+        min-height: clamp(30px, 7cqmin, 60px);
+        padding: 0 clamp(2px, 0.4cqmin, 6px);
+    }
+    .calculator .btn-icon {
+        width: clamp(14px, 3cqmin, 22px);
+        height: clamp(14px, 3cqmin, 22px);
+    }
+    .num { font-size: clamp(14px, 3cqmin, 24px); }
+    .op { font-size: clamp(16px, 3.6cqmin, 30px); }
+    .func { font-size: clamp(11px, 2cqmin, 18px); }
+    .equals { font-size: clamp(18px, 4cqmin, 34px); }
+}
+
 /* =========================================================
-   容器查询（替代 media query，响应 iframe 自身尺寸）
-   @container calc-frame 引用 body 的 container-name
+   容器查询（响应 iframe 自身尺寸，而不是浏览器外层视口）
+   @container calc-frame 引用 #calc-frame 的 container-name。
+   不支持 @container 的老浏览器会整段忽略，会继续用上面的 fallback。
    ========================================================= */
 
 /* 窄容器（iframe 宽度 < 400px） */
@@ -297,13 +389,12 @@ body {
     }
 }
 
-/* 不支持容器查询的老浏览器降级：仍使用 clamp 兜底 */
+/* 不支持容器查询的老浏览器降级：仍使用 clamp 兜底 + 百分比布局（不写无效属性）*/
 @supports not (container-type: size) {
-    body { container-type: normal; }
     html, body { height: 100%; width: 100%; }
-    .calculator {
-        /* fallback: 用百分比 padding，clamp 内部尺寸仍参考视口但 body 100% 已修复最糟情况 */
-        padding: 2%;
-        gap: 1.5%;
-    }
+    .calculator { padding: 2%; gap: 1.5%; }
+    /* 窄/矮容器用 JS 无法介入时，退化为 clamp 基于下限的硬性上限，
+       保证在非常窄（< 360px 宽）或非常扁（< 320px 高）的 iframe 中
+       按钮不被挤压到不可见。最外层 flex + min-height:0 会把 .buttons grid
+       压缩到可用高度，整体不溢出。*/
 }

@@ -429,6 +429,8 @@ class DesktopManager {
         //     新建窗口、win.focus 包装器等），此处都会收到事件并刷新任务栏高亮。
         const onFocusChanged = () => { this.updateTaskbar(); };
         document.addEventListener('wm-window-focus-changed', onFocusChanged, true);
+        // DOMContentLoaded / 窗口首次渲染后也强制刷新一次，保证启动时类未初始化的场景高亮正确
+        setTimeout(() => this.updateTaskbar(), 0);
 
         // === 2) 修复 iframe 焦点不前置对应窗口的问题 ===
         // 根因：<iframe> 内外是不同 document 上下文，用户点击 iframe 内部时，
@@ -437,7 +439,7 @@ class DesktopManager {
         // focusWindow() 不被调用 → z-index 不更新 → window-focused 类不切换 → 任务栏高亮错误。
         //
         // 解决：当用户点击/切进 iframe 时，父文档的 document.activeElement 会变成该 iframe 元素。
-        // 我们用 activeElement 轮询 + iframe 元素自身 focus 事件双通道捕捉这个转移。
+        // 我们用 activeElement 轮询 + iframe 元素自身 focus 事件 + focusin 全局捕获 多通道捕捉。
         let lastIframeFocused = null;
         const checkActive = () => {
             try {
@@ -458,12 +460,15 @@ class DesktopManager {
         };
         // 轮询（300ms 对用户完全无感，但不会像 blur 监听那样漏掉焦点在文档内部移动的场景）
         setInterval(checkActive, 300);
-        // 同时在顶层 window 的 blur/focus 时立刻检查（切浏览器 tab 回来等场景）
+        // 顶层 window blur/focus/任何指针按下：立即检查
         window.addEventListener('blur', () => setTimeout(checkActive, 0));
         window.addEventListener('focus', () => setTimeout(checkActive, 0));
-        // 用户任意点击后立即检查（用于某些浏览器 activeElement 更新时机比轮询快的场景）
         document.addEventListener('pointerdown', () => setTimeout(checkActive, 0), true);
+        document.addEventListener('touchstart', () => setTimeout(checkActive, 0), true);
         document.addEventListener('keydown', () => setTimeout(checkActive, 0), true);
+        // 全局 focusin（捕获阶段）：切到 iframe 时在支持的浏览器里能立刻捕捉
+        document.addEventListener('focusin', () => setTimeout(checkActive, 0), true);
+        document.addEventListener('focusout', () => setTimeout(checkActive, 50), true);
     }
     setupDesktopPanning() {
         const desktop = this.desktopEl;
@@ -539,7 +544,10 @@ class DesktopManager {
         const template = document.getElementById('terminal-template');
         const clone = template.content.cloneNode(true);
         const terminalContainer = document.createElement('div');
-        terminalContainer.style.flex = '1'; terminalContainer.style.display = 'flex'; terminalContainer.style.flexDirection = 'column'; terminalContainer.appendChild(clone);
+        // 注意：flex:1 + height:0 是嵌套 flex 中"让高度由外层决定"的标准组合。
+        // 缺 height:0 时子元素的 height:100% 无法解析为具体数值，会造成 .terminal 不溢出。
+        terminalContainer.style.cssText = 'flex:1;height:0;min-height:0;display:flex;flex-direction:column;width:100%;overflow:hidden;';
+        terminalContainer.appendChild(clone);
         const isMobile = this.isMobile();
         const win = this.windowManager.createWindow({ title: this.t('app.terminal', '终端'), icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ecf0f1" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>', content: terminalContainer, width: isMobile ? window.innerWidth : (options.width || 600), height: isMobile ? (window.innerHeight - 56) : (options.height || 400), x: isMobile ? 0 : options.x, y: isMobile ? 0 : options.y, windowType: 'terminal', onMoveEnd: () => { this.saveState(); } });
         win.appName = this.t('app.terminal', '终端');
@@ -616,13 +624,35 @@ class DesktopManager {
         if (vfsApp) { const appHtml = this.generateAppHtml(vfsApp, app.params || null); if (appHtml) { iframe.srcdoc = appHtml; } else { iframe.src = `/apps/${app.path}/main/index.html`; } }
         else { let src = `/apps/${app.path}/main/index.html`; if (app.params) { const params = new URLSearchParams(app.params); src += '?' + params.toString(); } iframe.src = src; }
         contentContainer.appendChild(iframe);
-        iframe.addEventListener('load', () => {
-            this.applyThemeToIframe(iframe, this.buildThemeDetail());
-        });
         const isMobile = this.isMobile();
         const displayName = this.getAppDisplayName(app, app.name);
         const win = this.windowManager.createWindow({ title: displayName, icon: iconUrl, content: contentContainer, width: isMobile ? window.innerWidth : (app.width || info.width || 380), height: isMobile ? (window.innerHeight - 56) : (app.height || info.height || 580), x: isMobile ? 0 : app.x, y: isMobile ? 0 : app.y, windowType: 'app', onMoveEnd: () => { this.saveState(); } });
         win.appName = displayName; win.appIcon = iconUrl; win.appPath = app.path; win.appParams = app.params; win._appObj = app;
+        // ========== iframe 焦点捕获（注意：必须在 const win 之后，避免 TDZ） ==========
+        // 进入 iframe 内部点击时 mousedown 等事件不会越界冒泡，必须在 iframe 层主动拦截：
+        // ① iframe 元素自身 focus/load 事件  ② 同源则穿透挂 idoc 的 pointerdown/focusin
+        // ③ 仍然保留 setupIframeFocusTracking 的 activeElement 轮询作为跨域兜底
+        const focusIframeOwner = () => {
+            if (!win || win.isMinimized) return;
+            if (!win.element.classList.contains('window-focused')) { try { win.focus(); } catch(e){} }
+            else { this.updateTaskbar(); }
+        };
+        iframe.addEventListener('focus', focusIframeOwner, true);
+        iframe.addEventListener('load', () => {
+            try {
+                try {
+                    const iwin = iframe.contentWindow;
+                    const idoc = iframe.contentDocument || (iwin && iwin.document);
+                    if (idoc && idoc.addEventListener) {
+                        idoc.addEventListener('pointerdown', focusIframeOwner, true);
+                        idoc.addEventListener('mousedown', focusIframeOwner, true);
+                        idoc.addEventListener('focusin', focusIframeOwner, true);
+                    }
+                } catch (_) { /* 跨域 iframe：交由 activeElement 轮询兜底（setupIframeFocusTracking） */ }
+                this.applyThemeToIframe(iframe, this.buildThemeDetail());
+                focusIframeOwner();
+            } catch (e) {}
+        });
         const originalClose = win.close; win.close = () => { originalClose.call(win); this.updateTaskbar(); this.saveState(); };
         const originalMinimize = win.minimize; win.minimize = () => { originalMinimize.call(win); this.updateTaskbar(); this.saveState(); };
         const originalRestore = win.restore; win.restore = () => { originalRestore.call(win); this.updateTaskbar(); this.saveState(); };

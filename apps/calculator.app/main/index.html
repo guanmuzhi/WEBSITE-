@@ -8,6 +8,15 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!--
+        #calc-frame：显式容器查询尺寸容器（container-type:size）。
+        为什么不直接把 container-type:size 设在 <body>？
+        container-type:size 会触发 CSS size containment：浏览器必须"忽略后代对容器尺寸的贡献"来独立计算容器尺寸。
+        但 <body> 默认的高度是由内容撑开的（含 CQ 未初始化阶段），在 iframe + 不支持 size containment on body 的旧 Chromium 里
+        会出现 body 高度 0 → cqmin 恒为 0 → 所有 cqmin 单位 calc 为 0 → 按钮/字全部不可见或 1px 堆叠错乱。
+        wrapper 方式稳定：它的宽高可直接继承 body（100% × 100%，由 iframe 给定），不受 containment 影响。
+    -->
+    <div id="calc-frame">
     <div class="calculator">
         <div class="display">
             <div class="expression" id="expression"></div>
@@ -75,6 +84,7 @@
             </div>
         </div>
     </div>
+    </div><!-- /#calc-frame -->
     <script src="app.js"></script>
 </body>
 </html>
