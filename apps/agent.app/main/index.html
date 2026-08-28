@@ -25,7 +25,7 @@
             <button class="drawer-close" id="drawerClose">×</button>
         </div>
         <button class="new-chat-btn" id="newChatBtn"><img src="/apps/icons/plus.svg" alt="+"><span data-i18n="new_chat">新建对话</span></button>
-        <button class="new-folder-btn" id="newFolderBtn"><img src="/apps/icons/new-folder.svg" alt=""> 新建文件夹</button>
+        <button class="new-folder-btn" id="newFolderBtn"><img src="/apps/icons/new-folder.svg" alt=""><span data-i18n="new_folder">新建文件夹</span></button>
         <div id="convList"></div>
     </div>
 </div>
@@ -44,6 +44,10 @@
             <button class="icon-btn" id="renameConfigBtn" data-i18n-title="rename" title="重命名"><img src="/apps/icons/edit.svg" alt="edit"></button>
             <button class="icon-btn" id="delConfigBtn" data-i18n-title="delete" title="删除"><img src="/apps/icons/delete.svg" alt="delete"></button>
         </div>
+
+        <div class="section-title" data-i18n="prompt_config">提示词与备注</div>
+        <div class="form-item"><label data-i18n="system_prompt_label">系统提示词</label><textarea id="systemPrompt" rows="5" data-i18n-placeholder="system_prompt_placeholder" placeholder="定义 AI 的角色与行为，将作为 system 消息随对话发送"></textarea></div>
+        <div class="form-item"><label data-i18n="config_note_label">配置说明</label><textarea id="configNote" rows="2" data-i18n-placeholder="config_note_placeholder" placeholder="例如：普通对话用 / 需要联网检索时切到这里"></textarea></div>
 
         <div class="section-title" data-i18n="api_connection">API 连接</div>
         <div class="form-item"><label data-i18n="base_url">Base-URL</label><input id="baseUrl" data-i18n-placeholder="base_url_placeholder" placeholder="https://xxx/v1/chat/completions"></div>
@@ -70,10 +74,6 @@
         <div class="check-row"><input type="checkbox" id="optFile"><label data-i18n="file">文件</label></div>
         <div class="check-row"><input type="checkbox" id="optImage"><label data-i18n="image">图像</label></div>
         <div class="check-row"><input type="checkbox" id="optVideo"><label data-i18n="video">视频</label></div>
-
-        <div class="section-title" data-i18n="prompt_config">提示词与备注</div>
-        <div class="form-item"><label data-i18n="system_prompt_label">系统提示词</label><textarea id="systemPrompt" rows="5" data-i18n-placeholder="system_prompt_placeholder" placeholder="定义 AI 的角色与行为，将作为 system 消息随对话发送"></textarea></div>
-        <div class="form-item"><label data-i18n="config_note_label">配置说明</label><textarea id="configNote" rows="2" data-i18n-placeholder="config_note_placeholder" placeholder="例如：普通对话用 / 需要联网检索时切到这里"></textarea></div>
 
         <button class="btn-save" id="saveSetting" data-i18n="save_settings">保存设置</button>
     </div>

@@ -100,8 +100,8 @@
         "tool.weather_desc": "获取指定城市的当前天气信息，包括温度、湿度、风速。",
         "tool.weather_city_desc": "城市名，如 北京、上海",
         "tool.time_desc": "获取当前日期和时间。",
-        "tool.terminal_desc": "在 navore OS 终端中执行一条命令并返回输出。可用于文件操作、系统查询、运行程序等。",
-        "tool.terminal_command_desc": "要执行的终端命令，如 ls、pwd、cat file.txt",
+        "tool.terminal_desc": "在 WebOS 终端中执行一条命令并返回输出。可用于文件操作、系统查询、运行程序等。命令语法请参考 help 命令的输出。",
+        "tool.terminal_command_desc": "要执行的终端命令，可先执行 help 查看支持的命令列表",
         "tool.search_desc": "使用搜索引擎查询互联网信息。当用户询问时事、事实、需要最新资料的问题时调用。",
         "tool.search_query_desc": "搜索关键词"
     }

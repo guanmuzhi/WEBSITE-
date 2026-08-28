@@ -15,7 +15,7 @@ body{background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direc
 .new-chat-btn{width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;}
 .new-folder-btn{width:100%;margin-bottom:8px;background:#374151;display:flex;align-items:center;justify-content:center;gap:6px;}
 .new-chat-btn img,.new-folder-btn img{width:15px;height:15px;filter:invert(1);}
-.new-chat-btn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
+.new-chat-btn span,.new-folder-btn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
 .icon-btn{padding:8px;background:#374151;font-size:14px;display:inline-flex;align-items:center;justify-content:center;}
 .icon-btn img{width:15px;height:15px;filter:invert(1);}
 .icon-btn:hover{background:#4b5563;}

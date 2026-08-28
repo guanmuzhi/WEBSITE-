@@ -100,8 +100,8 @@
         "tool.weather_desc": "Get the current weather for a specified city, including temperature, humidity, and wind speed.",
         "tool.weather_city_desc": "City name, e.g. Beijing, Shanghai",
         "tool.time_desc": "Get the current date and time.",
-        "tool.terminal_desc": "Execute a command in the navore OS terminal and return the output. Useful for file operations, system queries, running programs, etc.",
-        "tool.terminal_command_desc": "Terminal command to execute, e.g. ls, pwd, cat file.txt",
+        "tool.terminal_desc": "Execute a command in the WebOS terminal and return the output. Useful for file operations, system queries, running programs, etc. Run 'help' for the list of supported commands.",
+        "tool.terminal_command_desc": "Terminal command to execute. Run 'help' first to see the list of supported commands",
         "tool.search_desc": "Search the internet using a search engine. Call this when the user asks about news, facts, or needs up-to-date information.",
         "tool.search_query_desc": "Search keyword"
     }

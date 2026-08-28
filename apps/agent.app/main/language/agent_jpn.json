@@ -100,8 +100,8 @@
         "tool.weather_desc": "指定した都市の現在の天気（気温、湿度、風速）を取得します。",
         "tool.weather_city_desc": "都市名、例：北京、上海",
         "tool.time_desc": "現在の日時を取得します。",
-        "tool.terminal_desc": "navore OS のターミナルでコマンドを実行し、出力を返します。ファイル操作、システム問い合わせ、プログラム実行などに使用できます。",
-        "tool.terminal_command_desc": "実行するターミナルコマンド、例：ls、pwd、cat file.txt",
+        "tool.terminal_desc": "WebOS 端末でコマンドを実行し、出力を返します。ファイル操作、システム問い合わせ、プログラム実行などに使用できます。サポートされているコマンド一覧は help を実行して確認してください。",
+        "tool.terminal_command_desc": "実行するターミナルコマンド。サポートされているコマンド一覧を見るには、まず help を実行してください",
         "tool.search_desc": "検索エンジンでインターネットを検索します。時事、事実、最新情報が必要な場合に呼び出してください。",
         "tool.search_query_desc": "検索キーワード"
     }
