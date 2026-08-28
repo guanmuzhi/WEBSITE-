@@ -15,11 +15,13 @@ body{background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direc
 .new-chat-btn{width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;}
 .new-folder-btn{width:100%;margin-bottom:8px;background:#374151;display:flex;align-items:center;justify-content:center;gap:6px;}
 .new-chat-btn img,.new-folder-btn img{width:15px;height:15px;filter:invert(1);}
+.new-chat-btn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
 .icon-btn{padding:8px;background:#374151;font-size:14px;display:inline-flex;align-items:center;justify-content:center;}
 .icon-btn img{width:15px;height:15px;filter:invert(1);}
 .icon-btn:hover{background:#4b5563;}
 .folder-wrap{margin-bottom:6px;}
 .folder-head{display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:5px;background:#27272a;cursor:pointer;}
+.folder-head.active,.folder-wrap.folder-selected .folder-head{background:var(--primary);color:#fff;}
 .folder-toggle{font-size:10px;color:#888;}
 .folder-ic,.conv-file-ic{width:16px;height:16px;filter:invert(0.7);flex-shrink:0;}
 .folder-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -36,8 +38,10 @@ body{background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direc
 .modal-close{border:none;background:transparent;color:#fff;font-size:20px;cursor:pointer;}
 .section-title{font-size:15px;font-weight:600;margin:16px 0 7px;color:#ccc;}
 .form-item{margin-bottom:11px;}
+.form-item label{display:block;font-size:12px;color:#aaa;margin-bottom:4px;}
 .form-hint{font-size:12px;color:#888;margin-top:4px;}
 input,textarea,select{width:100%;padding:8px 10px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:#fff;font-size:14px;outline:none;}
+#filePicker{display:none;}
 .config-row{display:flex;gap:8px;align-items:center;}
 .config-row select{flex:1;}
 .check-row{display:flex;align-items:center;gap:8px;margin:6px 0;}
@@ -76,6 +80,7 @@ input,textarea,select{width:100%;padding:8px 10px;background:var(--input-bg);bor
 .attach-list{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
 .attach-tag{background:#253247;padding:4px 8px;border-radius:4px;font-size:12px;display:flex;gap:6px;align-items:center;}
 .attach-tag button{background:transparent;border:none;color:#ff9494;cursor:pointer;}
+.attach-progress{color:#4db8ff;font-size:11px;margin-left:6px;}
 .input-row{display:flex;gap:10px;align-items:flex-end;}
 #userInput{flex:1;min-height:60px;max-height:160px;resize:vertical;padding:10px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:#fff;outline:none;}
 #sendBtn{width:86px;height:42px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;flex-shrink:0;}
