@@ -112,7 +112,6 @@ body {
     font-size: clamp(16px, 2.6vmin, 24px);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     font-family: inherit;
     color: var(--text-primary);
     user-select: none;

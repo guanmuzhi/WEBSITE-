@@ -85,7 +85,6 @@ h2 {
     border: 2px solid transparent;
     border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s;
 }
 
 .color-btn:hover {
@@ -125,7 +124,6 @@ h2 {
     color: #fff;
     font-size: 13px;
     cursor: pointer;
-    transition: background 0.2s;
 }
 
 .custom-color button:hover {
@@ -143,7 +141,6 @@ h2 {
     border: 2px solid transparent;
     border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s;
 }
 
 .gradient-btn:hover {
@@ -163,7 +160,6 @@ h2 {
     border-radius: 6px;
     overflow: hidden;
     cursor: pointer;
-    transition: all 0.2s;
     aspect-ratio: 16/9;
 }
 
@@ -214,7 +210,6 @@ h2 {
     color: #fff;
     font-size: 13px;
     cursor: pointer;
-    transition: background 0.2s;
 }
 
 .custom-image button:hover {
@@ -229,7 +224,6 @@ h2 {
     color: #fff;
     font-size: 14px;
     cursor: pointer;
-    transition: background 0.2s;
 }
 
 .reset-btn:hover {

@@ -216,7 +216,7 @@ body {
     align-items: center;
     justify-content: center;
     color: #ecf0f1;
-    transition: background-color 0.15s, transform 0.15s;
+    transition: transform 0.15s;
 }
 .desktop-icon .icon-image svg,
 .desktop-icon .icon-image img {
@@ -254,7 +254,7 @@ body {
     min-width: 300px;
     min-height: 200px;
     animation: windowOpen 0.2s ease-out;
-    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    transition: box-shadow 0.15s ease;
 }
 .window-focused {
     box-shadow: 0 8px 30px rgba(0,0,0,0.6);
@@ -440,7 +440,6 @@ body {
     background-color: rgba(0, 0, 0, 0.25);
     border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.15s;
 }
 .taskbar-user:hover {
     background-color: rgba(0, 0, 0, 0.45);
@@ -490,7 +489,6 @@ body {
     gap: 10px;
     padding: 10px 14px;
     cursor: pointer;
-    transition: background 0.15s;
 }
 .user-switcher-item:hover {
     background: #3d3d3d;
@@ -587,7 +585,6 @@ body {
     font-size: 13px;
     cursor: pointer;
     border-top: 1px solid #3d3d3d;
-    transition: background 0.15s;
 }
 .user-switcher-lock-btn:hover {
     background: #3d3d3d;
@@ -708,7 +705,6 @@ body {
     color: #fff;
     font-size: 14px;
     text-align: center;
-    transition: all 0.2s;
     box-sizing: border-box;
 }
 .lock-screen .lock-password-input:focus {
@@ -729,7 +725,6 @@ body {
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
     box-shadow: 0 4px 15px color-mix(in srgb, var(--accent-color, #1abc9c) 30%, transparent);
 }
 .lock-screen .lock-unlock-btn:hover {
@@ -754,7 +749,6 @@ body {
     color: #aaa;
     font-size: 13px;
     cursor: pointer;
-    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -782,7 +776,6 @@ body {
     color: #fff;
     font-size: 14px;
     margin-bottom: 10px;
-    transition: all 0.2s;
     box-sizing: border-box;
 }
 .lock-screen .lock-create-input:focus {
@@ -807,7 +800,6 @@ body {
     color: #aaa;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s;
 }
 .lock-screen .lock-cancel-btn:hover {
     background: rgba(255, 255, 255, 0.1);
@@ -823,7 +815,6 @@ body {
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
 }
 .lock-screen .lock-confirm-btn:hover {
     opacity: 0.9;
@@ -850,7 +841,6 @@ body {
     padding: 10px 14px;
     border-radius: 10px;
     cursor: pointer;
-    transition: all 0.2s;
 }
 .lock-screen .lock-user-item:hover {
     background: rgba(255, 255, 255, 0.05);
@@ -901,7 +891,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
     flex-shrink: 0;
 }
 .lock-screen .lock-user-item-rename:hover {
@@ -951,7 +940,6 @@ body {
     gap: 4px;
     padding: 0 8px;
     z-index: 999;
-    transition: opacity 0.2s;
 }
 .taskbar-compact-user {
     display: flex;
@@ -962,7 +950,6 @@ body {
     height: 36px;
     padding: 0 10px;
     border-radius: 6px;
-    transition: background 0.2s;
 }
 .taskbar-compact-user:hover {
     background: rgba(0, 0, 0, 0.25);
@@ -1004,7 +991,6 @@ body {
     border-radius: 6px;
     cursor: pointer;
     color: #fff;
-    transition: all 0.2s;
 }
 .taskbar-compact-expand:hover {
     background: rgba(0, 0, 0, 0.25);

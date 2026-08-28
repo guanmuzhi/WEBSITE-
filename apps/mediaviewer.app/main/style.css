@@ -51,7 +51,6 @@ body {
     font-size: 13px;
     cursor: pointer;
     font-family: inherit;
-    transition: background 0.2s;
 }
 
 .toolbar-btn:hover {
@@ -104,7 +103,6 @@ body {
     color: #ddd;
     font-size: 16px;
     cursor: pointer;
-    transition: background 0.2s;
     font-weight: bold;
 }
 
@@ -330,7 +328,6 @@ body {
     color: #fff;
     font-size: 14px;
     cursor: pointer;
-    transition: background 0.2s;
 }
 
 .control-btn:hover {

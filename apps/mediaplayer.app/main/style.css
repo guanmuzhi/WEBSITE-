@@ -125,7 +125,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
     box-shadow: 0 4px 20px rgba(102, 187, 106, 0.4);
 }
 
@@ -238,7 +237,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s;
 }
 
 .control-btn:hover {
@@ -328,7 +326,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s;
 }
 
 .volume-btn:hover {
@@ -372,7 +369,6 @@ body {
     padding: 6px 10px;
     cursor: pointer;
     outline: none;
-    transition: all 0.15s;
 }
 
 .speed-selector:hover {
@@ -392,7 +388,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s;
 }
 
 .fullscreen-btn:hover {

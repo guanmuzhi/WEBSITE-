@@ -55,7 +55,6 @@ body {
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s;
     font-family: inherit;
     flex-shrink: 0;
 }
@@ -95,7 +94,6 @@ body {
     border-radius: 24px;
     padding: 8px 16px;
     border: 1px solid var(--border-color);
-    transition: all 0.3s;
     width: 300px;
 }
 
@@ -143,7 +141,6 @@ body {
     color: var(--text-secondary);
     font-size: 13px;
     cursor: pointer;
-    transition: all 0.3s;
     white-space: nowrap;
 }
 
@@ -175,7 +172,6 @@ body {
     border-radius: var(--border-radius);
     padding: 20px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow);
 }
@@ -277,7 +273,6 @@ body {
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s;
 }
 
 .app-card-install:hover {
@@ -378,7 +373,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s;
 }
 
 .modal-close:hover {
@@ -460,7 +454,6 @@ body {
     font-size: 16px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s;
 }
 
 .modal-install:hover {

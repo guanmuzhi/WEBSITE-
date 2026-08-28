@@ -40,7 +40,6 @@ body {
     color: #ccc;
     font-size: 13px;
     cursor: pointer;
-    transition: background 0.15s;
     font-family: inherit;
 }
 
@@ -93,7 +92,6 @@ body {
     color: #aaa;
     font-size: 13px;
     cursor: pointer;
-    transition: background 0.15s;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -128,7 +126,6 @@ body {
     padding: 8px 12px;
     border-radius: 4px;
     cursor: pointer;
-    transition: background 0.15s;
 }
 
 .fm-file-item:hover {
@@ -293,8 +290,7 @@ body {
     color: #ccc;
     font-size: 13px;
     font-family: inherit;
-    cursor: pointer;
-    transition: all 0.15s;
+
 }
 
 .fm-landrop-mode:hover {
@@ -332,7 +328,6 @@ body {
     font-size: 13px;
     font-family: inherit;
     cursor: pointer;
-    transition: background 0.15s;
 }
 
 .fm-landrop-filebtn:hover {
@@ -400,7 +395,6 @@ body {
     font-size: 12px;
     font-family: inherit;
     cursor: pointer;
-    transition: background 0.15s;
 }
 
 .fm-landrop-action:hover {
@@ -472,8 +466,7 @@ body {
     background: #2d2d2d;
     border: 1px solid #3d3d3d;
     border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.15s;
+
 }
 
 .fm-landrop-device:hover {
@@ -578,7 +571,7 @@ body {
     padding: 10px 12px;
     border-radius: 6px;
     cursor: pointer;
-    transition: background 0.12s;
+    font-family: inherit;
 }
 
 .fm-fs-picker-item:hover {

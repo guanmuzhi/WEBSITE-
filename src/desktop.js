@@ -126,6 +126,7 @@ class DesktopManager {
         this.setupTaskbarAutohideListener();
         this.setupThemeListener();
         this.setupTerminalCommandListener();
+        this.setupIframeFocusTracking();
         this.setupDesktopClick();
         window.openApp = this.openAppById.bind(this);
         window.installAppFromFile = this.installAppFromFile.bind(this);
@@ -422,15 +423,41 @@ class DesktopManager {
         this._taskbarAutohideTimer = setTimeout(() => { if (this._taskbarAutohide && this.taskbarEl) { this.taskbarEl.classList.remove('autohide-visible'); this.taskbarEl.classList.add('autohide-hidden'); } }, 1500);
     }
     _clearAutohideTimer() { if (this._taskbarAutohideTimer) { clearTimeout(this._taskbarAutohideTimer); this._taskbarAutohideTimer = null; } }
+    setupIframeFocusTracking() {
+        // 点击应用 iframe 内部时 mousedown 会被 iframe 吞掉，导致窗口不前置、任务栏高亮不更新。
+        // 监听主窗口失焦：若焦点转移到某个 iframe，则将其宿主窗口前置并刷新任务栏高亮。
+        window.addEventListener('blur', () => {
+            setTimeout(() => {
+                try {
+                    const ae = document.activeElement;
+                    if (!ae || ae.tagName !== 'IFRAME') return;
+                    const winEl = ae.closest ? ae.closest('.window') : null;
+                    if (!winEl) return;
+                    const win = this.windowManager.getAllWindows().find(w => w.element === winEl);
+                    if (win && !win.isMinimized && typeof win.focus === 'function') { win.focus(); }
+                } catch (e) {}
+            }, 0);
+        });
+    }
     setupDesktopPanning() {
         const desktop = this.desktopEl;
         if (!desktop) return;
         desktop.addEventListener('wheel', (e) => {
-            // 桌布移动优先级最高：仅当指针位于应用内容(iframe)或系统UI(任务栏/用户切换器)内部时让其内部滚动，
+            // 桌布移动优先级：应用内容(iframe/可滚动区域)或系统UI内部让浏览器原生滚动，
             // 其它情况（桌面空白、窗口标题栏/边框、桌面图标）一律用于移动桌布。
             const overIframe = !!e.target.closest('iframe');
             const overSystemUI = e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') || e.target.closest('.user-switcher') || e.target.closest('.desktop-icons');
-            if ((overIframe || overSystemUI) && !e.altKey) return;
+            // 检查指针是否位于窗口内可滚动元素（如终端 terminal-body）上：是则交给浏览器原生滚动，避免终端无法垂直滚动
+            let overScrollable = false;
+            let node = e.target;
+            while (node && node !== desktop && node !== document.body) {
+                if (node.nodeType === 1) {
+                    const cs = window.getComputedStyle(node);
+                    if (/(auto|scroll)/.test(cs.overflowY) || /(auto|scroll)/.test(cs.overflow)) { overScrollable = true; break; }
+                }
+                node = node.parentElement || (node.getRootNode && node.getRootNode().host);
+            }
+            if ((overIframe || overSystemUI || overScrollable) && !e.altKey) return;
             e.preventDefault();
             let dx = e.deltaX; let dy = e.deltaY;
             if (e.shiftKey && dx === 0) { dx = dy; dy = 0; }
