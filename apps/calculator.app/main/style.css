@@ -33,6 +33,8 @@ body {
     background: #000000;
     height: 100vh;
     width: 100vw;
+    min-height: 100vh;
+    min-width: 100vw;
     margin: 0;
     padding: 0;
     display: flex;
@@ -43,86 +45,96 @@ body {
 .calculator {
     width: 100%;
     height: 100%;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    padding: 10px;
-    gap: 8px;
+    padding: clamp(4px, 1.2vmin, 12px);
+    gap: clamp(4px, 0.8vmin, 10px);
     background: #000000;
+    box-sizing: border-box;
 }
 
 .display {
     background: #000000;
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: var(--border-radius);
-    padding: 14px 18px;
+    padding: clamp(8px, 1.5vmin, 18px) clamp(12px, 2.2vmin, 20px);
     text-align: right;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    flex-shrink: 0;
-    min-height: 72px;
+    flex: 0 0 auto;
+    min-height: clamp(56px, 16vmin, 110px);
     box-shadow: var(--shadow);
 }
 
 .expression {
     color: var(--text-secondary);
-    font-size: clamp(12px, 1.8vmin, 16px);
-    min-height: 18px;
+    font-size: clamp(11px, 1.8vmin, 17px);
+    min-height: clamp(16px, 2.6vmin, 22px);
+    max-height: 30%;
+    overflow: hidden;
     word-break: break-all;
-    margin-bottom: 4px;
+    margin-bottom: clamp(2px, 0.4vmin, 6px);
     opacity: 0.7;
     line-height: 1.2;
 }
 
 .result {
     color: var(--text-primary);
-    font-size: clamp(26px, 4.5vmin, 44px);
+    font-size: clamp(22px, 5vmin, 48px);
     font-weight: 300;
     line-height: 1.1;
     word-break: break-all;
+    overflow: hidden;
     text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
 .buttons {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-rows: repeat(8, minmax(0, 1fr));
+    gap: clamp(3px, 0.6vmin, 8px);
     min-height: 0;
     overflow: hidden;
 }
 
 .btn-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    flex: 1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(3px, 0.6vmin, 8px);
     min-height: 0;
 }
 
-/* 最后一行：0 和 . 各占1份，= 占2份（更宽更醒目） */
+/* 最后一行：0 和 . 各占1份，= 占2份 */
 .btn-row:last-child {
     grid-template-columns: 1fr 1fr 2fr;
 }
 
 .calculator .btn {
     border: 1px solid transparent;
-    border-radius: var(--btn-radius);
-    font-size: clamp(16px, 2.6vmin, 24px);
+    border-radius: max(6px, 0.8vmin);
+    font-size: clamp(12px, 2.4vmin, 22px);
     font-weight: 500;
     cursor: pointer;
     font-family: inherit;
     color: var(--text-primary);
     user-select: none;
+    -webkit-user-select: none;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
     height: 100%;
-    min-height: 36px;
+    min-height: clamp(30px, 7vmin, 60px);
+    line-height: 1;
+    padding: 0 clamp(2px, 0.4vmin, 6px);
     position: relative;
     overflow: hidden;
-    transition: border-color 150ms ease, transform 80ms ease;
+    transition: border-color 150ms ease, transform 80ms ease, background-color 150ms ease;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .calculator .btn::before {
@@ -133,10 +145,12 @@ body {
     right: 0;
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    pointer-events: none;
 }
 
 .calculator .btn:hover {
     border-color: var(--accent-color, #1abc9c);
+    z-index: 1;
 }
 
 .calculator .btn:active {
@@ -145,13 +159,15 @@ body {
 }
 
 .calculator .btn-icon {
-    width: clamp(16px, 2.6vmin, 24px);
-    height: clamp(16px, 2.6vmin, 24px);
+    width: clamp(14px, 3vmin, 22px);
+    height: clamp(14px, 3vmin, 22px);
+    flex-shrink: 0;
 }
 
 .num {
     background: #000000;
     border: 1px solid rgba(255,255,255,0.06);
+    font-size: clamp(14px, 3vmin, 24px);
 }
 
 .num:hover {
@@ -163,7 +179,7 @@ body {
     background: #000000;
     border: 1px solid rgba(26,188,156,0.25);
     color: var(--accent-color, #1abc9c);
-    font-size: clamp(20px, 3vmin, 28px);
+    font-size: clamp(16px, 3.6vmin, 30px);
 }
 
 .op:hover {
@@ -174,8 +190,9 @@ body {
 .func {
     background: #000000;
     border: 1px solid rgba(255,255,255,0.06);
-    font-size: clamp(12px, 2vmin, 18px);
+    font-size: clamp(11px, 2vmin, 18px);
     color: var(--text-secondary);
+    line-height: 1.1;
 }
 
 .func:hover {
@@ -210,7 +227,7 @@ body {
     background: #000000;
     border: 1px solid var(--accent-color, #1abc9c);
     color: var(--accent-color, #1abc9c);
-    font-size: clamp(22px, 3.5vmin, 32px);
+    font-size: clamp(18px, 4vmin, 34px);
     font-weight: 600;
 }
 
@@ -222,22 +239,56 @@ body {
 
 /* 移除旧的 zero span 2 规则，避免 = 按钮换行 */
 
-@media (max-width: 480px) {
+/* —— 窄屏（手机竖屏 < 400px 宽）—— */
+@media (max-width: 400px) {
+    .calculator { padding: 4px; gap: 4px; }
+    .btn-row { gap: 3px; }
+    .buttons { gap: 3px; }
+    .display { padding: 8px 10px; min-height: 60px; border-radius: 10px; }
+    .expression { font-size: 12px; }
+    .result { font-size: 28px; }
+    .calculator .btn { border-radius: 6px; }
+    .calculator .btn { min-height: 40px; }
+}
+
+/* —— 超矮窗口（横向扁窗，高度 < 360px）：保证功能按钮也能看清 —— */
+@media (max-height: 380px) {
+    .calculator .btn {
+        min-height: 28px;
+        border-radius: 5px;
+    }
+    .expression { font-size: 11px; min-height: 14px; }
+    .result { font-size: 22px; }
+    .display { min-height: 46px; padding: 6px 10px; }
+    .func { font-size: 11px; letter-spacing: -0.2px; }
+    .num { font-size: 13px; }
+    .op { font-size: 15px; }
+    .equals { font-size: 17px; }
+}
+
+/* —— 极矮窗口：降低 display 比例，按钮更小但不挤 —— */
+@media (max-height: 280px) {
+    .display { min-height: 36px; }
+    .calculator .btn { min-height: 22px; font-size: 11px; }
+    .calculator .btn-icon { width: 14px; height: 14px; }
+    .op { font-size: 13px !important; }
+    .equals { font-size: 14px !important; }
+}
+
+/* —— 宽屏大窗口：防止按钮无限变大 —— */
+@media (min-width: 520px) and (min-height: 640px) {
     .calculator {
-        padding: 6px;
-        gap: 5px;
+        max-width: 420px;
+        margin: 0 auto;
     }
-    
-    .display {
-        padding: 10px 14px;
-        min-height: 60px;
-    }
-    
+}
+
+/* —— 通用：保证窗口任意尺寸变化，不会因 aspect 失调而裁切内容 —— */
+@supports (aspect-ratio: 1 / 1) {
     .btn-row {
-        gap: 4px;
+        grid-auto-rows: 1fr;
     }
-    
-    .buttons {
-        gap: 4px;
+    .calculator .btn {
+        /* 保持按钮视觉一致；极端情况下仍以 vmin clamp 兜底 */
     }
 }

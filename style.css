@@ -33,25 +33,37 @@ body {
     flex-shrink: 0;
 }
 .terminal-body {
-    flex: 1;
-    padding: 10px;
-    overflow-y: auto;
-    overflow-x: hidden;
+    flex: 1 1 auto;
+    padding: 10px 12px 10px 10px;
+    overflow-y: scroll;          /* 始终保留滚动条槽位，避免布局抖动 */
+    overflow-x: auto;
+    overflow-wrap: break-word;
     min-height: 0;
-    scrollbar-width: thin;
-    scrollbar-color: #444 #1a1a1a;
+    max-height: none;
+    position: relative;
+    scrollbar-width: thin;       /* Firefox */
+    scrollbar-gutter: stable;    /* 预留滚动条宽度 */
+    scrollbar-color: #5a6a5a #132013;  /* thumb vs track: 略亮绿灰 vs 暗绿黑，对比度明确 */
+    -webkit-overflow-scrolling: touch;
 }
-.terminal-body::-webkit-scrollbar { width: 10px; background: #1a1a1a; }
-.terminal-body::-webkit-scrollbar-track { background: #1a1a1a; }
-.terminal-body::-webkit-scrollbar-thumb { background: #555; border-radius: 5px; border: 2px solid #1a1a1a; }
-.terminal-body::-webkit-scrollbar-thumb:hover { background: #666; }
-.terminal-body::-webkit-scrollbar-thumb:vertical { min-height: 30px; }
+.terminal-body::-webkit-scrollbar { width: 12px; height: 12px; background: #132013; }
+.terminal-body::-webkit-scrollbar-track { background: #132013; box-shadow: inset 1px 0 0 0 #1e1e1e; }
+.terminal-body::-webkit-scrollbar-thumb { background: #5a6a5a; border-radius: 6px; border: 2px solid #132013; min-height: 30px; }
+.terminal-body::-webkit-scrollbar-thumb:hover { background: #7b8f7b; border-color: #132013; }
+.terminal-body::-webkit-scrollbar-thumb:active { background: #8fb38f; }
+.terminal-body::-webkit-scrollbar-corner { background: #132013; }
+.terminal-body::-webkit-scrollbar-track-piece { background: #132013; }
+/* Firefox-specific fallback for scrollbar-gutter not applying */
+@supports not (scrollbar-gutter: stable) {
+    .terminal-body { padding-right: 12px; }
+}
 .output {
     color: #00ff00;
     font-size: 14px;
     line-height: 1.5;
     white-space: pre-wrap;
     word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 .input-line {
     display: flex;
@@ -361,18 +373,29 @@ body {
     display: none;
 }
 .window-content .terminal-body {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
+    flex: 1 1 auto;
+    padding: 10px 12px 10px 10px;
+    overflow-y: scroll;
+    overflow-x: auto;
+    overflow-wrap: break-word;
     min-height: 0;
+    max-height: none;
+    position: relative;
     scrollbar-width: thin;
-    scrollbar-color: #555 #1a1a1a;
+    scrollbar-gutter: stable;
+    scrollbar-color: #5a6a5a #132013;
+    -webkit-overflow-scrolling: touch;
 }
-.window-content .terminal-body::-webkit-scrollbar { width: 10px; background: #1a1a1a; }
-.window-content .terminal-body::-webkit-scrollbar-track { background: #1a1a1a; }
-.window-content .terminal-body::-webkit-scrollbar-thumb { background: #555; border-radius: 5px; border: 2px solid #1a1a1a; }
-.window-content .terminal-body::-webkit-scrollbar-thumb:hover { background: #666; }
-.window-content .terminal-body::-webkit-scrollbar-thumb:vertical { min-height: 30px; }
+.window-content .terminal-body::-webkit-scrollbar { width: 12px; height: 12px; background: #132013; }
+.window-content .terminal-body::-webkit-scrollbar-track { background: #132013; box-shadow: inset 1px 0 0 0 #1e1e1e; }
+.window-content .terminal-body::-webkit-scrollbar-thumb { background: #5a6a5a; border-radius: 6px; border: 2px solid #132013; min-height: 30px; }
+.window-content .terminal-body::-webkit-scrollbar-thumb:hover { background: #7b8f7b; border-color: #132013; }
+.window-content .terminal-body::-webkit-scrollbar-thumb:active { background: #8fb38f; }
+.window-content .terminal-body::-webkit-scrollbar-corner { background: #132013; }
+.window-content .terminal-body::-webkit-scrollbar-track-piece { background: #132013; }
+@supports not (scrollbar-gutter: stable) {
+    .window-content .terminal-body { padding-right: 12px; }
+}
 .window-content .input-line {
     flex-shrink: 0;
     border-top: none;

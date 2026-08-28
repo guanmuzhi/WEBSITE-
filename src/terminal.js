@@ -212,7 +212,17 @@ class Terminal {
     }
     scrollToBottom() {
         if (this.terminalBody) {
-            this.terminalBody.scrollTop = this.terminalBody.scrollHeight;
+            const tb = this.terminalBody;
+            // Flush any pending layout before measuring + scrolling
+            const doScroll = () => {
+                try {
+                    tb.scrollTop = tb.scrollHeight;
+                } catch (e) { /* no-op */ }
+            };
+            doScroll();
+            if (typeof requestAnimationFrame === 'function') {
+                requestAnimationFrame(() => requestAnimationFrame(doScroll));
+            }
         }
     }
     executeCommand(cmd) {
