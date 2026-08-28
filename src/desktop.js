@@ -1,7 +1,7 @@
-import UserManager from './user-manager.js?v=17';
-import LockScreen from './lock-screen.js?v=17';
-import StorageService from './storage.js?v=17';
-import { Path } from './lib/index.js?v=17';
+import UserManager from './user-manager.js?v=18';
+import LockScreen from './lock-screen.js?v=18';
+import StorageService from './storage.js?v=18';
+import { Path } from './lib/index.js?v=18';
 class DesktopManager {
     constructor(options = {}) {
         this.desktopEl = options.desktopEl || null;
@@ -115,6 +115,7 @@ class DesktopManager {
         await this.scanApps();
         await this.refreshAppNames();
         await this.seedSystemDirectories();
+        try { await this.migrateLegacyLanguageCacheToVFS(); } catch (e) { console.warn('migrate language cache failed:', e); }
         this.setupDesktopIcons();
         this.setupLanguageListener();
         this.startClock();
@@ -135,13 +136,63 @@ class DesktopManager {
     }
     getLangCode() { return localStorage.getItem('webos-language') || 'cmn'; }
     async fetchLangJson(url, cacheKey) {
+        // 优先 VFS：根语言文件位于 /languages/*.json，文件管理器 / ls -a 下可见
+        if (url && /^\/languages\/[^\/]+\.json$/.test(url)) {
+            const vfsContent = this.storage ? this.storage.readFile(url) : null;
+            if (vfsContent && typeof vfsContent === 'string') {
+                try { return JSON.parse(vfsContent); } catch (e) {}
+            }
+        }
+        // 回退：localStorage 旧缓存（兼容历史数据）
         const cached = localStorage.getItem(cacheKey);
-        if (cached) { try { return JSON.parse(cached); } catch (e) {} }
+        if (cached) {
+            try { const data = JSON.parse(cached); if (data) return data; } catch (e) {}
+        }
+        // 最终回退：网络 fetch；成功后写入 VFS 对应路径（若可推导）并移除旧 localStorage 键
         try {
             const res = await fetch(url);
-            if (res.ok) { const data = await res.json(); localStorage.setItem(cacheKey, JSON.stringify(data)); return data; }
+            if (res.ok) {
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); } catch (e) { return null; }
+                if (url && /^\/languages\/[^\/]+\.json$/.test(url) && this.storage) {
+                    try { this.storage.writeFile(url, text); } catch (e) {}
+                    try { localStorage.removeItem(cacheKey); } catch (e) {}
+                } else {
+                    try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
+                }
+                return data;
+            }
         } catch (e) {}
         return null;
+    }
+    // 把旧 localStorage 里以 language.xxx / webos-lang-* 形式缓存的语言 JSON 迁移到 VFS /languages/*.json
+    async migrateLegacyLanguageCacheToVFS() {
+        if (!this.storage) return;
+        const known = ['cmn', 'eng', 'jpn'];
+        const keysToClear = [];
+        for (const code of known) {
+            const candidates = [`language.${code}`, `webos-lang-root:${code}`];
+            for (const k of candidates) {
+                let raw = null;
+                try { raw = localStorage.getItem(k); } catch (e) { raw = null; }
+                if (!raw) continue;
+                let data = null;
+                try { data = JSON.parse(raw); } catch (e) { continue; }
+                const destPath = `/languages/${code}.json`;
+                try {
+                    const normalized = typeof data === 'string' ? data : JSON.stringify(data);
+                    this.storage.writeFile(destPath, normalized);
+                } catch (e) {}
+                keysToClear.push(k);
+            }
+        }
+        // 所有 webos-lang:*:*.app 应用级旧缓存也清理（应用级不在 /languages 下，按需重取）
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && (k.startsWith('webos-lang:'))) { keysToClear.push(k); }
+        }
+        for (const k of keysToClear) { try { localStorage.removeItem(k); } catch (e) {} }
     }
     async loadLanguageStrings(lang) {
         lang = lang || this.getLangCode();

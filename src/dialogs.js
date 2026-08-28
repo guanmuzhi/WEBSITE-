@@ -1,4 +1,4 @@
-import UserManager from './user-manager.js?v=17';
+import UserManager from './user-manager.js?v=18';
 class Dialogs {
     static showAlert(message, title = '提示') {
         return new Promise((resolve) => {

@@ -1,4 +1,4 @@
-import UserManager from './user-manager.js?v=17';
+import UserManager from './user-manager.js?v=18';
 class LockScreen {
     constructor(options = {}) {
         this.userManager = UserManager.getInstance();
