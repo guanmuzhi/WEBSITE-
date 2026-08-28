@@ -266,8 +266,13 @@ class DesktopManager {
     }
     setupTerminalCommandListener() {
         document.addEventListener('run-terminal-command', async (e) => {
-            const { command, callbackId } = e.detail || {};
+            const { command, callbackId, target } = e.detail || {};
             if (!command) return;
+            const emitResult = (output) => {
+                const detail = { callbackId, output };
+                if (target && typeof target.dispatchEvent === 'function') { target.dispatchEvent(new CustomEvent('terminal-command-result', { detail })); }
+                else { document.dispatchEvent(new CustomEvent('terminal-command-result', { detail })); }
+            };
             try {
                 let terminal = null;
                 let termWin = null;
@@ -278,7 +283,7 @@ class DesktopManager {
                     for (const [, term] of this.terminalWindows) { terminal = term; break; }
                 }
                 if (!terminal) {
-                    document.dispatchEvent(new CustomEvent('terminal-command-result', { detail: { callbackId, output: '无法创建终端' } }));
+                    emitResult('无法创建终端');
                     return;
                 }
                 if (termWin) { termWin.focus(); this.centerWindowInView(termWin); }
@@ -286,11 +291,12 @@ class DesktopManager {
                 const origPrint = terminal.print.bind(terminal);
                 terminal.print = (text, cls) => { outputLines.push(text); origPrint(text, cls); };
                 terminal.executeCommand(command);
-                terminal.print = origPrint;
-                const output = outputLines.join('\n');
-                document.dispatchEvent(new CustomEvent('terminal-command-result', { detail: { callbackId, output } }));
+                setTimeout(() => {
+                    terminal.print = origPrint;
+                    emitResult(outputLines.join('\n'));
+                }, 200);
             } catch (err) {
-                document.dispatchEvent(new CustomEvent('terminal-command-result', { detail: { callbackId, output: '执行出错: ' + err.message } }));
+                emitResult('执行出错: ' + err.message);
             }
         });
     }
