@@ -1,4 +1,4 @@
-import StorageService from './storage.js?v=15';
+import StorageService from './storage.js?v=17';
 const CURRENT_USER_KEY = 'web-terminal-os-current-user';
 class UserManager {
     static instance = null;

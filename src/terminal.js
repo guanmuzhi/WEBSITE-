@@ -1,13 +1,15 @@
-import UserManager from './user-manager.js?v=15';
-import FileSystem from './file-system.js?v=15';
-import ViEditor from './vi-editor.js?v=15';
-import AppManager from './app-manager.js?v=15';
+import UserManager from './user-manager.js?v=17';
+import FileSystem from './file-system.js?v=17';
+import ViEditor from './vi-editor.js?v=17';
+import AppManager from './app-manager.js?v=17';
+import { Path, FSEdit } from './lib/index.js?v=17';
 const HISTORY_KEY = 'web-terminal-os-history';
 const COMMANDS = [
     'ls', 'pwd', 'cd', 'new', 'delete', 'rename', 'open', 'clear',
     'tree', 'move', 'copy', 'export', 'import', 'account', 'help', 'run',
     'wallpaper', 'theme', 'font', 'opacity', 'animations', 'autohide',
-    'language', 'apps', 'settings', 'whoami', 'date', 'echo', 'cat'
+    'language', 'apps', 'settings', 'whoami', 'date', 'echo', 'cat',
+    'edit'
 ];
 class Terminal {
     constructor(options = {}) {
@@ -51,6 +53,8 @@ class Terminal {
         this.currentInput = '';
         this.completionIndex = -1;
         this.completionMatches = [];
+        // edit 命令的撤销栈：{ undoText, filePath, fileNodeBefore }
+        this._editUndoStack = [];
         this.init();
     }
     loadHistory() {
@@ -320,6 +324,9 @@ class Terminal {
             case 'cat':
                 this.handleOpen(args);
                 break;
+            case 'edit':
+                this.handleEdit(args);
+                break;
             default:
                 this.print(`未知命令: ${command}，输入 "help" 查看可用命令`, 'error');
         }
@@ -359,7 +366,7 @@ class Terminal {
             }
         } else {
             const targetFolder = args.join(' ');
-            const targetPath = this.fs.getCurrentPath() + '/' + targetFolder;
+            const targetPath = Path.resolveUnder(targetFolder, this.fs.getCurrentPath());
             const permission = this.checkPathPermission(targetPath);
             if (!permission.allowed) {
                 this.print(permission.message, 'error');
@@ -440,7 +447,7 @@ class Terminal {
             return;
         }
         const name = args.join(' ');
-        const targetPath = this.fs.getCurrentPath() + '/' + name;
+        const targetPath = Path.resolveUnder(name, this.fs.getCurrentPath());
         const permission = this.checkPathPermission(targetPath);
         if (!permission.allowed) {
             this.print(permission.message, 'error');
@@ -456,6 +463,300 @@ class Terminal {
     handleClear() {
         this.output.innerHTML = '';
         this.printWelcome();
+    }
+    // ====================================================================
+    //  edit 命令：非交互式文件修改（line/range/delete/insert/append/regex）
+    // ====================================================================
+    handleEdit(args) {
+        // ---- 特殊子命令：edit undo / edit --help --------------------------------
+        if (!args[0] || args.includes('-h') || args.includes('--help')) {
+            this._printEditHelp();
+            return;
+        }
+        if (args[0] === 'undo') {
+            return this._handleEditUndo(args.slice(1));
+        }
+        // ---- 解析标志位：-y（跳过确认）、-c（行数预览）--------------------------------
+        let assumeYes = false;
+        let withContext = 0;
+        const flagArgs = [];
+        let rest = [];
+        for (let i = 0; i < args.length; i++) {
+            const a = args[i];
+            if (a === '-y' || a === '--yes') { assumeYes = true; continue; }
+            if ((a === '-c' || a === '--context') && typeof Number(args[i + 1]) === 'number') {
+                withContext = Math.max(0, Math.floor(Number(args[i + 1]) || 0));
+                i++;
+                continue;
+            }
+            if (a.startsWith('-')) { flagArgs.push(a); continue; }
+            rest.push(a);
+        }
+        if (flagArgs.length) {
+            this.print(`edit: 未知标志 ${flagArgs.join(' ')}。使用 edit --help 查看帮助。`, 'error');
+            return;
+        }
+        if (rest.length < 2) {
+            this.print('edit: 参数不足。语法：edit <文件> <操作...>', 'error');
+            this._printEditHelp(true);
+            return;
+        }
+        const [fileArg, ...restAfterFile] = rest;
+        const filePath = fileArg; // 相对/绝对都可以，fs.splitFilePath 会规范化
+        // ---- 路径权限检查 --------------------------------------------------------
+        const splitInfo = this.fs.splitFilePath(filePath);
+        const absPath = splitInfo.absFilePath;
+        const perm = this.checkPathPermission(absPath);
+        if (!perm.allowed) { this.print(perm.message, 'error'); return; }
+        if (this.fs.isSystemPath(splitInfo.absDirPath) && !this.fs.isSystemPath(splitInfo.absDirPath + '/noop')) {
+            // 不阻止系统路径下写，StorageService 不禁止；保持与 openFile 一致通过 checkPathPermission 裁决即可
+        }
+        // ---- 解析操作：支持 6 种语法 ----------------------------------------------
+        const parsed = this._parseEditArgs(restAfterFile);
+        if (!parsed.ok) { this.print('edit: ' + parsed.error, 'error'); this._printEditHelp(true); return; }
+        // ---- 读文件（不存在则视为空文件；父目录不存在会在写阶段自动创建）-------------
+        let existing = this.fs.getFileByPath(filePath);
+        const originalText = existing && typeof existing.content === 'string' ? existing.content : '';
+        // 注意：_parseEditArgs 返回的 result 只含 ops/_pendingOp；真正的 patch 计算要结合 originalText
+        const ops = parsed.result.ops;
+        const applied = FSEdit.apply(originalText, ops);
+        if (!applied.success) {
+            this.print('edit: ' + applied.error, 'error');
+            return;
+        }
+        const { nextContent, diff, undo } = applied;
+        // ---- 预览（差异摘要 + 可选上下文行）---------------------------------------
+        this.print(`edit → ${absPath}`, 'success');
+        for (const d of diff) this.print(`  · ${d.label}  :  ${d.from}  →  ${d.to}`);
+        if (withContext > 0) this._printEditContext(nextContent, withContext);
+        // ---- 确认 ---------------------------------------------------------------
+        if (!assumeYes) {
+            const ok = confirm(`edit: 将对 "${absPath}" 执行 ${diff.length} 项修改，是否写入？\n（可用 edit undo 回滚最后一次）`);
+            if (!ok) { this.print('edit: 已取消（未写入）'); return; }
+        }
+        // ---- 写入 & 保存撤销 -----------------------------------------------------
+        const writeRes = this.fs.writeFileByPath(filePath, nextContent);
+        if (!writeRes.success) { this.print(writeRes.message, 'error'); return; }
+        const token = 'U' + Date.now().toString(36);
+        this._editUndoStack.push({
+            token,
+            filePath: absPath,
+            undoText: undo ? undo() : originalText,
+            ts: Date.now(),
+        });
+        if (this._editUndoStack.length > 50) this._editUndoStack.shift();
+        this.print(`${writeRes.message}。撤销令牌: ${token}（执行 edit undo ${token} 或 edit undo 回滚最近一次）`, 'success');
+    }
+    _handleEditUndo(args) {
+        if (this._editUndoStack.length === 0) {
+            this.print('edit undo: 撤销栈为空', 'error');
+            return;
+        }
+        const tokenArg = (args[0] || '').trim();
+        let entry;
+        if (tokenArg) {
+            entry = this._editUndoStack.find(x => x.token === tokenArg);
+            if (!entry) { this.print(`edit undo: 未找到令牌 "${tokenArg}"`, 'error'); return; }
+            this._editUndoStack = this._editUndoStack.filter(x => x !== entry);
+        } else {
+            entry = this._editUndoStack.pop();
+        }
+        const perm = this.checkPathPermission(entry.filePath);
+        if (!perm.allowed) { this.print(perm.message, 'error'); this._editUndoStack.push(entry); return; }
+        const res = this.fs.writeFileByPath(entry.filePath, entry.undoText);
+        if (!res.success) { this.print(res.message, 'error'); this._editUndoStack.push(entry); return; }
+        this.print(`edit undo ${entry.token}: 已回滚 "${entry.filePath}" 到修改前内容`, 'success');
+    }
+    _printEditHelp(short = false) {
+        if (short) {
+            this.print('edit -h 查看完整用法；常用语法：');
+            this.print('  edit file 5 "新内容"         将第5行整行替换');
+            this.print('  edit file 3,7 ""            删除第3-7行（替换为空块）');
+            this.print('  edit file 3,7 block...      把3-7行换成新内容（可用 \\n 换行）');
+            this.print('  edit file s/old/new/g       sed 正则全文件替换');
+            this.print('  edit file +5 "inserted"     在第5行前插入一行（-5 则在第5行后）');
+            this.print('  edit file >> "line"         文件末尾追加');
+            this.print('  edit undo [token]           回滚最后一次（或指定令牌）');
+            return;
+        }
+        this.print('edit: 非交互式文件修改命令（支持相对/绝对路径，父目录不存在会自动创建）');
+        this.print('  通用: edit [-y] <文件路径> <操作...>');
+        this.print('    -y / --yes            跳过 confirm 直接写入');
+        this.print('    -c N / --context N    修改完成后额外打印 N 行上下文预览');
+        this.print('  操作语法:');
+        this.print('    ① 单行替换:          edit f  <N>       <text>              把第 N 行换成 text（text 可用 \\n 表示多行）');
+        this.print('    ② 范围替换:          edit f  <N>,<M>   <block>             删除 N..M 行并替换为 block（block 为空就是删除）');
+        this.print('    ③ 正则（sed 风格）:  edit f  s/pat/repl/[flags]            flags: g/i/m 等，分隔符 / | # ! 任选');
+        this.print('                            edit f /3,8/ s/pat/repl/g          仅在第 3-8 行内应用正则');
+        this.print('    ④ 插入行:            edit f  +<N>      <block>             在第 N 行前插入；-<N> 表示第 N 行后插入');
+        this.print('    ⑤ 追加到文件尾:      edit f  >>        <block>');
+        this.print('    ⑥ 便捷删除:          edit f  d<N>                         删除第 N 行');
+        this.print('                            edit f  d<N>,<M>                    删除 N..M 行');
+        this.print('  撤销: edit undo              回滚最后一次 edit 写入');
+        this.print('        edit undo U-xxxxxx     回滚 edit 打印出的指定令牌');
+    }
+    _printEditContext(text, n) {
+        const lines = (text || '').split(/\r?\n|\r/);
+        if (lines.length === 0) return;
+        const head = lines.slice(0, n);
+        const tail = lines.length > n * 2 ? lines.slice(-n) : [];
+        const header = `── context ${n} 行（共 ${lines.length} 行） ──`;
+        this.print(header, 'folder');
+        head.forEach((l, i) => this.print(`${String(i + 1).padStart(4)}| ${l}`));
+        if (tail.length) {
+            this.print(`  ... (省略中间 ${lines.length - head.length - tail.length} 行) ...`);
+            const startIdx = lines.length - tail.length;
+            tail.forEach((l, i) => this.print(`${String(startIdx + i + 1).padStart(4)}| ${l}`));
+        }
+    }
+    /**
+     * 解析 "操作..." 部分为 FSEdit 可接受的 ops 数组。
+     * 设计意图：用户只写一行命令，语法尽量贴合直觉；
+     * 允许多种糖：sed s///、d3 / d3,7、+5/-5 插入、>> 追加、5 "xx" 单行、3,7 "yy\nzz" 范围。
+     */
+    _parseEditArgs(tokens) {
+        const rawInput = tokens.join(' ');
+        // 1) 正则 sed 风格（可前面再跟 /start,end/ scope）
+        let scope = null;
+        let remain = rawInput;
+        const scopeRe = /^\s*\/\s*(\d+)\s*,\s*(\d+)\s*\//;
+        const mScope = scopeRe.exec(remain);
+        if (mScope) { scope = [Number(mScope[1]), Number(mScope[2])]; remain = remain.slice(mScope[0].length); }
+        const sedRe = /^\s*s([\/|#!])((?:[^\\\1]|\\.)*?)\1((?:[^\\\1]|\\.)*?)\1([gimsuy]*)\s*/;
+        let mSed = null;
+        try { mSed = sedRe.exec(remain); } catch (_) { mSed = null; }
+        // 若环境不支持反向引用 \1 且整段失败，退化为兼容解析：按位置找分隔符
+        if (!mSed) {
+            const m2 = /^\s*s([\/|#!])/.exec(remain);
+            if (m2) {
+                const S = m2[1];
+                const restAfterS = remain.slice(m2[0].length - 1); // 从分隔符位置起
+                // restAfterS[0] 就是分隔符 S
+                let p1 = -1, p2 = -1, p3 = -1;
+                for (let i = 1; i < restAfterS.length; i++) {
+                    if (restAfterS[i] === S && restAfterS[i - 1] !== '\\') {
+                        if (p1 === -1) p1 = i;
+                        else if (p2 === -1) p2 = i;
+                        else { p3 = i; break; }
+                    }
+                }
+                if (p1 !== -1 && p2 !== -1) {
+                    if (p3 === -1) p3 = restAfterS.length;
+                    const pat = restAfterS.slice(1, p1);
+                    const repl = restAfterS.slice(p1 + 1, p2);
+                    const flags = restAfterS.slice(p2 + 1, p3).replace(/\s+$/,'');
+                    const safeSep = S === '/' ? '|' : '/';
+                    mSed = [null, S, pat, repl, flags];
+                }
+            }
+        }
+        if (mSed) {
+            const pat = mSed[2];
+            const repl = mSed[3];
+            const flags = mSed[4];
+            const sep = mSed[1];
+            const pattern = `s${sep}${pat}${sep}${repl}${sep}${flags}`;
+            const op = { type: 'regex', pattern };
+            if (scope) op.scope = scope;
+            const r = this._applyAndWrap(op);
+            if (!r.ok) return r;
+            return { ok: true, result: r.result };
+        }
+        // 2) 便捷删除 dN 或 dN,M
+        const delRe = /^\s*d\s*(\d+)(?:\s*,\s*(\d+))?\s*$/;
+        const mDel = delRe.exec(rawInput);
+        if (mDel) {
+            const s = Number(mDel[1]);
+            const e = mDel[2] == null ? s : Number(mDel[2]);
+            return this._applyAndWrap({ type: 'delete', start: s, end: e });
+        }
+        // 3) 追加 >> block
+        if (/^\s*>>\s*/.test(rawInput)) {
+            const block = this._unescapeNewlines(rawInput.replace(/^\s*>>\s*/, ''));
+            return this._applyAndWrap({ type: 'append', block });
+        }
+        // 4) 插入 +N block / -N block
+        const insRe = /^\s*([+-])\s*(\d+)\s+([\s\S]*)$/;
+        const mIns = insRe.exec(rawInput);
+        if (mIns) {
+            const which = mIns[1] === '+' ? 'before' : 'after';
+            const line = Number(mIns[2]);
+            const block = this._unescapeNewlines(mIns[3]);
+            const op = { type: 'insert', block };
+            op[which] = line;
+            return this._applyAndWrap(op);
+        }
+        // 5) 范围 N,M block  OR  单行 N <block>
+        //    首 token 若为 N,M 或 N 则按此解析，剩余整体作为 text（支持空格 / 引号 / \n）
+        const headTok = tokens[0] || '';
+        const rangeRe = /^(\d+)\s*,\s*(\d+)$/;
+        const lineRe = /^(\d+)$/;
+        const mRange = rangeRe.exec(headTok);
+        const mLine = lineRe.exec(headTok);
+        if (mRange) {
+            const s = Number(mRange[1]);
+            const e = Number(mRange[2]);
+            const restStr = tokens.slice(1).join(' ');
+            const block = this._unescapeNewlines(this._stripOptionalQuotes(restStr));
+            return this._applyAndWrap({ type: 'range', start: s, end: e, block });
+        }
+        if (mLine) {
+            const ln = Number(mLine[1]);
+            const restStr = tokens.slice(1).join(' ');
+            const text = this._unescapeNewlines(this._stripOptionalQuotes(restStr));
+            return this._applyAndWrap({ type: 'line', line: ln, text });
+        }
+        return { ok: false, error: '无法识别的操作语法。' };
+    }
+    _stripOptionalQuotes(s) {
+        const t = (s == null ? '' : String(s));
+        if (t.length >= 2) {
+            const f = t[0]; const last = t[t.length - 1];
+            if ((f === '"' && last === '"') || (f === "'" && last === "'")) {
+                return t.slice(1, -1);
+            }
+        }
+        return t;
+    }
+    _unescapeNewlines(s) {
+        // 支持写 \n \r \t \\ 四个常用转义；其他保持原样
+        return String(s == null ? '' : s)
+            .replace(/\\n/g, '\n')
+            .replace(/\\r/g, '\r')
+            .replace(/\\t/g, '\t')
+            .replace(/\\\\/g, '\\');
+    }
+    /** 为了打印 diff / 提供 undo，这里先在"当前原始文本"上跑一次 FSEdit.apply，
+     *  返回包装过的 {ok:true, result:{ops, nextContent, diff, undo}}。
+     *  真正写盘由 handleEdit 写入 absPath，undo 保存 snapshot。*/
+    _applyAndWrap(op) {
+        // 注意：实际使用时，读出来的文本在 handleEdit 里是 originalText，
+        // 但我们这里 parse 阶段拿不到 originalText，所以改为返回 ops 让 handleEdit 去 apply。
+        // 这里先做语法有效性快速检查：构造 FSEdit 所需的 op 是否能通过基本正则校验（如果是 regex type）。
+        if (op.type === 'regex') {
+            const raw = String(op.pattern || '');
+            const sepChar = raw[1];
+            if (!raw.startsWith('s') || !'/|#!'.includes(sepChar)) {
+                return { ok: false, error: 'regex 模式应为 s/pattern/replacement/flags' };
+            }
+            const parts = raw.slice(2).split(sepChar);
+            if (parts.length < 3) return { ok: false, error: 'regex 语法不完整' };
+            const flags = parts.pop();
+            const pattern = parts.slice(0, -1).join(sepChar);
+            try { new RegExp(pattern, flags); } catch (e) { return { ok: false, error: '正则语法错误：' + e.message }; }
+        }
+        // 返回 ops 列表：handleEdit 会用 FSEdit.apply(originalText, [op]) 再执行一次。
+        // 这里把 nextContent/diff/undo 都暂时设为 handleEdit 会填充的占位。
+        return {
+            ok: true,
+            result: {
+                ops: [op],
+                nextContent: null, // 填充见 handleEdit 末尾的计算
+                diff: [],
+                undo: null,
+                _pendingOp: op,
+            },
+        };
     }
     handleTree(args) {
         const showHidden = args.includes('-a');
@@ -489,7 +790,7 @@ class Terminal {
         }
         const filename = args[0];
         const targetPath = args.slice(1).join(' ');
-        const sourcePath = this.fs.getCurrentPath() + '/' + filename;
+        const sourcePath = Path.resolveUnder(filename, this.fs.getCurrentPath());
         const permission1 = this.checkPathPermission(sourcePath);
         if (!permission1.allowed) {
             this.print(permission1.message, 'error');
@@ -528,7 +829,7 @@ class Terminal {
         }
         const filename = args[0];
         const targetPath = args.length > 1 ? args.slice(1).join(' ') : '.';
-        const sourcePath = this.fs.getCurrentPath() + '/' + filename;
+        const sourcePath = Path.resolveUnder(filename, this.fs.getCurrentPath());
         const permission1 = this.checkPathPermission(sourcePath);
         if (!permission1.allowed) {
             this.print(permission1.message, 'error');
@@ -1038,6 +1339,7 @@ class Terminal {
         this.print('  account delete <用户名>     - 删除用户');
         this.print('  clear                     - 清空屏幕');
         this.print('  help                      - 显示此帮助信息');
+        this.print('  edit -h                   - 非交互式修改文件（sed/行替换/增删/追加）');
         this.print('');
         this.print('目录说明:');
         this.print('  /application/             - 系统应用（只读）');

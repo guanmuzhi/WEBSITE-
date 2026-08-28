@@ -1,6 +1,7 @@
-import UserManager from './user-manager.js?v=15';
-import LockScreen from './lock-screen.js?v=15';
-import StorageService from './storage.js?v=15';
+import UserManager from './user-manager.js?v=17';
+import LockScreen from './lock-screen.js?v=17';
+import StorageService from './storage.js?v=17';
+import { Path } from './lib/index.js?v=17';
 class DesktopManager {
     constructor(options = {}) {
         this.desktopEl = options.desktopEl || null;
@@ -368,14 +369,8 @@ class DesktopManager {
             const windows = this.windowManager.getAllWindows();
             const state = { windows: windows.map(win => { const winState = { id: win.id, title: win.title, windowType: win.windowType || 'default', x: parseInt(win.element.style.left) || 0, y: parseInt(win.element.style.top) || 0, width: parseInt(win.element.style.width) || 600, height: parseInt(win.element.style.height) || 400, isMinimized: win.isMinimized, zIndex: parseInt(win.element.style.zIndex) || 0 }; if (win.windowType === 'terminal' && this.terminalWindows.has(win.id)) { const terminal = this.terminalWindows.get(win.id); winState.currentPath = terminal.fs.getCurrentPath(); } if (win.windowType === 'app') { winState.appPath = win.appPath; winState.appParams = win.appParams; } return winState; }) };
             state.windows.sort((a, b) => a.zIndex - b.zIndex);
-            const parts = path.split('/'); const fileName = parts.pop(); const folderPath = parts.join('/') || '/';
-            let node = this.storage.fs;
-            for (const part of folderPath.split('/').filter(p => p)) { if (!node.children) node.children = []; let child = node.children.find(c => c.name === part && c.type === 'folder'); if (!child) { child = { type: 'folder', name: part, children: [] }; node.children.push(child); } node = child; }
-            if (!node.children) node.children = [];
-            const existingIndex = node.children.findIndex(c => c.name === fileName && c.type === 'file');
-            const fileData = { type: 'file', name: fileName, content: JSON.stringify(state) };
-            if (existingIndex !== -1) { node.children[existingIndex] = fileData; } else { node.children.push(fileData); }
-            this.storage.saveFS();
+            // 公共 StorageService.writeFile 会自动创建父目录、createPath 文件夹结构，替换手写的 split+filter 循环
+            this.storage.writeFile(path, JSON.stringify(state));
         } catch (e) { console.warn('Failed to save GUI state:', e); }
     }
     setupUserSwitchListener() {
@@ -692,14 +687,7 @@ class DesktopManager {
             const windows = this.windowManager.getAllWindows();
             const state = { windows: windows.map(win => { const winState = { id: win.id, title: win.title, windowType: win.windowType || 'default', x: parseInt(win.element.style.left) || 0, y: parseInt(win.element.style.top) || 0, width: parseInt(win.element.style.width) || 600, height: parseInt(win.element.style.height) || 400, isMinimized: win.isMinimized, zIndex: parseInt(win.element.style.zIndex) || 0 }; if (win.windowType === 'terminal' && this.terminalWindows.has(win.id)) { const terminal = this.terminalWindows.get(win.id); winState.currentPath = terminal.fs.getCurrentPath(); } if (win.windowType === 'app') { winState.appPath = win.appPath; winState.appParams = win.appParams; } return winState; }) };
             state.windows.sort((a, b) => a.zIndex - b.zIndex);
-            const path = this.getStateFilePath(); const parts = path.split('/'); const fileName = parts.pop(); const folderPath = parts.join('/') || '/';
-            let node = this.storage.fs;
-            for (const part of folderPath.split('/').filter(p => p)) { if (!node.children) node.children = []; let child = node.children.find(c => c.name === part && c.type === 'folder'); if (!child) { child = { type: 'folder', name: part, children: [] }; node.children.push(child); } node = child; }
-            if (!node.children) node.children = [];
-            const existingIndex = node.children.findIndex(c => c.name === fileName && c.type === 'file');
-            const fileData = { type: 'file', name: fileName, content: JSON.stringify(state) };
-            if (existingIndex !== -1) { node.children[existingIndex] = fileData; } else { node.children.push(fileData); }
-            this.storage.saveFS();
+            this.storage.writeFile(this.getStateFilePath(), JSON.stringify(state));
         } catch (e) { console.warn('Failed to save GUI state:', e); }
     }
     async loadState() {

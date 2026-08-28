@@ -1,4 +1,5 @@
-import StorageService from './storage.js?v=15';
+import StorageService from './storage.js?v=17';
+import { Path as PathUtil } from './lib/index.js?v=17';
 const CURRENT_DIR_KEY = 'web-terminal-os-cwd';
 // System directories that are read-only for all users
 const SYSTEM_PATHS = ['/application', '/languages'];
@@ -118,7 +119,10 @@ class FileSystem {
         return find(this.root);
     }
     findNodeByPath(path) {
-        const parts = path.split('/').filter(p => p);
+        // 公共库 normalize + split 保证路径先被规整（去除 '..'/'.' 与多斜杠），再按 '/' 取段
+        const normalized = PathUtil.normalize(path);
+        const segments = normalized.startsWith('/') ? normalized.slice(1) : normalized;
+        const parts = segments ? segments.split('/').filter(p => p) : [];
         let node = this.root;
         for (const part of parts) {
             if (node.children) {
@@ -154,7 +158,8 @@ class FileSystem {
      * Get the username that owns a path, or null if not under /user/.
      */
     getPathOwner(path) {
-        const parts = path.split('/').filter(p => p);
+        // PathUtil.split 与 normalize 统一处理相对路径与多段跳转
+        const parts = PathUtil.normalize(path).split('/').filter(p => p);
         if (parts[0] === 'user' && parts[1]) {
             return parts[1];
         }
@@ -303,6 +308,81 @@ class FileSystem {
             }
         }
         return current;
+    }
+
+    /**
+     * 解析"文件路径"（相对当前目录或绝对），返回 { dirPath, absDirPath, fileName, absFilePath }
+     * 与 resolvePath 的区别：它允许最后一段是文件名（不需要父目录存在也行，
+     * 因为后续 writeFileByPath 会自动创建父目录）。
+     *
+     * @param {string} filePath  相对或绝对的文件路径（例如 "note.txt"、"../a/b.txt"、"/user/public/x.js"）
+     * @returns {{dirPath:string, absDirPath:string, fileName:string, absFilePath:string}}
+     */
+    splitFilePath(filePath) {
+        const p = String(filePath || '').trim();
+        const abs = this._normalizeAbsFilePath(p);
+        const i = abs.lastIndexOf('/');
+        const absDirPath = (i === 0) ? '/' : abs.slice(0, i);
+        const fileName = abs.slice(i + 1);
+        // dirPath：相对当前目录的等价表示（如果目标在当前目录下就显示相对，否则保持绝对）。
+        // 简化实现：直接用 absDirPath 作为 canonical。
+        return { dirPath: absDirPath, absDirPath, fileName, absFilePath: abs };
+    }
+
+    _normalizeAbsFilePath(p) {
+        const base = this.getCurrentPath();
+        if (!p) return base + '/';
+        if (p.startsWith('/')) return this._normalizePathSegs(p);
+        return this._normalizePathSegs(base + '/' + p);
+    }
+    _normalizePathSegs(p) {
+        const abs = p.startsWith('/');
+        const parts = p.split('/').filter(x => x !== '' && x !== '.');
+        const out = [];
+        for (const seg of parts) {
+            if (seg === '..') {
+                if (out.length > 0) out.pop();
+            } else {
+                out.push(seg);
+            }
+        }
+        return (abs ? '/' : '') + out.join('/');
+    }
+
+    /**
+     * 按路径找文件节点（相对或绝对）。文件不存在返回 null。
+     */
+    getFileByPath(filePath) {
+        const { absDirPath, fileName } = this.splitFilePath(filePath);
+        const folder = this.findNodeByPath(absDirPath);
+        if (!folder || !folder.children) return null;
+        return folder.children.find(c => c.name === fileName && c.type === 'file') || null;
+    }
+
+    /**
+     * 按路径写入文件内容：
+     *   - 父目录不存在时自动创建（复用 storage.createPath）
+     *   - 文件不存在时自动创建
+     *   - 自动 save()
+     * 返回 { success, message, file, created:boolean }
+     */
+    writeFileByPath(filePath, content = '') {
+        const { absDirPath, fileName, absFilePath } = this.splitFilePath(filePath);
+        if (!fileName) return { success: false, message: '目标路径缺少文件名' };
+        const folder = this.storage.createPath(absDirPath);
+        if (!folder) return { success: false, message: '无法创建父目录 "' + absDirPath + '"' };
+        if (!folder.children) folder.children = [];
+        let idx = folder.children.findIndex(c => c.name === fileName && c.type === 'file');
+        let created = false;
+        if (idx === -1) {
+            folder.children.push({ type: 'file', name: fileName, content: '' });
+            idx = folder.children.length - 1;
+            created = true;
+        }
+        const file = folder.children[idx];
+        file.content = typeof content === 'string' ? content : JSON.stringify(content);
+        this.save();
+        return { success: true, message: created ? `已创建 "${absFilePath}" 并写入` : `已写入 "${absFilePath}"`, file, created };
     }
     moveFile(filename, targetPath) {
         const file = this.currentDir.children.find(c => c.name === filename && c.type === 'file');
