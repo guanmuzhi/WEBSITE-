@@ -122,18 +122,20 @@ class LockScreen {
             this.inputStage.className = 'lock-stage lock-stage-input';
             this.inputStage.style.display = 'none';
             const card = document.createElement('div');
-            card.className = 'lock-window';
+            card.className = 'lock-card';
 
-            const titlebar = document.createElement('div');
-            titlebar.className = 'lock-window-titlebar';
-            titlebar.innerHTML = `<span class="lock-window-title">navore OS</span>
-                <div class="lock-window-controls">
-                    <button class="window-btn btn-minimize" title="最小化"></button>
-                    <button class="window-btn btn-close" title="关闭"></button>
-                </div>`;
+            const header = document.createElement('div');
+            header.className = 'lock-card-header';
+            header.innerHTML = `
+                <button class="lock-back-btn" id="lock-back-btn" title="返回时钟">
+                    <img src="/apps/icons/back.svg" alt="back">
+                </button>
+                <div class="lock-card-title" id="lock-card-title">navore OS</div>
+                <div style="width:32px;"></div>
+            `;
 
             const body = document.createElement('div');
-            body.className = 'lock-window-body';
+            body.className = 'lock-card-body';
             body.innerHTML = `
                 <div class="lock-header">
                     <div class="lock-user-avatar" id="lock-avatar"></div>
@@ -145,7 +147,7 @@ class LockScreen {
                 <div class="lock-user-list-header">切换用户 · Switch User</div>
                 <div class="lock-user-list" id="lock-user-list"></div>
             `;
-            card.appendChild(titlebar);
+            card.appendChild(header);
             card.appendChild(body);
             this.inputStage.appendChild(card);
             overlay.appendChild(this.inputStage);
@@ -153,10 +155,12 @@ class LockScreen {
             this.el = overlay;
             this.lockWindow = card;
             this.contentEl = body.querySelector('.lock-content');
-            this.errorEl = body.querySelector('.lock-error');
+            this.errorEl = body.querySelector('#lock-error');
             this.avatarEl = body.querySelector('#lock-avatar');
             this.usernameEl = body.querySelector('#lock-username');
             this.userListEl = body.querySelector('#lock-user-list');
+            this.backBtn = header.querySelector('#lock-back-btn');
+            this.cardTitleEl = header.querySelector('#lock-card-title');
             this.clockTimeEl = this.clockStage.querySelector('#lock-clock-time');
             this.clockDateEl = this.clockStage.querySelector('#lock-clock-date');
             this.hintEl = this.clockStage.querySelector('#lock-clock-hint');
@@ -166,9 +170,7 @@ class LockScreen {
 
     // ============== 事件 ==============
     _bindEvents() {
-        // 任意键 / 点击 → 从 clock 切到 input
         const onWake = (ev) => {
-            // 忽略 input 框本身的按键事件
             if (this.stage !== 'clock') return;
             if (ev.target && ev.target.closest && ev.target.closest('input,textarea,button')) return;
             this._switchToInput();
@@ -176,67 +178,25 @@ class LockScreen {
         document.addEventListener('keydown', onWake);
         this.clockStage.addEventListener('click', onWake);
 
-        // 标题栏拖动：用 transform 做，不干扰 CSS，且重置位置仅 reset transform
         try {
-            const titlebar = this.lockWindow ? this.lockWindow.querySelector('.lock-window-titlebar') : null;
-            if (titlebar && this.lockWindow) {
-                let dragging = false, startX = 0, startY = 0, origRect = null;
-                const onDown = (ev) => {
-                    if (!this.lockWindow || ev.target.closest('button')) return;
-                    ev.preventDefault();
-                    origRect = this.lockWindow.getBoundingClientRect();
-                    dragging = true;
-                    startX = (ev.touches ? ev.touches[0].clientX : ev.clientX) - origRect.left;
-                    startY = (ev.touches ? ev.touches[0].clientY : ev.clientY) - origRect.top;
-                    this.lockWindow.style.transition = 'none';
-                };
-                const onMove = (ev) => {
-                    if (!dragging || !this.lockWindow) return;
-                    const cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
-                    const cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
-                    const x = cx - startX;
-                    const y = cy - startY;
-                    // 边界约束
-                    const maxY = window.innerHeight - 60;
-                    const boundedY = Math.max(0, Math.min(y, maxY));
-                    this.lockWindow.style.left = x + 'px';
-                    this.lockWindow.style.top = boundedY + 'px';
-                    this.lockWindow.style.right = 'auto';
-                    this.lockWindow.style.bottom = 'auto';
-                };
-                const onUp = () => {
-                    if (!this.lockWindow) return;
-                    dragging = false;
-                    this.lockWindow.style.transition = '';
-                    origRect = null;
-                };
-                titlebar.addEventListener('mousedown', onDown);
-                titlebar.addEventListener('touchstart', onDown, { passive: false });
-                document.addEventListener('mousemove', onMove);
-                document.addEventListener('touchmove', onMove, { passive: false });
-                document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchend', onUp);
-                // 切阶段时复位位置
-                this._resetWindowPosition = () => {
-                    if (!this.lockWindow) return;
-                    this.lockWindow.style.left = '';
-                    this.lockWindow.style.top = '';
-                    this.lockWindow.style.right = '';
-                    this.lockWindow.style.bottom = '';
-                };
-            }
+            if (this.backBtn) this.backBtn.addEventListener('click', (e) => { e.stopPropagation(); this._switchToClock(); });
+            document.addEventListener('keydown', (e) => {
+                if (this.stage === 'input' && e.key === 'Escape') this._switchToClock();
+            });
         } catch (_) {}
+        this._resetWindowPosition = () => {};
     }
 
+    // ============== 阶段切换 ==============
     // ============== 阶段切换 ==============
     _switchToInput() {
         if (!this.el) return;
         this.stage = 'input';
         this.clockStage.style.display = 'none';
         this.inputStage.style.display = 'flex';
-        this._resetWindowPosition && this._resetWindowPosition();
         try { this._renderInput(); } catch (e) { console.error('renderInput failed:', e); }
     }
+
 
     _switchToClock() {
         if (!this.el) return;
@@ -319,7 +279,30 @@ class LockScreen {
                 : (user.password ? this.t('lock.needPassword', '需密码') : this.t('lock.noPassword', '无密码'));
             info.appendChild(status);
             row.appendChild(info);
-            if (!isCurrent) {
+            // 仅为当前用户加操作按钮：重命名、删除
+            if (isCurrent) {
+                const actions = document.createElement('div');
+                actions.className = 'lock-user-item-actions';
+                const renameBtn = document.createElement('button');
+                renameBtn.className = 'lock-user-action-btn lock-user-action-edit';
+                renameBtn.title = this.t('lock.rename', '重命名');
+                renameBtn.innerHTML = `<img src="/apps/icons/edit.svg" alt="${this.t('lock.rename', 'Rename')}">`;
+                renameBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this._promptRenameUser(user.username);
+                });
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'lock-user-action-btn lock-user-action-delete';
+                deleteBtn.title = this.t('lock.delete', '删除');
+                deleteBtn.innerHTML = `<img src="/apps/icons/delete.svg" alt="${this.t('lock.delete', 'Delete')}">`;
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this._promptDeleteUser(user.username);
+                });
+                actions.appendChild(renameBtn);
+                actions.appendChild(deleteBtn);
+                row.appendChild(actions);
+            } else {
                 row.addEventListener('click', () => {
                     if (user.password) {
                         const pwd = prompt(this.t('lock.promptForPassword', '请输入密码'));
@@ -333,6 +316,54 @@ class LockScreen {
             }
             this.userListEl.appendChild(row);
         });
+    }
+
+    _promptRenameUser(oldName) {
+        try {
+            const newName = prompt(this.t('lock.newUsername', '新用户名'), oldName);
+            if (!newName || newName === oldName) return;
+            if (newName.indexOf('/') !== -1 || newName.indexOf('\\') !== -1) {
+                alert('用户名不能包含 / \\'); return;
+            }
+            if (this.userManager.listUsers().some(u => u.username === newName)) {
+                alert('用户已存在'); return;
+            }
+            const pwd = prompt(this.t('lock.enterCurrentPassword', '输入当前密码'));
+            if (pwd == null) return;
+            const res = this.userManager.renameUser(oldName, newName, pwd);
+            if (!res || !res.success) {
+                if (this.errorEl) this.errorEl.textContent = (res && res.message) ? res.message : this.t('lock.passwordError', '密码错误');
+                return;
+            }
+            this.userManager.reload();
+            this._renderInput();
+        } catch (e) { console.error('rename fail:', e); }
+    }
+
+    _promptDeleteUser(name) {
+        try {
+            if (this.userManager.listUsers().length <= 1) {
+                alert('至少需要保留一个用户');
+                return;
+            }
+            if (!confirm(this.t('lock.deleteUserConfirm', `确定要删除用户 "${name}" 吗？此操作无法撤销。`).replace('{name}', name))) return;
+            const pwd = prompt(this.t('lock.enterPasswordToDelete', '请输入密码以确认删除'));
+            if (pwd == null) return;
+            // 先校验密码
+            if (!this.userManager.verifyPassword(name, pwd)) {
+                if (this.errorEl) this.errorEl.textContent = this.t('lock.passwordError', '密码错误');
+                return;
+            }
+            const res = this.userManager.deleteUser(name);
+            if (!res || !res.success) {
+                if (this.errorEl) this.errorEl.textContent = (res && res.message) ? res.message : '删除失败';
+                return;
+            }
+            this.userManager.reload();
+            const next = this.userManager.listUsers()[0];
+            if (next) this.userManager.setCurrentUser(next.username);
+            this._renderInput();
+        } catch (e) { console.error('delete fail:', e); }
     }
 
     _switchUser(username) {

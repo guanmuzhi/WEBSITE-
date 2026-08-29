@@ -1,24 +1,100 @@
 import UserManager from './user-manager.js?v=32';
 import StorageService from './storage.js?v=32';
-const ICONS = {
-    folder:  '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#3498db" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 4.5h4l1.5 1.5h7.5v7.5h-13z"/></svg>',
-    file:    '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#bdc3c7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2h7l3 3v9H3z"/><path d="M10 2v3h3"/></svg>',
-    image:   '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#9b59b6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="1.5"/><circle cx="6" cy="6" r="1.5"/><path d="M2 12l4-4 3 3 2-2 3 3"/></svg>',
-    video:   '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#e67e22" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="3" width="10" height="10" rx="1.5"/><path d="M11.5 6.5l3-2v7l-3-2"/></svg>',
-    audio:   '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#1abc9c" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M6 6l5 4M11 6l-5 4"/></svg>',
-    zip:     '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#f39c12" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M6.5 4.5h3M6.5 7h3M6.5 9.5h3M8 12.5v2"/></svg>',
-    code:    '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#3498db" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l-4 4 4 4M10 4l4 4-4 4"/></svg>',
-    sheet:   '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#27ae60" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 5h12M2 9h12M6 2v12M10 2v12"/></svg>',
-    doc:     '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#2980b9" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2h7l3 3v9H3z"/><path d="M6 7h5M6 9.5h5M6 12h3"/></svg>',
-    shell:   '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#2ecc71" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12v10H2z"/><path d="M4.5 5.5l2 2-2 2M8.5 9.5h3"/></svg>',
-    config:  '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#95a5a6" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 2.5v2M8 11.5v2M2.5 8h2M11.5 8h2M4 4l1.5 1.5M10.5 10.5L12 12M12 4l-1.5 1.5M5.5 10.5L4 12"/></svg>',
-    logo:    '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#34495e" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M3 12c2-3 4-4 5-4s3 1 5 4"/></svg>',
-    db:      '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#8e44ad" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="8" cy="4" rx="5" ry="2"/><path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/></svg>',
-    app:     '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#16a085" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="3"/><circle cx="8" cy="8" r="2"/></svg>',
-    up:      '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#ccc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12V4M4 8l4-4 4 4"/></svg>',
-    home:    '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="#ccc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l6-5 6 5v7h-4v-4H6v4H2z"/></svg>',
-    newfolder: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="#3498db" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 4.5h4l1.5 1.5h7.5v7.5h-13z"/><path d="M8 7.5v4M6 9.5h4"/></svg>',
+
+// 【零重复代码 SVG 图标】
+// 所有图标源文件统一在 /apps/icons/*.svg，通过 window.WebOS.Lib.Icons 读取并缓存。
+// Dialogs.Icon 是这个公共库的薄封装：
+//   - Dialogs.Icon.html(name, size, color) 返回 SVG 字符串（同步）
+//   - Dialogs.Icon.url(name, size, color)  返回可给 <img src> 的 data URI（同步，若已缓存）
+//   - Dialogs.Icon.forFile(filename)         根据文件名返回图标名
+//
+// 禁止再写 inline '<svg ...>' 字符串、禁止使用 emoji。
+const _getIconsLib = () => {
+    try {
+        if (typeof window !== 'undefined' && window.WebOS && window.WebOS.Lib && window.WebOS.Lib.Icons) {
+            return window.WebOS.Lib.Icons;
+        }
+    } catch (_) {}
+    return null;
 };
+const _fallbackSvg = (size, color) => {
+    const s = typeof size === 'number' ? size : Number(size || '16') || 16;
+    const c = color || 'currentColor';
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2"></svg>`;
+};
+const I = {
+    lib() { return _getIconsLib(); },
+    html(name, size, color) {
+        const lib = _getIconsLib();
+        if (lib && typeof lib.getHTML === 'function') return lib.getHTML(name, size, color);
+        return _fallbackSvg(size, color);
+    },
+    url(name, size, color) {
+        const lib = _getIconsLib();
+        if (lib && typeof lib.getURL === 'function') return lib.getURL(name, size, color);
+        return 'data:image/svg+xml;utf8,' + encodeURIComponent(_fallbackSvg(size, color));
+    },
+    forFile(filename) {
+        const lib = _getIconsLib();
+        if (lib && typeof lib.iconNameForFile === 'function') return lib.iconNameForFile(filename);
+        return 'file';
+    },
+    colorFor(iconName) {
+        // 保留原 ICONS 颜色语义（可选色板），调用方可传 color 参数使用。
+        switch (iconName) {
+            case 'folder': return '#3498db';
+            case 'file': return '#bdc3c7';
+            case 'type-image': return '#9b59b6';
+            case 'type-video': return '#e67e22';
+            case 'type-audio': return '#1abc9c';
+            case 'type-zip': return '#f39c12';
+            case 'type-code': return '#3498db';
+            case 'type-sheet': return '#27ae60';
+            case 'type-doc': return '#2980b9';
+            case 'type-shell': return '#2ecc71';
+            case 'type-config': return '#95a5a6';
+            case 'type-logo': return '#34495e';
+            case 'type-db': return '#8e44ad';
+            case 'type-app': return '#16a085';
+            case 'up': case 'home': return '#cccccc';
+            case 'new-folder-action': return '#3498db';
+            default: return '#bdc3c7';
+        }
+    },
+};
+
+// 工具：把颜色和大小“语义化”地组合，使旧 ICONS.folder 等价新调用
+const _iconHtml = (name, size) => I.html(name, size, I.colorFor(name));
+
+// 兼容性保留：旧代码中 ICONS.xxx（dialogs.js 内部临时过渡用）
+// 最终目标：所有 ICONS 引用改成 I.html(name, size, color) 形式。
+const ICONS = new Proxy({}, {
+    get(_t, prop) {
+        const map = {
+            folder: 'folder',
+            file: 'file',
+            image: 'type-image',
+            video: 'type-video',
+            audio: 'type-audio',
+            zip: 'type-zip',
+            code: 'type-code',
+            sheet: 'type-sheet',
+            doc: 'type-doc',
+            shell: 'type-shell',
+            config: 'type-config',
+            logo: 'type-logo',
+            db: 'type-db',
+            app: 'type-app',
+            up: 'up',
+            home: 'home',
+            newfolder: 'new-folder-action',
+        };
+        const name = map[prop] || String(prop);
+        // 原始 ICONS 都是 16x16（除 newfolder 14）
+        const size = prop === 'newfolder' ? 14 : 16;
+        return _iconHtml(name, size);
+    }
+});
 
 // ── 内联对话框样式（避免依赖外部 CSS；iframe 应用调 window.parent.Dialogs 也能直接看到样式） ──
 const DIALOG_CSS = `
@@ -243,9 +319,12 @@ class Dialogs {
 
             // toolbar
             const toolbar = document.createElement('div'); toolbar.className = 'vfs-toolbar';
-            const upBtn = document.createElement('button'); upBtn.className = 'vfs-tool-btn'; upBtn.innerHTML = '上级' + ICONS.up; upBtn.title = '回到上级目录 (Backspace)';
-            const homeBtn = document.createElement('button'); homeBtn.className = 'vfs-tool-btn'; homeBtn.innerHTML = '家' + ICONS.home; homeBtn.title = '回到当前用户家目录';
-            const newFolderBtn = document.createElement('button'); newFolderBtn.className = 'vfs-tool-btn'; newFolderBtn.innerHTML = '新建文件夹' + ICONS.newfolder;
+            const upBtn = document.createElement('button'); upBtn.className = 'vfs-tool-btn';
+            upBtn.innerHTML = '上级 ' + _iconHtml('up', 16); upBtn.title = '回到上级目录 (Backspace)';
+            const homeBtn = document.createElement('button'); homeBtn.className = 'vfs-tool-btn';
+            homeBtn.innerHTML = '家 ' + _iconHtml('home', 16); homeBtn.title = '回到当前用户家目录';
+            const newFolderBtn = document.createElement('button'); newFolderBtn.className = 'vfs-tool-btn';
+            newFolderBtn.innerHTML = '新建文件夹 ' + _iconHtml('new-folder-action', 16);
             if (opts.canCreateFolder === false) newFolderBtn.style.display = 'none';
             if (mode === 'open') newFolderBtn.style.display = 'none';
             const crumbs = document.createElement('div'); crumbs.className = 'vfs-crumbs';
@@ -322,7 +401,13 @@ class Dialogs {
                 for (const it of shown) {
                     const row = document.createElement('div'); row.className = 'vfs-item'; row.title = it.name;
                     const icon = document.createElement('span'); icon.className = 'vfs-icon';
-                    icon.textContent = it.type === 'folder' ? ICONS.folder : Dialogs._iconFor(it.name);
+                    // 用 SVG innerHTML，不再 textContent（inline SVG/emoji 禁止）
+                    if (it.type === 'folder') {
+                        icon.innerHTML = _iconHtml('folder', 18);
+                    } else {
+                        const iconName = I.forFile(it.name);
+                        icon.innerHTML = I.html(iconName, 18, I.colorFor(iconName));
+                    }
                     const nm = document.createElement('span'); nm.className = 'vfs-name'; nm.textContent = it.name;
                     row.append(icon, nm);
                     if (it.type === 'file') {
@@ -420,19 +505,23 @@ class Dialogs {
     static showSelectFolderDialog(opts = {}) { return Dialogs.showVfsFileDialog({ ...opts, mode: 'folder', canCreateFolder: true }); }
 
     static _iconFor(name) {
-        const ext = (name.lastIndexOf('.') >= 0 ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : '');
-        const map = {
-            txt: ICONS.file, log: ICONS.file,
-            md: ICONS.doc, json: ICONS.config, yml: ICONS.config, yaml: ICONS.config, ini: ICONS.config, cfg: ICONS.config,
-            js: ICONS.code, ts: ICONS.code, sh: ICONS.shell, py: ICONS.shell, java: ICONS.shell, c: ICONS.shell, cpp: ICONS.shell, h: ICONS.shell,
-            css: ICONS.logo, html: ICONS.logo, xml: ICONS.logo, bat: ICONS.shell,
-            png: ICONS.image, jpg: ICONS.image, jpeg: ICONS.image, gif: ICONS.image, webp: ICONS.image, svg: ICONS.image, bmp: ICONS.image,
-            mp4: ICONS.video, webm: ICONS.video, ogg: ICONS.audio, mp3: ICONS.audio, wav: ICONS.audio, flac: ICONS.audio,
-            zip: ICONS.zip, rar: ICONS.zip, '7z': ICONS.zip, gz: ICONS.zip, csv: ICONS.sheet,
-            app: ICONS.app
-        };
-        return map[ext] || ICONS.file;
+        const iconName = I.forFile(name);
+        return I.html(iconName, 16, I.colorFor(iconName));
     }
+    // 异步预加载：Dialogs 用的图标（在显示任何对话框前 await 一次即可）
+    static async _ensureIcons() {
+        const lib = _getIconsLib();
+        if (!lib || typeof lib.preload !== 'function') return;
+        const need = [
+            'folder','file','type-image','type-video','type-audio','type-zip',
+            'type-code','type-sheet','type-doc','type-shell','type-config',
+            'type-logo','type-db','type-app','up','home','new-folder-action',
+            'alert','info','check','close','save','copy','move','delete','edit'
+        ];
+        await lib.preload(need);
+    }
+    // 对外暴露 Icon 工具：供 iframe 应用复用图标系统
+    static get Icon() { return I; }
 
     static _btn(text, cls, onClick) {
         const b = document.createElement('button'); b.className = cls; b.textContent = text;

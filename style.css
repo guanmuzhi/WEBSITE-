@@ -479,7 +479,7 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 0 12px;
-    z-index: 10000;
+    z-index: 10;  /* 程序坞置于最低 z-index，永远在窗口之下不遮挡 */
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 .taskbar-items {
@@ -730,20 +730,18 @@ body {
     overflow: hidden;
     color: #fff;
 }
-/* Bing UHD 壁纸（首次加载会有短暂黑屏，可接受） */
+/* Bing UHD 壁纸（无模糊、无放大） */
 .lock-wallpaper {
     position: absolute; inset: 0;
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
     background-attachment: fixed;
-    transform: scale(1.04); /* 轻微放大避免边缘空白 */
 }
-/* 深色渐变叠层：保证时钟/卡片对比度 */
+/* 深色渐变叠层：保证时钟/卡片对比度（不再模糊壁纸） */
 .lock-tint {
     position: absolute; inset: 0;
     background: linear-gradient(180deg, rgba(0,0,0,0.48) 0%, rgba(0,0,0,0.25) 35%, rgba(0,0,0,0.55) 100%);
-    backdrop-filter: blur(1px);
 }
 .lock-particles {
     position: absolute; inset: 0;
@@ -807,64 +805,63 @@ body {
     pointer-events: none;
 }
 
-/* ========= Glass 登录卡 ========= */
-.lock-window {
+/* ========= lock-card 登录卡（无窗口框架，去 backdrop-blur，去壁纸 blur） ========= */
+.lock-card {
     position: relative;
-    width: 420px;
+    width: 440px;
     max-width: 92vw;
     max-height: 82vh;
-    background: rgba(35, 38, 52, 0.62);
-    border: 1px solid rgba(255,255,255,0.16);
-    border-radius: 16px;
-    backdrop-filter: blur(28px) saturate(150%);
-    -webkit-backdrop-filter: blur(28px) saturate(150%);
-    box-shadow: 0 18px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.1);
+    background: rgba(20, 22, 32, 0.78);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 18px;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08);
     overflow: hidden;
-    /* 用 left/top 定位，初始自动居中 */
     margin: auto;
-    display: flex; flex-direction: column;
+    display: flex;
+    flex-direction: column;
     transition: none !important;
-    will-change: transform;
 }
-.lock-window-titlebar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 14px;
+.lock-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
     background: rgba(255,255,255,0.04);
     border-bottom: 1px solid rgba(255,255,255,0.08);
-    cursor: default;
-    user-select: none;
 }
-.lock-window-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: rgba(255,255,255,0.85);
-    letter-spacing: 0.5px;
-}
-.lock-window-controls { display: flex; gap: 6px; }
-.lock-window-controls .window-btn {
-    width: 12px; height: 12px;
-    border-radius: 50%; border: none;
-    cursor: default; /* 锁屏上的红/黄按钮不响应点击 */
+.lock-back-btn {
+    width: 32px; height: 32px;
+    border: none; border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.9);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
     transition: none !important;
 }
-.lock-window-controls .btn-minimize { background: #f1c40f; }
-.lock-window-controls .btn-close    { background: #e74c3c; }
-
-.lock-window-body {
+.lock-back-btn:hover { background: rgba(255,255,255,0.12); }
+.lock-back-btn img { width: 18px; height: 18px; display: block; }
+.lock-card-title {
+    font-size: 13px; font-weight: 600;
+    color: rgba(255,255,255,0.82);
+    letter-spacing: 0.5px;
+}
+.lock-card-body {
     padding: 22px 24px;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(255,255,255,0.2) transparent;
 }
-.lock-window-body::-webkit-scrollbar { width: 6px; }
-.lock-window-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
+.lock-card-body::-webkit-scrollbar { width: 6px; }
+.lock-card-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
 
-/* Header */
+/* Header / avatar */
+.lock-card-body .lock-header,
 .lock-window-body .lock-header {
     display: flex; flex-direction: column;
     align-items: center; gap: 10px;
     margin-bottom: 16px;
 }
+.lock-card-body .lock-user-avatar,
 .lock-window-body .lock-user-avatar {
     width: 84px; height: 84px;
     border-radius: 50%;
@@ -873,11 +870,13 @@ body {
     border: 2px solid rgba(255,255,255,0.28);
     box-shadow: 0 8px 26px rgba(0,0,0,0.3);
 }
+.lock-card-body .lock-user-avatar .lock-avatar-img,
 .lock-window-body .lock-user-avatar .lock-avatar-img {
     width: 100%; height: 100%;
     object-fit: cover;
     display: block;
 }
+.lock-card-body .lock-user-avatar .lock-avatar-fallback,
 .lock-window-body .lock-user-avatar .lock-avatar-fallback {
     width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
@@ -885,12 +884,14 @@ body {
     color: rgba(255,255,255,0.85);
     background: linear-gradient(135deg, #667eea, #764ba2);
 }
+.lock-card-body .lock-username,
 .lock-window-body .lock-username {
     font-size: 17px; font-weight: 600;
     color: rgba(255,255,255,0.92);
 }
 
 /* Content / 密码输入区 */
+.lock-card-body .lock-content,
 .lock-window-body .lock-content {
     display: flex; flex-direction: column; gap: 10px;
     margin-bottom: 10px;
@@ -923,6 +924,7 @@ body {
 }
 .lock-unlock-btn:active { transform: translateY(1px); }
 
+.lock-card-body .lock-error,
 .lock-window-body .lock-error {
     min-height: 16px;
     font-size: 12px;
@@ -931,15 +933,18 @@ body {
 }
 
 /* 用户列表 */
+.lock-card-body .lock-user-list-header,
 .lock-window-body .lock-user-list-header {
     margin-top: 12px; margin-bottom: 8px;
     font-size: 12px;
     color: rgba(255,255,255,0.55);
     letter-spacing: 0.5px;
 }
+.lock-card-body .lock-user-list,
 .lock-window-body .lock-user-list {
     display: grid; gap: 6px;
 }
+.lock-card-body .lock-user-item,
 .lock-window-body .lock-user-item {
     display: flex; align-items: center; gap: 10px;
     padding: 8px 10px;
@@ -947,17 +952,19 @@ body {
     cursor: pointer;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
-    transition: background 0.15s, border-color 0.15s;
 }
+.lock-card-body .lock-user-item:hover,
 .lock-window-body .lock-user-item:hover {
     background: rgba(255,255,255,0.09);
     border-color: rgba(26,188,156,0.35);
 }
+.lock-card-body .lock-user-item-current,
 .lock-window-body .lock-user-item-current {
     cursor: default;
     background: rgba(26,188,156,0.12);
     border-color: rgba(26,188,156,0.4);
 }
+.lock-card-body .lock-user-item-avatar,
 .lock-window-body .lock-user-item-avatar {
     width: 32px; height: 32px;
     border-radius: 50%;
@@ -966,9 +973,11 @@ body {
     border: 1px solid rgba(255,255,255,0.2);
     flex-shrink: 0;
 }
+.lock-card-body .lock-user-item-avatar .lock-avatar-img,
 .lock-window-body .lock-user-item-avatar .lock-avatar-img {
     width: 100%; height: 100%; object-fit: cover; display: block;
 }
+.lock-card-body .lock-user-item-avatar .lock-avatar-fallback,
 .lock-window-body .lock-user-item-avatar .lock-avatar-fallback {
     width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
@@ -976,20 +985,44 @@ body {
     color: rgba(255,255,255,0.9);
     background: linear-gradient(135deg, #667eea, #764ba2);
 }
+.lock-card-body .lock-user-item-info,
 .lock-window-body .lock-user-item-info { flex: 1; min-width: 0; }
+.lock-card-body .lock-user-item-name,
 .lock-window-body .lock-user-item-name {
     font-size: 13px;
     color: rgba(255,255,255,0.9);
 }
+.lock-card-body .lock-user-item-status,
 .lock-window-body .lock-user-item-status {
     font-size: 11px;
     color: rgba(255,255,255,0.5);
 }
+/* 当前用户操作按钮（重命名/删除） */
+.lock-user-item-actions {
+    display: flex; gap: 6px; flex-shrink: 0;
+}
+.lock-user-action-btn {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: none !important;
+}
+.lock-user-action-btn img {
+    width: 15px; height: 15px; display: block;
+}
+.lock-user-action-edit img { filter: invert(1) brightness(1.2); }
+.lock-user-action-delete { border-color: rgba(231, 76, 60, 0.35); background: rgba(231, 76, 60, 0.08); }
+.lock-user-action-delete img { filter: brightness(0) saturate(100%) invert(37%) sepia(93%) saturate(1501%) hue-rotate(337deg) brightness(91%) contrast(102%); }
+.lock-user-action-btn:hover { background: rgba(255,255,255,0.12); }
 
 /* 移动端 */
 @media (max-width: 600px) {
     .lock-clock-time { font-size: 96px; }
     .lock-clock-date { font-size: 16px; margin-bottom: 28px; }
+    .lock-card { width: 94vw; }
     .lock-window { width: 94vw; }
 }
 
@@ -1026,7 +1059,7 @@ body {
     align-items: center;
     gap: 4px;
     padding: 0 8px;
-    z-index: 999;
+    z-index: 10;  /* 与主程序坞一致：最低，不遮挡窗口 */
 }
 .taskbar-compact-user {
     display: flex;

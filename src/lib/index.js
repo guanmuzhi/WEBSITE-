@@ -4,11 +4,12 @@ import Path from './path.js';
 import Dom from './dom.js';
 import Obj from './obj.js';
 import FSEdit from './fsedit.js';
+import Icons from './icons.js';
 
-const Lib = { Path, Dom, Obj, FSEdit, version: '1.0.0' };
+const Lib = { Path, Dom, Obj, FSEdit, Icons, version: '1.1.0' };
 if (typeof window !== 'undefined') {
     window.WebOS = window.WebOS || {};
     window.WebOS.Lib = Lib;
 }
 export default Lib;
-export { Path, Dom, Obj, FSEdit };
+export { Path, Dom, Obj, FSEdit, Icons };

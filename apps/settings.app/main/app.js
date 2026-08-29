@@ -349,17 +349,10 @@ class SettingsApp {
             });
         }
         this.applyTaskbarColor(taskbarColor, taskbarOpacity);
-        // ── 语言设置内联在个性化 + 独立语言页同步 ──
+        // ── 语言设置：仅从独立语言页读取 ──
         const language = pers.language || localStorage.getItem('webos-language') || 'cmn';
-        const langInline = document.getElementById('lang-select-inline');
-        const langPage   = document.getElementById('lang-select');
-        if (langInline) {
-            langInline.value = language;
-            langInline.addEventListener('change', () => this._changeLanguage(langInline.value, langPage));
-        }
-        if (langPage) {
-            langPage.value = language;
-        }
+        const langPage = document.getElementById('lang-select');
+        if (langPage) { langPage.value = language; }
     }
     async savePersonalization(updates) {
         const path = this.getUserInfoPath('personalization.json');
@@ -530,11 +523,46 @@ class SettingsApp {
         document.querySelectorAll('.settings-nav-item').forEach(item => { const section = item.dataset.section; const key = navKeyMap[section] || section; if (strings[key]) item.textContent = strings[key]; });
         const sectionTitles = { 'section-system': 'system', 'section-user': 'user_info', 'section-personalization': 'personalization', 'section-language': 'language' };
         Object.entries(sectionTitles).forEach(([id, key]) => { const el = document.querySelector('#' + id + ' h2'); if (el && strings[key]) el.textContent = strings[key]; });
-        const sysLabels = { 'sys-name-label': 'settings.sys_name', 'sys-browser-label': 'settings.sys_browser', 'sys-os-label': 'settings.sys_os', 'sys-resolution-label': 'settings.sys_resolution', 'sys-online-label': 'settings.sys_online', 'sys-version-label': 'version' };
+        // 系统信息分组
+        document.querySelectorAll('#section-system h3').forEach((h, i) => { const keys = ['settings.sys_group_os', 'settings.sys_group_hw', 'settings.sys_group_env']; if (strings[keys[i]]) h.textContent = strings[keys[i]]; });
+        const sysLabels = {
+            'sys-name-label': 'settings.sys_name',
+            'sys-version-label': 'settings.sys_version',
+            'sys-os-label': 'settings.sys_host_os',
+            'sys-browser-label': 'settings.sys_engine',
+            'sys-useragent-label': 'settings.sys_useragent',
+            'sys-cpu-label': 'settings.sys_cpu',
+            'sys-memory-label': 'settings.sys_memory',
+            'sys-gpu-label': 'settings.sys_gpu',
+            'sys-gpu-vendor-label': 'settings.sys_gpu_vendor',
+            'sys-display-label': 'settings.sys_display',
+            'sys-dpr-label': 'settings.sys_dpr',
+            'sys-color-depth-label': 'settings.sys_color_depth',
+            'sys-orientation-label': 'settings.sys_orientation',
+            'sys-audio-label': 'settings.sys_audio',
+            'sys-network-label': 'settings.sys_network',
+            'sys-storage-label': 'settings.sys_storage',
+            'sys-online-label': 'settings.sys_online',
+            'sys-tz-label': 'settings.sys_tz',
+            'sys-language-label': 'settings.sys_language',
+            'sys-platform-label': 'settings.sys_platform',
+            'sys-touch-label': 'settings.sys_touch',
+            'sys-timezone-offset-label': 'settings.sys_tz_offset'
+        };
         Object.entries(sysLabels).forEach(([id, key]) => { const el = document.getElementById(id); if (el && strings[key]) el.textContent = strings[key]; });
         const userLabels = { 'user-name-label': 'settings.user_name', 'user-created-label': 'settings.user_created' };
         Object.entries(userLabels).forEach(([id, key]) => { const el = document.getElementById(id); if (el && strings[key]) el.textContent = strings[key]; });
-        const persLabels = { 'pers-wallpaper-title': 'settings.wallpaper', 'pers-accent-title': 'settings.accent_color', 'pers-appearance-title': 'settings.appearance', 'pers-fontsize-label': 'settings.font_size', 'pers-opacity-label': 'settings.window_opacity', 'pers-animations-label': 'settings.window_animations', 'pers-taskbar-autohide-label': 'settings.taskbar_autohide' };
+        const persLabels = {
+            'pers-wallpaper-title': 'settings.wallpaper',
+            'pers-accent-title': 'settings.accent_color',
+            'pers-appearance-title': 'settings.appearance',
+            'pers-fontsize-label': 'settings.font_size',
+            'pers-opacity-label': 'settings.window_opacity',
+            'pers-animations-label': 'settings.window_animations',
+            'pers-taskbar-autohide-label': 'settings.taskbar_autohide',
+            'pers-taskbar-color-label': 'settings.taskbar_color',
+            'pers-taskbar-opacity-label': 'settings.taskbar_opacity'
+        };
         Object.entries(persLabels).forEach(([id, key]) => { const el = document.getElementById(id); if (el && strings[key]) el.textContent = strings[key]; });
         const langLabels = { 'lang-select-label': 'settings.select_language' };
         Object.entries(langLabels).forEach(([id, key]) => { const el = document.getElementById(id); if (el && strings[key]) el.textContent = strings[key]; });
