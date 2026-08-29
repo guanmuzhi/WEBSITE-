@@ -1,6 +1,21 @@
+/* ── 字体家族 ──────────────────────────────────────────────────
+   终端类统一 SF Mono（按 macOS/Apple 官方 local 名顺序，回退 Menlo/Consolas）；
+   其余 UI（桌面、任务栏、设置、对话框、文件管理器）统一 Microsoft YaHei。
+   !important 防止子 iframe / 各 app 再覆盖回 Monaco。*/
 @font-face {
-    font-family: 'Monaco';
-    src: local('Monaco'), local('Menlo'), local('Consolas'), local('Liberation Mono');
+    font-family: 'SF Mono Stack';
+    src: local('SF Mono'), local('SF Mono Regular'), local('SF Mono Display'),
+         local('SF Mono Text'), local('Menlo'), local('Monaco'), local('Consolas'),
+         local('DejaVu Sans Mono'), local('Liberation Mono');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+:root {
+    --font-sans: 'Microsoft YaHei', '微软雅黑', 'PingFang SC', 'Source Han Sans SC',
+                 'Noto Sans CJK SC', 'Hiragino Sans GB', 'SimHei', 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'SF Mono Stack', 'SF Mono', 'Menlo', 'Monaco', 'Consolas',
+                 'DejaVu Sans Mono', 'Liberation Mono', ui-monospace, monospace;
 }
 * {
     margin: 0;
@@ -11,10 +26,21 @@ html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
+    font-family: var(--font-sans) !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 body {
-    font-family: 'Monaco', 'Menlo', 'Consolas', 'Liberation Mono', monospace;
     background-color: #000;
+    font-family: var(--font-sans) !important;
+    color: #e6e6e6;
+    font-size: 14px;
+}
+/* 让 .app 的 iframe 里继承无衬线（避免应用自身回退到 Monaco），终端窗口仍走下面的 terminal 规则 */
+.window-app-iframe,
+.window-content iframe:not(.terminal-iframe) {
+    font-family: var(--font-sans);
 }
 .terminal {
     width: 100%;
@@ -28,8 +54,10 @@ body {
     padding: 8px 12px;
     background-color: #333;
     color: #fff;
-    font-size: 14px;
-    font-weight: bold;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-sans) !important;  /* 标题栏用微软雅黑（非终端正文） */
+    letter-spacing: 0.2px;
     flex-shrink: 0;
 }
 .terminal-body {
@@ -50,6 +78,10 @@ body {
     scrollbar-gutter: stable;   /* 预留滚动条宽度 */
     scrollbar-color: #8fb38f #102010;  /* 提高对比度：thumb 更亮绿，track 深绿 */
     -webkit-overflow-scrolling: touch;
+    /* 终端正文：SF Mono（锁定等宽字体家族，优先级最高） */
+    font-family: var(--font-mono) !important;
+    font-feature-settings: "liga" 0, "calt" 0; /* 关闭连字，保持终端等宽视觉 */
+    font-variant-ligatures: none;
 }
 .terminal-body::-webkit-scrollbar { width: 12px; height: 12px; background: #102010; }
 .terminal-body::-webkit-scrollbar-track { background: #102010; box-shadow: inset 1px 0 0 0 #1e2e1e; }
@@ -65,10 +97,12 @@ body {
 .output {
     color: #00ff00;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.6;
+    letter-spacing: 0.1px;
     white-space: pre-wrap;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    font-family: inherit !important; /* 继承 .terminal-body 的 SF Mono */
 }
 .input-line {
     display: flex;
@@ -77,12 +111,14 @@ body {
     background-color: #1e1e1e;
     border-top: 1px solid #333;
     flex-shrink: 0;
+    font-family: var(--font-mono) !important; /* 整行 input 区 SF Mono */
 }
 .prompt {
     color: #00ffff;
-    font-weight: bold;
+    font-weight: 700;
     margin-right: 8px;
     font-size: 14px;
+    font-family: inherit !important;
 }
 .command-input {
     flex: 1;
@@ -90,8 +126,9 @@ body {
     border: none;
     outline: none;
     color: #00ff00;
-    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-family: inherit !important;   /* 跟随 .input-line 的 SF Mono */
     font-size: 14px;
+    line-height: 1.6;
 }
 .command-input::placeholder {
     color: #666;
@@ -102,12 +139,12 @@ body {
     padding: 0;
     background-color: #000;
     color: #d0d0d0;
-    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-family: var(--font-mono) !important;
     font-size: 14px;
+    line-height: 1.6;
     border: none;
     outline: none;
     resize: none;
-    line-height: 1.5;
     white-space: pre;
     overflow-wrap: normal;
     overflow-x: auto;
@@ -155,7 +192,7 @@ body {
     border: none;
     outline: none;
     color: #d0d0d0;
-    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-family: var(--font-mono) !important;
     font-size: 14px;
 }
 .error {

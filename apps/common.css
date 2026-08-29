@@ -1,3 +1,14 @@
+/* 字体：各应用 iframe 独立文档，全局统一走微软雅黑（其他字体全部回退）。
+   终端正文在 style.css 中单独加锁；应用内部若有 code 区可单独声明等宽。*/
+@font-face {
+    font-family: 'WebOS Sans';
+    src: local('Microsoft YaHei'), local('微软雅黑'), local('PingFang SC'),
+         local('Source Han Sans SC'), local('Noto Sans CJK SC'), local('Hiragino Sans GB'),
+         local('SimHei'), local('Segoe UI'), local('system-ui'), local('sans-serif');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
 :root {
     --primary-color: var(--accent-color, #3498db);
     --primary-hover: var(--accent-hover, #2980b9);
@@ -17,6 +28,9 @@
     --border-radius: 6px;
     --btn-size: 36px;
     --icon-size: 18px;
+    --font-sans: 'WebOS Sans', 'Microsoft YaHei', '微软雅黑', 'PingFang SC',
+                 'Source Han Sans SC', 'Noto Sans CJK SC', 'Hiragino Sans GB',
+                 'SimHei', 'Segoe UI', system-ui, sans-serif;
 }
 
 * {
@@ -25,13 +39,16 @@
     box-sizing: border-box;
 }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+html, body {
+    font-family: var(--font-sans) !important;
     background: var(--bg-dark);
     color: var(--text-primary);
     height: 100vh;
     width: 100vw;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 .app-container {

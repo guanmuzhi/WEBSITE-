@@ -1,63 +1,88 @@
-import UserManager from './user-manager.js?v=18';
-import FileSystem from './file-system.js?v=18';
-import ViEditor from './vi-editor.js?v=18';
-import AppManager from './app-manager.js?v=18';
-import { Path, FSEdit } from './lib/index.js?v=18';
+import UserManager from './user-manager.js?v=21';
+import FileSystem from './file-system.js?v=21';
+import ViEditor from './vi-editor.js?v=21';
+import AppManager from './app-manager.js?v=21';
+import { Path, FSEdit } from './lib/index.js?v=21';
 const HISTORY_FILE_NAME = 'history.json';
 const EDIT_UNDO_FILE_NAME = 'editUndoStack.json';
 const EDIT_UNDO_MAX = 50;
 // 命令按字母顺序排列（此数组也用于 Tab 补全）
 const COMMANDS = [
     'account', 'animations', 'apps', 'autohide',
-    'cat', 'cd', 'clear', 'copy',
-    'date', 'delete',
+    'cat', 'cd', 'clear', 'copy', 'cp',
+    'date', 'delete', 'diff', 'du',
     'echo', 'edit', 'export',
-    'font',
-    'help', 'history',
+    'find', 'font',
+    'grep',
+    'head', 'help', 'history',
     'import',
     'language', 'ls',
-    'move', 'new',
+    'mkdir', 'move', 'mv',
+    'new',
     'open', 'opacity',
     'pwd',
-    'rename', 'run',
-    'settings',
-    'theme', 'tree',
-    'wallpaper', 'whoami',
+    'rename', 'rm', 'run',
+    'settings', 'sort',
+    'tail', 'theme', 'touch', 'tree',
+    'wc', 'wallpaper', 'whoami',
 ];
-// 命令帮助元数据（按字母顺序），help 输出直接从此表生成并做两列对齐
-const HELP_ROWS = [
-    ['account <new|switch|delete> [用户名] [密码]', '创建 / 切换 / 删除用户'],
-    ['animations <on|off>',                      '开启或关闭窗口动画'],
-    ['apps [list|run <应用名>]',                 '列出 / 启动已安装应用'],
-    ['autohide <on|off>',                        '开启或关闭任务栏自动隐藏'],
-    ['cat [-n] <文件|路径> [...]',               '直接在终端输出文件内容（不进入 vi）'],
-    ['cd <目录|..> [..]',                        '进入指定目录；cd .. 返回上级；cd 回到家目录'],
-    ['clear',                                    '清空终端屏幕'],
-    ['copy <源文件> [目标路径]',                 '复制文件到目标路径（缺省则复制到当前目录同名副本）'],
-    ['date',                                     '显示当前日期与时间'],
-    ['delete <文件或目录>',                      '删除文件或文件夹（需要确认）'],
-    ['echo [-n] [-e] <文本...>',                 '输出文本到终端（-n 不换行，-e 解析 \\n \\t \\ 转义）'],
-    ['edit [-y|--confirm] [-c N] <路径> <操作>', '非交互式修改文件；edit undo [令牌] 撤销'],
-    ['export <文件|目录>',                       '把文件或目录下载到本地（目录打包为 zip）'],
-    ['font <大小>',                              '设置系统字体大小（单位 px）'],
-    ['help [-a] [-c <命令>]',                    '显示本帮助；-c 查看某条命令的详细用法'],
-    ['history [-c|--clear] [N]',                 '查看 / 清空命令历史（存于 ~/info/history.json）'],
-    ['import [URL]',                             '从本地文件或 URL 导入内容到当前目录'],
-    ['language <cmn|eng|jpn>',                   '切换界面语言'],
-    ['ls [-a] [-l] [路径]',                      '列出目录内容（-a 显示隐藏/系统目录，-l 含行号/大小）'],
-    ['move <源> <目标路径>',                     '移动文件或目录到指定位置'],
-    ['new <folder|file> <名称>',                 '在当前目录创建新文件夹或新文件'],
-    ['open <文件>',                              '在 vi 编辑器中打开文件（可编辑并保存）'],
-    ['opacity <70-100>',                         '设置窗口透明度百分比'],
-    ['pwd',                                      '打印当前工作目录的绝对路径'],
-    ['rename <旧名称> <新名称>',                 '重命名当前目录下的文件或文件夹'],
-    ['run <xxx.app>',                            '运行 .app 应用（等同于从桌面打开）'],
-    ['settings',                                 '打开设置应用'],
-    ['theme <颜色>',                             '设置系统主题色（#rrggbb）'],
-    ['tree [-a] [路径]',                         '以树形递归显示目录结构'],
-    ['wallpaper <solid|gradient> [颜色...]',     '设置桌面壁纸（纯色 / 渐变）'],
-    ['whoami',                                   '显示当前登录用户名'],
+// 命令帮助元数据（按功能分组后按字母顺序），help tree 输出直接从此表生成
+// 分组顺序：[分组中文名, 分组英文名, [命令, 简述]...]
+const HELP_GROUPS = [
+    ['文件与目录', 'Filesystem', [
+        ['cd <目录|..> [..]',                 '进入指定目录；cd .. 返回上级；cd 回家目录'],
+        ['cp / copy <源文件> [目标路径]',    '复制文件或目录到目标路径'],
+        ['du [-h] [-s] [路径]',               '统计目录/文件占用空间大小；-h 人类可读；-s 仅汇总'],
+        ['find [路径] [-name 名称] [-type f|d] [-maxdepth N]', '按名称/类型递归搜索文件或目录'],
+        ['ls [-b] [-S] [-t] [路径]',          '列出目录（默认长格式+显示隐藏）；-b 仅名称；-S 按大小；-t 按新旧'],
+        ['mkdir <名称...>',                   '在当前目录下创建新文件夹（可一次多个）'],
+        ['move / mv <源> <目标路径>',         '移动文件或目录到指定位置'],
+        ['new <folder|file> <名称>',          '在当前目录创建新文件夹或新文件'],
+        ['pwd',                               '打印当前工作目录的绝对路径'],
+        ['rename <旧名称> <新名称>',          '重命名当前目录下的文件或文件夹'],
+        ['rm / delete <名称...>',             '删除文件或目录；-r 递归，-f 强制无需确认'],
+        ['touch <名称...>',                   '创建空文件（已存在则保留原样）'],
+        ['tree [-d] [路径]',                  '以树形递归显示目录结构（默认含隐藏项）；-d 仅目录'],
+    ]],
+    ['文本查看与处理', 'Text', [
+        ['cat [-n] [-E] [-s] <文件> [...]',   '直接输出文件全文（-n 行号，-E 行尾$，-s 合并空行）'],
+        ['diff <文件1> <文件2> [-u]',         '对比两个文本文件，输出差异；-u 统一上下文'],
+        ['echo [-n] [-e] <文本...>',          '输出文本到终端（-n 不换行，-e 解析转义）'],
+        ['grep [-i] [-n] [-v] [-c] [-l] <模式> <文件>', '在文件中搜索匹配行（-c 计数；-l 仅列文件名）'],
+        ['head [-n N] <文件>',                '输出文件前 N 行（默认 10 行）'],
+        ['sort [-r] [-n] [-u] <文件>',        '按行排序；-r 反序；-n 数值；-u 去重'],
+        ['tail [-n N] <文件>',                '输出文件后 N 行（默认 10 行）'],
+        ['wc [-l] [-w] [-c] <文件>',          '统计行数 / 单词数 / 字节数'],
+    ]],
+    ['文件编辑', 'Edit', [
+        ['edit [-y|--confirm] [-c N] <路径> <操作>', '非交互式修改文件；edit undo [令牌] 撤销'],
+        ['open <文件>',                       '在 vi 编辑器中打开文件（可编辑并保存）'],
+    ]],
+    ['系统与用户', 'System', [
+        ['account <new|switch|delete> [用户名] [密码]', '创建 / 切换 / 删除用户'],
+        ['animations <on|off>',               '开启或关闭窗口动画'],
+        ['autohide <on|off>',                 '开启或关闭任务栏自动隐藏'],
+        ['date [locale]',                     '显示当前日期与时间'],
+        ['export <文件|目录>',                '把文件或目录下载到本地（目录打包为 zip）'],
+        ['font <大小>',                       '设置系统字体大小（单位 px）'],
+        ['help [-c <命令>]',                  '显示本帮助（树状分组，总是完整输出）；-c 查看某命令详细用法'],
+        ['history [-c|--clear] [N]',          '查看 / 清空命令历史（存于 ~/info/history.json）'],
+        ['import [URL]',                      '从本地文件或 URL 导入内容到当前目录'],
+        ['language <cmn|eng|jpn>',            '切换界面语言'],
+        ['opacity <70-100>',                  '设置窗口透明度百分比'],
+        ['theme <颜色>',                      '设置系统主题色（#rrggbb）'],
+        ['wallpaper <solid|gradient> [颜色...]', '设置桌面壁纸（纯色 / 渐变）'],
+        ['whoami',                            '显示当前登录用户名'],
+    ]],
+    ['应用与桌面', 'Apps', [
+        ['apps [list|run <应用名>]',          '列出 / 启动已安装应用'],
+        ['clear',                             '清空终端屏幕'],
+        ['run <xxx.app>',                     '运行 .app 应用（等同于从桌面打开）'],
+        ['settings',                          '打开设置应用（图形界面）'],
+    ]],
 ];
+// flatten HELP_ROWS for legacy access (pad width calc, -c search)
+const HELP_ROWS = HELP_GROUPS.reduce((acc, [, , rows]) => { rows.forEach(r => acc.push(r)); return acc; }, []);
 class Terminal {
     constructor(options = {}) {
         this.fs = new FileSystem();
@@ -356,22 +381,28 @@ class Terminal {
             case 'cat':          this.handleCat(args);          break;
             case 'cd':           this.handleCd(args);           break;
             case 'clear':        this.handleClear();            break;
-            case 'copy':         this.handleCopy(args);         break;
+            case 'copy': case 'cp':  this.handleCopy(args);     break;
             case 'date':
                 if (args.length === 0) this.print(new Date().toLocaleString('zh-CN'));
                 else this.print(new Date().toLocaleString(args[0]));
                 break;
-            case 'delete':       this.handleDelete(args);       break;
+            case 'delete': case 'rm':  this.handleDelete(args); break;
+            case 'diff':         this.handleDiff(args);         break;
+            case 'du':           this.handleDu(args);           break;
             case 'echo':         this.handleEcho(args);         break;
             case 'edit':         this.handleEdit(args);         break;
             case 'export':       this.handleExport(args);       break;
+            case 'find':         this.handleFind(args);         break;
             case 'font':         this.handleFont(args);         break;
+            case 'grep':         this.handleGrep(args);         break;
+            case 'head':         this.handleHead(args);         break;
             case 'help':         this.handleHelp(args);         break;
             case 'history':      this.handleHistory(args);      break;
             case 'import':       this.handleImport(args);       break;
             case 'language':     this.handleLanguage(args);     break;
             case 'ls':           this.handleLs(args);           break;
-            case 'move':         this.handleMove(args);         break;
+            case 'mkdir':        this.handleMkdir(args);        break;
+            case 'move': case 'mv':  this.handleMove(args);     break;
             case 'new':          this.handleNew(args);          break;
             case 'open':         this.handleOpen(args);         break;
             case 'opacity':      this.handleOpacity(args);      break;
@@ -379,8 +410,12 @@ class Terminal {
             case 'rename':       this.handleRename(args);       break;
             case 'run':          this.handleRun(args);          break;
             case 'settings':     this.handleSettings();         break;
+            case 'sort':         this.handleSort(args);         break;
+            case 'tail':         this.handleTail(args);         break;
             case 'theme':        this.handleTheme(args);        break;
+            case 'touch':        this.handleTouch(args);        break;
             case 'tree':         this.handleTree(args);         break;
+            case 'wc':           this.handleWc(args);           break;
             case 'wallpaper':    this.handleWallpaper(args);    break;
             case 'whoami':       this.print(this.currentUser.username); break;
             default:
@@ -395,9 +430,11 @@ class Terminal {
         switch (name) {
             case 'ls':
                 lines([
-                    `  ${pad('ls [-a] [-l] [路径]', 34)}  列出目录内容`,
-                    `  ${pad('-a / --all', 34)}  显示隐藏目录 (info/appinfo) 与系统目录 (/languages /application)`,
-                    `  ${pad('-l / --long', 34)}  显示为「长列表」：类型 + 名称 + 大小(字节)`,
+                    `  ${pad('ls [-b] [-S] [-t] [路径]', 34)}  列出目录内容（默认 = 长列表 + 总是显示隐藏项）`,
+                    `  ${pad('（默认）', 34)}  输出完整信息：[DIR]/[FILE] 标签 + 大小(字节) + 隐藏项`,
+                    `  ${pad('-b / --brief', 34)}  只显示名称（紧凑模式）`,
+                    `  ${pad('-S', 34)}  按文件大小降序排列（大→小）`,
+                    `  ${pad('-t', 34)}  按新旧顺序排列（依赖 VFS 顺序，目录默认同 sort 名称序）`,
                     `  ${pad('路径', 34)}  支持相对/绝对；缺省为当前目录`,
                 ]);
                 break;
@@ -434,8 +471,8 @@ class Terminal {
                 lines([`  ${pad('clear', 34)}  清空终端屏幕，重新打印欢迎信息`]); break;
             case 'tree':
                 lines([
-                    `  ${pad('tree [-a] [路径]', 34)}  递归显示目录结构（树状）`,
-                    `  ${pad('-a', 34)}  同时显示隐藏目录 (info/appinfo)`,
+                    `  ${pad('tree [-d] [路径]', 34)}  递归显示目录结构（树状），默认总是包含隐藏项`,
+                    `  ${pad('-d', 34)}  只显示目录（不显示文件）`,
                 ]);
                 break;
             case 'move': case 'mv':
@@ -519,10 +556,81 @@ class Terminal {
                     '  典型用途：快速构造文本后配合 edit / copy / export 落地成文件，或测试转义输出。',
                 ]);
                 break;
+            case 'mkdir':
+                lines([
+                    `  ${pad('mkdir <名称...>', 34)}  在当前目录下创建一个或多个新文件夹`,
+                    `  ${pad('', 34)}  系统目录为只读；与 new folder 同义但可一次创建多个`,
+                ]);
+                break;
+            case 'touch':
+                lines([
+                    `  ${pad('touch <名称...>', 34)}  在当前目录创建空文件（已存在则保持原样）`,
+                    `  ${pad('', 34)}  可一次指定多个文件名`,
+                ]);
+                break;
+            case 'wc':
+                lines([
+                    `  ${pad('wc [-l] [-w] [-c] <文件>', 34)}  统计文件行数(-l) / 单词数(-w) / 字节数(-c)`,
+                    `  ${pad('（无标志）', 34)}  默认同时输出三项`,
+                ]);
+                break;
+            case 'head':
+                lines([
+                    `  ${pad('head [-n N] <文件>', 34)}  输出文件前 N 行（缺省 N=10）`,
+                    `  ${pad('-n N / -N', 34)}  指定行数，例如 head -20 a.log`,
+                ]);
+                break;
+            case 'tail':
+                lines([
+                    `  ${pad('tail [-n N] <文件>', 34)}  输出文件后 N 行（缺省 N=10）`,
+                    `  ${pad('-n N / -N', 34)}  指定行数，例如 tail -50 a.log`,
+                ]);
+                break;
+            case 'grep':
+                lines([
+                    `  ${pad('grep [-i] [-n] [-v] [-c] [-l] <模式> <文件>', 34)}  搜索匹配模式的行（支持基本正则）`,
+                    `  ${pad('  -i', 34)}  忽略大小写`,
+                    `  ${pad('  -n', 34)}  输出时带行号`,
+                    `  ${pad('  -v', 34)}  反向匹配（输出不匹配的行）`,
+                    `  ${pad('  -c', 34)}  只输出匹配行的计数（不输出具体内容）`,
+                    `  ${pad('  -l', 34)}  只输出包含匹配项的文件名（不输出具体行）`,
+                ]);
+                break;
+            case 'find':
+                lines([
+                    `  ${pad('find [路径] [-name 名称] [-type f|d] [-maxdepth N]', 34)}  递归搜索文件 / 目录`,
+                    `  ${pad('  -name <名称>', 34)}  按名称（支持 * ? 通配符）过滤`,
+                    `  ${pad('  -type f / d', 34)}  只列出文件 / 只列出目录`,
+                    `  ${pad('  -maxdepth N', 34)}  限制递归深度（1 = 仅当前层）`,
+                ]);
+                break;
+            case 'diff':
+                lines([
+                    `  ${pad('diff <文件1> <文件2> [-u]', 34)}  逐行对比两个文本文件`,
+                    `  ${pad('  -u', 34)}  以「统一上下文」形式输出（含 2 行上下文）`,
+                ]);
+                break;
+            case 'du':
+                lines([
+                    `  ${pad('du [-h] [-s] [路径]', 34)}  统计路径的磁盘占用（递归累加）`,
+                    `  ${pad('  -h', 34)}  以人类可读的 KB/MB/GB 形式显示`,
+                    `  ${pad('  -s', 34)}  只输出总计（不列出每个子项）`,
+                ]);
+                break;
+            case 'sort':
+                lines([
+                    `  ${pad('sort [-r] [-n] [-u] <文件>', 34)}  按行排序文本文件`,
+                    `  ${pad('  -r', 34)}  反序（Z -> A / 大 -> 小）`,
+                    `  ${pad('  -n', 34)}  按数值大小排序（而不是字典序）`,
+                    `  ${pad('  -u', 34)}  去重（排序后相同的行只保留一行）`,
+                ]);
+                break;
             case 'cat':
                 lines([
-                    `  ${pad('cat [-n] <文件|路径> [...]', 34)}  直接在终端打印一个或多个文件的全文（不进入 vi）`,
+                    `  ${pad('cat [-n] [-E] [-s] <文件|路径> [...]', 34)}  直接在终端打印一个或多个文件的全文（不进入 vi）`,
                     `  ${pad('  -n', 34)}  每行前面打印行号（1 起）`,
+                    `  ${pad('  -E', 34)}  每行末尾追加 $ 标记（便于识别尾随空格）`,
+                    `  ${pad('  -s', 34)}  把连续的多行空行合并为一行`,
                     `  ${pad('', 34)}  遇到文件夹 / 二进制 data: URL 会打印对应提示或跳过`,
                 ]);
                 break;
@@ -535,9 +643,9 @@ class Terminal {
                 break;
             case 'help':
                 lines([
-                    `  ${pad('help', 34)}  按字母顺序打印所有命令及中文说明（两列对齐）`,
-                    `  ${pad('help -a', 34)}  打印完整帮助（命令表 + 目录说明 + vi 快捷键）`,
+                    `  ${pad('help', 34)}  按分组以树形结构打印所有命令（总是完整输出目录说明+vi快捷键）`,
                     `  ${pad('help -c <命令>', 34)}  查看某条命令的详细用法（等同 <命令> -h）`,
+                    '  * 无需 -a 即可看到全部内容：分组命令列表 + 目录说明 + vi 快捷键速查。',
                 ]);
                 break;
             default:
@@ -546,13 +654,22 @@ class Terminal {
     }
     handleLs(args) {
         let pathArg = null;
-        const flags = [];
+        const shortFlags = [];
+        let longBrief = false;
         for (const a of args) {
-            if (a.startsWith('-') && a.length > 1) flags.push(...a.slice(1).split(''));
+            if (a === '--brief') { longBrief = true; continue; }
+            if (a.startsWith('--')) { continue; }
+            if (a.startsWith('-') && a.length > 1) shortFlags.push(...a.slice(1).split(''));
             else pathArg = a;
         }
-        const showHidden = flags.includes('a');
-        const longFmt  = flags.includes('l');
+        // 新默认：总是完整信息（= 显示隐藏 + 长列表）。
+        // -b / --brief 切回紧凑（仅名称 + 标签；仍显示隐藏）
+        // -S 按大小降序；-t 按创建顺序反转（新→旧）
+        const brief = longBrief || shortFlags.includes('b');
+        const sortBySize = shortFlags.includes('S');
+        const sortReverse = shortFlags.includes('t');
+        const showHidden = true;
+        const longFmt = !brief;
         const oldDir = this.fs.currentDir;
         if (pathArg) {
             const abs = Path.resolveUnder(pathArg, this.fs.getCurrentPath());
@@ -561,15 +678,23 @@ class Terminal {
             const node = this.fs.resolvePath(abs);
             if (!node) { this.print(`ls: 找不到路径 "${pathArg}"`, 'error'); return; }
             if (node.type === 'file') {
-                // ls 单个文件
                 const size = this._approxSize(node.content);
                 this.print(longFmt ? `[FILE]  ${String(size).padStart(8)}  ${node.name}` : `[FILE] ${node.name}`, 'file');
                 return;
             }
             this.fs.currentDir = node;
         }
-        const items = this.fs.ls(showHidden);
+        let items = this.fs.ls(showHidden);
         if (items.length === 0) { this.print('当前目录为空'); if (pathArg) this.fs.currentDir = oldDir; return; }
+        if (sortBySize) {
+            items.sort((a, b) => {
+                const sa = a.type === 'file' ? this._approxSize(a.content) : 0;
+                const sb = b.type === 'file' ? this._approxSize(b.content) : 0;
+                return sb - sa;
+            });
+        } else if (sortReverse) {
+            items.reverse();
+        }
         items.forEach(item => {
             const tag = item.type === 'folder'
                 ? (this.fs.isHiddenDir(item.name) ? '[SYS] ' : '[DIR] ')
@@ -590,7 +715,6 @@ class Terminal {
         if (content == null) return 0;
         if (typeof content !== 'string') return String(content).length;
         if (content.startsWith('data:')) {
-            // data:[<mediatype>][;base64],<data> — base64 段按 3/4 估算二进制字节
             const i = content.indexOf(',');
             if (i === -1) return content.length;
             const body = content.slice(i + 1);
@@ -601,6 +725,26 @@ class Terminal {
             return body.length;
         }
         return content.length;
+    }
+    _formatSizeHuman(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        const k = bytes / 1024;
+        if (k < 1024) return k.toFixed(k < 10 ? 2 : 1) + ' KB';
+        const m = k / 1024;
+        if (m < 1024) return m.toFixed(m < 10 ? 2 : 1) + ' MB';
+        return (m / 1024).toFixed(2) + ' GB';
+    }
+    _readTextFile(pathArg) {
+        const abs = Path.resolveUnder(pathArg, this.fs.getCurrentPath());
+        const perm = this.checkPathPermission(abs);
+        if (!perm.allowed) return { error: perm.message };
+        const file = this.fs.getFileByPath(pathArg);
+        if (!file) return { error: `找不到文件 "${pathArg}"` };
+        if (file.type !== 'file') return { error: `"${pathArg}" 是文件夹` };
+        const content = file.content;
+        if (typeof content !== 'string') return { error: `"${pathArg}" 内容无法读取` };
+        if (content.startsWith('data:')) return { error: `"${pathArg}" 为二进制/嵌入资源，跳过该文本操作` };
+        return { ok: true, content, file, absPath: abs };
     }
     handlePwd() {
         this.print(this.fs.getCurrentPath());
@@ -674,20 +818,276 @@ class Terminal {
         }
     }
     handleDelete(args) {
-        if (!args[0]) {
-            this.print('用法: delete <文件或文件夹名>', 'error');
+        if (args.length === 0) {
+            this.print('用法: rm/delete [-f] [-r] <名称...>', 'error');
             return;
         }
         if (this.fs.isSystemPath(this.fs.getCurrentPath())) {
             this.print('系统目录为只读，无法删除', 'error');
             return;
         }
-        const name = args.join(' ');
-        if (!confirm(`确定要删除 "${name}" 吗？`)) {
+        const shortFlags = [];
+        const names = [];
+        for (const a of args) {
+            if (a.startsWith('-') && !shortFlags.includes('-')) {
+                if (a === '--force' || a === '-rf' || a === '-fr') { shortFlags.push('f'); shortFlags.push('r'); continue; }
+                if (a === '--recursive') { shortFlags.push('r'); continue; }
+                if (a.startsWith('-') && a.length > 1) { shortFlags.push(...a.slice(1).split('')); continue; }
+            }
+            names.push(a);
+        }
+        const force = shortFlags.includes('f');
+        const recursive = shortFlags.includes('r');
+        if (names.length === 0) { this.print('rm/delete: 请提供要删除的文件或目录名', 'error'); return; }
+        for (const name of names) {
+            const node = (this.fs.currentDir.children || []).find(c => c.name === name);
+            if (!node) { this.print(`rm: 找不到 "${name}"`, 'error'); continue; }
+            if (node.type === 'folder' && !recursive) {
+                this.print(`rm: 无法删除目录 "${name}"（目录非空或未指定 -r）`, 'error');
+                continue;
+            }
+            if (!force) {
+                const ok = confirm(`确定要删除 "${name}" 吗？`);
+                if (!ok) { this.print(`rm: 已跳过 "${name}"`); continue; }
+            }
+            const result = this.fs.deleteNode(name);
+            this.print(result.message, result.success ? 'success' : 'error');
+        }
+    }
+    handleMkdir(args) {
+        if (args.length === 0) { this.print('用法: mkdir <文件夹名...>', 'error'); return; }
+        if (this.fs.isSystemPath(this.fs.getCurrentPath())) { this.print('系统目录为只读，无法创建文件夹', 'error'); return; }
+        for (const name of args) {
+            const r = this.fs.createFolder(name);
+            this.print(r.message, r.success ? 'success' : 'error');
+        }
+    }
+    handleTouch(args) {
+        if (args.length === 0) { this.print('用法: touch <文件名...>', 'error'); return; }
+        if (this.fs.isSystemPath(this.fs.getCurrentPath())) { this.print('系统目录为只读，无法创建文件', 'error'); return; }
+        for (const name of args) {
+            const exists = (this.fs.currentDir.children || []).find(c => c.name === name);
+            if (exists) { this.print(`touch: "${name}" 已存在，保持不变`, 'success'); continue; }
+            const r = this.fs.createFile(name);
+            this.print(r.message, r.success ? 'success' : 'error');
+        }
+    }
+    handleWc(args) {
+        const opts = { l: false, w: false, c: false };
+        let target = null;
+        for (let i = 0; i < args.length; i++) {
+            const a = args[i];
+            if (a.startsWith('-') && a.length > 1 && !/^-\d+$/.test(a)) {
+                for (const ch of a.slice(1)) opts[ch] = true;
+                continue;
+            }
+            target = a;
+        }
+        if (!target) { this.print('用法: wc [-lwc] <文件>', 'error'); return; }
+        const f = this._readTextFile(target);
+        if (!f.ok) { this.print('wc: ' + f.error, 'error'); return; }
+        const any = opts.l || opts.w || opts.c;
+        opts.l = any ? opts.l : true; opts.w = any ? opts.w : true; opts.c = any ? opts.c : true;
+        const text = f.content;
+        const lines = text.length === 0 ? 0 : (text.match(/\n/g) || []).length + (text.endsWith('\n') ? 0 : 1);
+        const words = text.trim().length === 0 ? 0 : text.trim().split(/\s+/).length;
+        const bytes = text.length;
+        const pad = (n) => String(n).padStart(8);
+        const out = [opts.l && pad(lines), opts.w && pad(words), opts.c && pad(bytes)].filter(Boolean).join(' ') + `  ${target}`;
+        this.print(out);
+    }
+    _parseNFlag(args, defaultN) {
+        let n = defaultN;
+        const rest = [];
+        for (let i = 0; i < args.length; i++) {
+            const a = args[i];
+            if (a === '-n') { const v = parseInt(args[i + 1], 10); if (!isNaN(v)) { n = v; i++; continue; } }
+            if (/^-\d+$/.test(a)) { n = parseInt(a.slice(1), 10); continue; }
+            if (/^--lines=\d+$/.test(a)) { n = parseInt(a.split('=')[1], 10); continue; }
+            rest.push(a);
+        }
+        return { n, rest };
+    }
+    handleHead(args) {
+        const { n, rest } = this._parseNFlag(args, 10);
+        if (rest.length === 0) { this.print('用法: head [-n N] <文件>', 'error'); return; }
+        const f = this._readTextFile(rest[0]);
+        if (!f.ok) { this.print('head: ' + f.error, 'error'); return; }
+        const lines = f.content.length === 0 ? [''] : f.content.split(/\r?\n/);
+        const take = lines.slice(0, n);
+        take.forEach(l => this.printRaw(l));
+    }
+    handleTail(args) {
+        const { n, rest } = this._parseNFlag(args, 10);
+        if (rest.length === 0) { this.print('用法: tail [-n N] <文件>', 'error'); return; }
+        const f = this._readTextFile(rest[0]);
+        if (!f.ok) { this.print('tail: ' + f.error, 'error'); return; }
+        const lines = f.content.length === 0 ? [''] : f.content.split(/\r?\n/);
+        const take = lines.slice(-n);
+        take.forEach(l => this.printRaw(l));
+    }
+    handleGrep(args) {
+        if (args.length < 2) { this.print('用法: grep [-i] [-n] [-v] [-c] [-l] <模式> <文件>', 'error'); return; }
+        const flags = { i: false, n: false, v: false, c: false, l: false };
+        let idx = 0;
+        while (idx < args.length && args[idx].startsWith('-') && args[idx].length > 1) {
+            for (const ch of args[idx].slice(1)) if (ch in flags) flags[ch] = true;
+            idx++;
+        }
+        const pattern = args[idx]; const file = args[idx + 1];
+        if (!pattern || !file) { this.print('grep: 需要模式与文件', 'error'); return; }
+        const f = this._readTextFile(file);
+        if (!f.ok) { this.print('grep: ' + f.error, 'error'); return; }
+        let re;
+        try { re = new RegExp(pattern, flags.i ? 'i' : ''); }
+        catch (e) { this.print('grep: 正则表达式错误: ' + e.message, 'error'); return; }
+        const lines = f.content.length === 0 ? [] : f.content.split(/\r?\n/);
+        let matchedLines = [];
+        lines.forEach((ln, i) => {
+            const matched = re.test(ln);
+            const show = flags.v ? !matched : matched;
+            if (show) matchedLines.push({ idx: i + 1, text: ln, matched });
+        });
+        if (flags.c) {
+            this.print(`${matchedLines.length}  ${file}`);
             return;
         }
-        const result = this.fs.deleteNode(name);
-        this.print(result.message, result.success ? 'success' : 'error');
+        if (flags.l) {
+            if (matchedLines.length > 0) this.print(file);
+            else this.print(`grep: ${file} 中无匹配`, 'folder');
+            return;
+        }
+        if (matchedLines.length === 0) { this.print(`grep: 未匹配到任何行（模式: ${pattern}）`, 'folder'); return; }
+        const width = String(lines.length).length;
+        matchedLines.forEach(({ idx: ln, text, matched }) => {
+            const prefix = flags.n ? `${String(ln).padStart(width)}:` : '';
+            this.print(prefix + text, matched ? 'success' : '');
+        });
+    }
+    handleFind(args) {
+        let path = null; let namePat = null; let typeOnly = null; let maxDepth = Infinity;
+        for (let i = 0; i < args.length; i++) {
+            const a = args[i];
+            if (a === '-name' && args[i + 1]) { namePat = args[i + 1]; i++; continue; }
+            if (a === '-type' && args[i + 1]) { typeOnly = args[i + 1]; i++; continue; }
+            if (a === '-maxdepth' && args[i + 1]) { const v = parseInt(args[i + 1], 10); if (!isNaN(v) && v >= 0) maxDepth = v; i++; continue; }
+            if (!path) path = a;
+        }
+        const startAbs = path ? Path.resolveUnder(path, this.fs.getCurrentPath()) : this.fs.getCurrentPath();
+        const perm = this.checkPathPermission(startAbs);
+        if (!perm.allowed) { this.print('find: ' + perm.message, 'error'); return; }
+        const startNode = this.fs.resolvePath(startAbs);
+        if (!startNode) { this.print(`find: 找不到 "${path || startAbs}"`, 'error'); return; }
+        const re = namePat ? new RegExp('^' + namePat.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i') : null;
+        const results = [];
+        const walk = (node, curPath, depth) => {
+            if (depth > maxDepth) return;
+            const children = node.children || [];
+            for (const c of children) {
+                const p = curPath === '/' ? '/' + c.name : curPath + '/' + c.name;
+                const perm2 = this.checkPathPermission(p);
+                if (!perm2.allowed) continue;
+                const typeOk = !typeOnly || (typeOnly === 'f' && c.type === 'file') || (typeOnly === 'd' && c.type === 'folder');
+                const nameOk = !re || re.test(c.name);
+                if (typeOk && nameOk) results.push(p);
+                if (c.type === 'folder') walk(c, p, depth + 1);
+            }
+        };
+        walk(startNode, startAbs, 1);
+        if (results.length === 0) this.print('find: 未找到匹配项');
+        else results.forEach(p => this.print(p));
+    }
+    handleDiff(args) {
+        let unified = false; const files = [];
+        for (const a of args) { if (a === '-u') unified = true; else files.push(a); }
+        if (files.length !== 2) { this.print('用法: diff <文件1> <文件2> [-u]', 'error'); return; }
+        const f1 = this._readTextFile(files[0]); if (!f1.ok) { this.print('diff: ' + f1.error, 'error'); return; }
+        const f2 = this._readTextFile(files[1]); if (!f2.ok) { this.print('diff: ' + f2.error, 'error'); return; }
+        const a = f1.content.length === 0 ? [] : f1.content.split(/\r?\n/);
+        const b = f2.content.length === 0 ? [] : f2.content.split(/\r?\n/);
+        const lcs = (x, y) => {
+            const n = x.length, m = y.length;
+            const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+            for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) dp[i][j] = x[i] === y[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+            const out = []; let i = 0, j = 0;
+            while (i < n && j < m) { if (x[i] === y[j]) { out.push({ type: '=', i: i + 1, j: j + 1, v: x[i] }); i++; j++; } else if (dp[i + 1][j] >= dp[i][j + 1]) { out.push({ type: '-', i: i + 1, v: x[i] }); i++; } else { out.push({ type: '+', j: j + 1, v: y[j] }); j++; } }
+            while (i < n) { out.push({ type: '-', i: i + 1, v: x[i] }); i++; }
+            while (j < m) { out.push({ type: '+', j: j + 1, v: y[j] }); j++; }
+            return out;
+        };
+        const ops = lcs(a, b);
+        this.print(`--- ${files[0]}`, 'file'); this.print(`+++ ${files[1]}`, 'folder');
+        const ctx = unified ? 2 : 0;
+        const showIdx = new Set();
+        if (unified) {
+            ops.forEach((op, idx) => { if (op.type !== '=') { for (let k = idx - ctx; k <= idx + ctx; k++) if (k >= 0 && k < ops.length) showIdx.add(k); } });
+        }
+        ops.forEach((op, idx) => {
+            if (unified && op.type === '=' && !showIdx.has(idx)) return;
+            const ln = (num) => (num == null ? '   ' : String(num).padStart(3));
+            if (unified) {
+                if (op.type === '+') this.print('+' + op.v, 'success');
+                else if (op.type === '-') this.print('-' + op.v, 'error');
+                else this.print(' ' + op.v);
+            } else {
+                if (op.type === '+') this.print(`${ln(null)}${ln(op.j)}> ${op.v}`, 'success');
+                else if (op.type === '-') this.print(`${ln(op.i)}${ln(null)}< ${op.v}`, 'error');
+                else this.print(`${ln(op.i)}${ln(op.j)}  ${op.v}`);
+            }
+        });
+    }
+    handleDu(args) {
+        let human = false; let summary = false; let pathArg = null;
+        for (const a of args) {
+            if (a === '-h') { human = true; continue; }
+            if (a === '-s') { summary = true; continue; }
+            pathArg = a;
+        }
+        const startAbs = pathArg ? Path.resolveUnder(pathArg, this.fs.getCurrentPath()) : this.fs.getCurrentPath();
+        const perm = this.checkPathPermission(startAbs);
+        if (!perm.allowed) { this.print('du: ' + perm.message, 'error'); return; }
+        const node = this.fs.resolvePath(startAbs);
+        if (!node) { this.print(`du: 找不到 "${pathArg || startAbs}"`, 'error'); return; }
+        const walk = (n, p) => {
+            let total = 0;
+            const rows = [];
+            if (n.type === 'file') total = this._approxSize(n.content);
+            else for (const c of n.children || []) {
+                const cp = p === '/' ? '/' + c.name : p + '/' + c.name;
+                const cp2 = this.checkPathPermission(cp);
+                if (!cp2.allowed) continue;
+                if (c.type === 'file') { const s = this._approxSize(c.content); total += s; rows.push([s, cp]); }
+                else { const sub = walk(c, cp); total += sub.total; rows.push(...sub.rows); rows.push([sub.total, cp]); }
+            }
+            return { total, rows };
+        };
+        const result = walk(node, startAbs);
+        const all = summary ? [[result.total, startAbs]] : [...result.rows, [result.total, startAbs]];
+        if (!summary) all.sort((x, y) => x[0] - y[0]);
+        const fmt = (b) => human ? this._formatSizeHuman(b) : String(b);
+        const maxW = Math.max(...all.map(r => fmt(r[0]).length));
+        all.forEach(([sz, p]) => { this.print(`${fmt(sz).padStart(maxW)}  ${p}`); });
+    }
+    handleSort(args) {
+        let reverse = false, numeric = false, unique = false; let target = null;
+        for (const a of args) {
+            if (a === '-r') { reverse = true; continue; }
+            if (a === '-n') { numeric = true; continue; }
+            if (a === '-u') { unique = true; continue; }
+            target = a;
+        }
+        if (!target) { this.print('用法: sort [-r] [-n] [-u] <文件>', 'error'); return; }
+        const f = this._readTextFile(target);
+        if (!f.ok) { this.print('sort: ' + f.error, 'error'); return; }
+        let lines = f.content.length === 0 ? [] : f.content.split(/\r?\n/);
+        if (numeric) lines.sort((a, b) => parseFloat(a) - parseFloat(b));
+        else lines.sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+        if (reverse) lines.reverse();
+        if (unique) {
+            const seen = new Set();
+            lines = lines.filter(l => { if (seen.has(l)) return false; seen.add(l); return true; });
+        }
+        lines.forEach(l => this.printRaw(l));
     }
     handleRename(args) {
         if (args.length < 2) {
@@ -732,15 +1132,24 @@ class Terminal {
     handleCat(args) {
         if (args.length === 0) { this.print('cat: 需要至少一个文件路径。cat -h 查看用法。', 'error'); return; }
         let showLineNo = false;
+        let showEndMark = false;
+        let squeezeBlank = false;
         const files = [];
         let dashDash = false;
         for (let i = 0; i < args.length; i++) {
             const a = args[i];
             if (dashDash) { files.push(a); continue; }
             if (a === '--') { dashDash = true; continue; }
-            if (a === '-n') { showLineNo = true; continue; }
-            if (a.startsWith('-')) {
-                this.print(`cat: 忽略未知标志 "${a}"`, 'error');
+            // 支持短标志组合，例如 -nEs / -Ens
+            if (a.startsWith('-') && a.length > 1 && !/^-\d+$/.test(a)) {
+                let allOk = true;
+                for (const ch of a.slice(1)) {
+                    if (ch === 'n') showLineNo = true;
+                    else if (ch === 'E') showEndMark = true;
+                    else if (ch === 's') squeezeBlank = true;
+                    else { allOk = false; }
+                }
+                if (!allOk) { this.print(`cat: 忽略未知标志 "${a}"（支持 -n -E -s）`, 'error'); }
                 continue;
             }
             files.push(a);
@@ -761,18 +1170,29 @@ class Terminal {
                 this.print(`cat: "${f}" 内容无法读取`, 'error'); continue;
             }
             if (content.startsWith('data:')) {
-                // 二进制 / 资源型 dataURL：不直接展开，给出大小提示
                 const size = this._approxSize(content);
                 this.print(`cat: "${f}" 为二进制/嵌入资源（约 ${size} 字节），不在终端展开`, 'folder');
                 continue;
             }
             if (files.length > 1) this.print(`──── ${f} ────`, 'folder');
-            const lines = content.length === 0 ? [''] : content.split(/\r?\n|\r/);
-            // 末尾空换行如果是因最后一个 \n 切出的空串，保留（cat 通常按字节原样；我们逐行打印也等价）
+            let lines = content.length === 0 ? [''] : content.split(/\r?\n|\r/);
+            if (squeezeBlank) {
+                const out = [];
+                let prevEmpty = false;
+                for (const ln of lines) {
+                    const isEmpty = ln.length === 0;
+                    if (isEmpty && prevEmpty) continue;
+                    out.push(ln);
+                    prevEmpty = isEmpty;
+                }
+                lines = out;
+            }
             const width = String(lines.length).length;
             for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
                 const prefix = showLineNo ? `${String(i + 1).padStart(width)}  ` : '';
-                this.printRaw(prefix + lines[i]);
+                const suffix = showEndMark ? '$' : '';
+                this.printRaw(prefix + line + suffix);
             }
         }
     }
@@ -1145,21 +1565,34 @@ class Terminal {
         };
     }
     handleTree(args) {
-        const showHidden = args.includes('-a');
-        const currentPath = this.fs.getCurrentPath();
-        const permission = this.checkPathPermission(currentPath);
-        if (!permission.allowed) {
-            this.print(permission.message, 'error');
-            return;
+        // 用户要求：总是显示隐藏项（无需 -a）
+        // -d：只显示目录；最后一个非 - 开头参数视为路径
+        const dirsOnly = args.includes('-d') || args.includes('--dirs-only');
+        let pathArg = null;
+        for (const a of args) {
+            if (!a.startsWith('-')) pathArg = a;
         }
+        const oldDir = this.fs.currentDir;
+        if (pathArg) {
+            const abs = Path.resolveUnder(pathArg, this.fs.getCurrentPath());
+            const perm = this.checkPathPermission(abs);
+            if (!perm.allowed) { this.print(perm.message, 'error'); return; }
+            const node = this.fs.resolvePath(abs);
+            if (!node) { this.print(`tree: 找不到路径 "${pathArg}"`, 'error'); return; }
+            if (node.type !== 'folder') { this.print(`tree: "${pathArg}" 不是目录`, 'error'); return; }
+            this.fs.currentDir = node;
+        }
+        const showHidden = true;
         const tree = this.fs.getTree(this.fs.currentDir, '', (node) => {
+            if (dirsOnly && node.type === 'file') return false;
             return this.checkNodePermission(node);
         }, showHidden);
         if (tree.length === 0) {
-            this.print('当前目录为空');
+            this.print(dirsOnly ? '当前目录下无子目录' : '当前目录为空');
         } else {
             tree.forEach(line => this.print(line));
         }
+        if (pathArg) this.fs.currentDir = oldDir;
     }
     checkNodePermission(node) {
         const oldCurrentDir = this.fs.currentDir;
@@ -1697,31 +2130,45 @@ class Terminal {
             this._printCommandHelp(args[ci + 1].toLowerCase());
             return;
         }
-        const full = args.includes('-a') || args.includes('--all');
+        // 用户要求：不需要 -a，总是完整输出
+        // （-a / --all 仍接受但忽略，向后兼容）
         const pad = (s, n) => { const t = s || ''; return t.length >= n ? t : t + ' '.repeat(n - t.length); };
-        this.print('可用命令（按字母顺序，<命令> -h 查看详细用法）:', 'folder');
-        // HELP_ROWS 按字母顺序；统一列宽 + 两列对齐
-        const cmdWidth = HELP_ROWS.reduce((m, r) => Math.max(m, r[0].length), 10) + 4;
-        for (const [sig, desc] of HELP_ROWS) {
-            this.print(`  ${pad(sig, cmdWidth)} ${desc}`);
-        }
-        this.print('');
-        this.print(`  ${pad('help -c <命令>', cmdWidth)} 查看某条命令的详细用法（例：help -c edit / help -c ls）`, '');
-        this.print(`  ${pad('<命令> -h / --help', cmdWidth)} 同上，任意命令都支持这两个标志。`, '');
-        if (!full) {
+
+        this.print('Web Terminal OS v1.6 命令帮助（按功能分组 · 树形结构）', 'folder');
+        this.print('└─ 提示：<命令> -h 或 help -c <命令> 查看详细用法');
+
+        const sigWidth = Math.min(44, HELP_ROWS.reduce((m, r) => Math.max(m, r[0].length), 10));
+
+        for (let gi = 0; gi < HELP_GROUPS.length; gi++) {
+            const [groupCn, , rows] = HELP_GROUPS[gi];
+            const isLastGroup = gi === HELP_GROUPS.length - 1;
             this.print('');
-            this.print('（help -a 可查看完整内容：目录说明 + vi 编辑器快捷键）', 'folder');
-            return;
+            this.print((isLastGroup ? '└── ' : '├── ') + `📂 ${groupCn}`, 'folder');
+            for (let ri = 0; ri < rows.length; ri++) {
+                const [sig, desc] = rows[ri];
+                const isLastRow = ri === rows.length - 1;
+                const br1 = isLastGroup ? '    ' : '│   ';
+                const br2 = isLastRow  ? '└─ ' : '├─ ';
+                const sigTrim = sig.length > sigWidth ? sig.slice(0, sigWidth - 1) + '…' : sig;
+                this.print(`${br1}${br2}${pad(sigTrim, sigWidth + 2)} ${desc}`);
+            }
         }
+
         this.print('');
-        this.print('目录说明:', 'folder');
+        this.print('├── 附加用法：', 'folder');
+        this.print(`│   ${pad('help -c <命令>', sigWidth + 2)} 查看某条命令的详细用法（例：help -c edit / help -c ls）`);
+        this.print(`└   ${pad('<命令> -h / --help', sigWidth + 2)} 同上，任意命令都支持这两个标志`);
+
+        // 总是输出目录说明与 vi 快捷键（无需 -a）
+        this.print('');
+        this.print('📁 目录说明', 'folder');
         this.print(`  ${pad('/application/', 28)} 系统应用（只读，文件管理器可见）`);
         this.print(`  ${pad('/languages/', 28)} 语言包（只读，存储 JSON 字符串，文件管理器可见）`);
         this.print(`  ${pad('/user/<你的用户名>/', 28)} 你的个人目录（其他用户无法访问）`);
-        this.print(`  ${pad('  /user/<名>/info/', 28)} 系统配置（隐藏，ls -a 可见；存放 history.json / editUndoStack.json / 个性化设置 等）`);
-        this.print(`  ${pad('  /user/<名>/appinfo/', 28)} 应用私有数据（隐藏，ls -a 可见）`);
+        this.print(`  ${pad('  /user/<名>/info/', 28)} 系统配置（存放 history.json / editUndoStack.json / 个性化设置 等）`);
+        this.print(`  ${pad('  /user/<名>/appinfo/', 28)} 应用私有数据`);
         this.print('');
-        this.print('vi 编辑器快捷键（open 命令进入）:', 'folder');
+        this.print('📝 vi 编辑器快捷键（open 命令进入）', 'folder');
         const w = 28;
         this.print(`  ${pad('i', w)} 进入插入模式`);
         this.print(`  ${pad('Esc', w)} 返回命令模式`);

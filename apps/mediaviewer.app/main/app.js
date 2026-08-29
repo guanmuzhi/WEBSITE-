@@ -194,37 +194,18 @@ class MediaViewer {
         });
     }
     showFilePicker() {
-        const files = this.collectMediaFiles(this.storage.fs, '/');
-        if (files.length === 0) { this.showAlert(this.t('mv.no_media_files', '未找到支持的媒体文件')); return; }
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
-        const dialog = document.createElement('div');
-        dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:400px;color:#ddd;font-family:inherit;';
-        const title = document.createElement('div');
-        title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
-        title.textContent = this.t('mv.select_file', '选择文件');
-        dialog.appendChild(title);
-        const list = document.createElement('div');
-        list.style.cssText = 'max-height:300px;overflow-y:auto;background:#1e1e1e;border-radius:4px;margin-bottom:16px;';
-        files.forEach(file => {
-            const item = document.createElement('div');
-            item.style.cssText = 'padding:10px 12px;cursor:pointer;border-bottom:1px solid #333;color:#ccc;font-size:13px;';
-            item.textContent = file.path;
-            item.addEventListener('mouseenter', () => { item.style.background = '#3d3d3d'; });
-            item.addEventListener('mouseleave', () => { item.style.background = ''; });
-            item.addEventListener('click', () => { document.body.removeChild(overlay); this.openFileByPath(file.path); });
-            list.appendChild(item);
+        const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+        if (!Dlg || !Dlg.showOpenFileDialog) { this.showAlert(this.t('mv.dialog_unavailable', '文件对话框不可用')); return; }
+        const startPath = this.currentPath ? (() => { const i = this.currentPath.lastIndexOf('/'); return i <= 0 ? '/' : this.currentPath.slice(0, i); })() : null;
+        const exts = [...Object.keys(IMAGE_EXTENSIONS), ...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS];
+        Dlg.showOpenFileDialog({
+            title: this.t('mv.select_file', '选择媒体文件'),
+            extensions: exts,
+            startPath,
+        }).then((result) => {
+            if (!result || !result.path) return;
+            this.openFileByPath(result.path);
         });
-        dialog.appendChild(list);
-        const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = this.t('mv.cancel', '取消');
-        cancelBtn.style.cssText = 'padding:8px 24px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;';
-        cancelBtn.addEventListener('mouseenter', () => { cancelBtn.style.background = '#4d4d4d'; });
-        cancelBtn.addEventListener('mouseleave', () => { cancelBtn.style.background = '#3d3d3d'; });
-        cancelBtn.addEventListener('click', () => { document.body.removeChild(overlay); });
-        dialog.appendChild(cancelBtn);
-        overlay.appendChild(dialog);
-        document.body.appendChild(overlay);
     }
     collectMediaFiles(node, currentPath) {
         const files = [];

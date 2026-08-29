@@ -108,6 +108,8 @@ class MediaPlayer {
     }
 
     initEvents() {
+        const openBtn = document.getElementById('open-btn');
+        if (openBtn) openBtn.addEventListener('click', () => this.showFilePicker());
         this.playBtn.addEventListener('click', () => this.togglePlay());
         this.prevBtn.addEventListener('click', () => this.skip(-10));
         this.nextBtn.addEventListener('click', () => this.skip(10));
@@ -123,6 +125,19 @@ class MediaPlayer {
         this.player.addEventListener('pause', () => this.onPause());
         this.player.addEventListener('ended', () => this.onEnded());
         this.player.addEventListener('volumechange', () => this.updateVolumeDisplay());
+    }
+
+    async showFilePicker() {
+        const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+        if (!Dlg || !Dlg.showOpenFileDialog) { alert(this.t('mp.dialog_unavailable', '文件对话框不可用')); return; }
+        const startPath = this.currentPath ? (() => { const i = this.currentPath.lastIndexOf('/'); return i <= 0 ? '/' : this.currentPath.slice(0, i); })() : null;
+        const result = await Dlg.showOpenFileDialog({
+            title: this.t('mp.file_picker_title', '打开媒体文件'),
+            extensions: [...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS],
+            startPath,
+        });
+        if (!result || !result.path) return;
+        this.openFileByPath(result.path);
     }
 
     checkUrlParam() {

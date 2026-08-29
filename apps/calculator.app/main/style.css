@@ -50,12 +50,27 @@ html, body {
        wrapper 的宽高从 html/body 的 100% 继承（iframe 直接给定，非内容依赖），稳定。*/
 }
 
+@font-face {
+    font-family: 'SF Mono Stack';
+    src: local('SF Mono'), local('SF Mono Regular'), local('SF Mono Display'),
+         local('SF Mono Text'), local('Menlo'), local('Monaco'), local('Consolas'),
+         local('DejaVu Sans Mono'), local('Liberation Mono');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+:root {
+    --font-mono: 'SF Mono Stack', 'SF Mono', 'Menlo', 'Monaco', 'Consolas',
+                 'DejaVu Sans Mono', 'Liberation Mono', ui-monospace, monospace;
+}
 body {
-    font-family: 'SF Pro Display', 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+    font-family: var(--font-mono) !important;
     background: #000000;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* 显式容器查询尺寸容器：宽高继承自 body（100%），声明为 calc-frame 的 size container。

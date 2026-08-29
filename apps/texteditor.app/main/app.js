@@ -86,66 +86,31 @@ class TextEditor {
             setTimeout(() => okBtn.focus(), 50);
         });
     }
-    showFilePicker() {
-        const files = this.getTextFiles();
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
-        const dialog = document.createElement('div');
-        dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:20px;width:420px;max-height:80vh;display:flex;flex-direction:column;color:#ddd;font-family:inherit;';
-        const title = document.createElement('div');
-        title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
-        title.textContent = this.t('editor.file_picker_title');
-        dialog.appendChild(title);
-        if (files.length === 0) {
-            const empty = document.createElement('div');
-            empty.style.cssText = 'padding:24px;color:#888;text-align:center;font-size:13px;';
-            empty.textContent = this.t('editor.file_picker_empty');
-            dialog.appendChild(empty);
-        } else {
-            const list = document.createElement('div');
-            list.style.cssText = 'flex:1;overflow-y:auto;background:#1e1e1e;border-radius:4px;margin-bottom:12px;max-height:300px;';
-            files.forEach(file => {
-                const item = document.createElement('div');
-                item.style.cssText = 'padding:10px 12px;cursor:pointer;border-bottom:1px solid #333;color:#ccc;font-size:13px;display:flex;align-items:center;gap:8px;';
-                const icon = document.createElement('span');
-                icon.textContent = '📄';
-                icon.style.cssText = 'font-size:14px;';
-                const name = document.createElement('span');
-                name.textContent = file;
-                name.style.cssText = 'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-                item.appendChild(icon);
-                item.appendChild(name);
-                item.addEventListener('mouseenter', () => { item.style.background = '#3d3d3d'; });
-                item.addEventListener('mouseleave', () => { item.style.background = ''; });
-                item.addEventListener('click', () => { document.body.removeChild(overlay); this.openFileByPath(file); });
-                list.appendChild(item);
-            });
-            dialog.appendChild(list);
-        }
-        const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = this.t('editor.cancel');
-        cancelBtn.style.cssText = 'padding:8px 24px;background:#3d3d3d;border:none;border-radius:4px;color:#ccc;font-size:13px;cursor:pointer;font-family:inherit;align-self:flex-end;';
-        cancelBtn.addEventListener('mouseenter', () => { cancelBtn.style.background = '#4d4d4d'; });
-        cancelBtn.addEventListener('mouseleave', () => { cancelBtn.style.background = '#3d3d3d'; });
-        cancelBtn.addEventListener('click', () => { document.body.removeChild(overlay); });
-        dialog.appendChild(cancelBtn);
-        overlay.appendChild(dialog);
-        document.body.appendChild(overlay);
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) { document.body.removeChild(overlay); } });
+    _textExts() {
+        return ['txt', 'md', 'json', 'js', 'css', 'html', 'xml', 'csv', 'log', 'cfg', 'ini', 'yml', 'yaml', 'py', 'java', 'c', 'cpp', 'h', 'sh', 'bat'];
     }
-    getTextFiles() {
-        const files = [];
-        const textExts = ['txt', 'md', 'json', 'js', 'css', 'html', 'xml', 'csv', 'log', 'cfg', 'ini', 'yml', 'yaml', 'py', 'java', 'c', 'cpp', 'h', 'sh', 'bat'];
-        const traverse = (node, currentPath) => {
-            if (node.type === 'file') {
-                const ext = node.name.split('.').pop().toLowerCase();
-                if (textExts.includes(ext) || node.name.indexOf('.') === -1) { files.push(currentPath); }
-            } else if (node.type === 'folder' && node.children) {
-                node.children.forEach(child => { const childPath = currentPath === '/' ? '/' + child.name : currentPath + '/' + child.name; traverse(child, childPath); });
-            }
-        };
-        traverse(this.storage.fs, '/');
-        return files.sort();
+    async showFilePicker() {
+        try {
+            const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+            if (!Dlg || !Dlg.showOpenFileDialog) { this.showAlert(this.t('editor.dialog_unavailable', '文件对话框不可用')); return; }
+            const start = this.currentPath ? this._parentOf(this.currentPath) : null;
+            const result = await Dlg.showOpenFileDialog({
+                title: this.t('editor.file_picker_title', '打开文本文件'),
+                extensions: this._textExts(),
+                startPath: start,
+            });
+            if (!result || !result.path) return;
+            this.openFileByPath(result.path);
+        } catch (e) {
+            this.showAlert(this.t('editor.open_failed', '打开失败: ') + (e.message || e));
+        }
+    }
+    _parentOf(path) {
+        if (!path || path === '/') return '/';
+        const i = path.lastIndexOf('/');
+        if (i === -1) return '/';
+        if (i === 0) return '/';
+        return path.slice(0, i);
     }
     showPrompt(message, defaultValue = '') {
         return new Promise((resolve) => {
@@ -252,7 +217,29 @@ class TextEditor {
         const event = new CustomEvent('file-saved', { detail: { filename: this.currentFile, path, content: this.textarea.value } });
         window.dispatchEvent(event);
     }
-    saveAs() { this.showPrompt(this.t('editor.prompt_new_path'), this.currentPath || '').then((newPath) => { if (newPath) { this.filenameInput.value = newPath; this.saveFile(); } }); }
+    async saveAs() {
+        try {
+            const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+            if (!Dlg || !Dlg.showSaveFileDialog) {
+                const newPath = await this.showPrompt(this.t('editor.prompt_new_path'), this.currentPath || '');
+                if (newPath) { this.filenameInput.value = newPath; this.saveFile(); }
+                return;
+            }
+            const defaultName = this.currentFile || (this.filenameInput ? this.filenameInput.value : '') || '未命名.txt';
+            const startPath = this.currentPath ? this._parentOf(this.currentPath) : null;
+            const result = await Dlg.showSaveFileDialog({
+                title: this.t('editor.save_as', '另存为'),
+                extensions: this._textExts(),
+                startPath,
+                defaultFileName: defaultName,
+            });
+            if (!result || !result.path) return;
+            this.filenameInput.value = result.path;
+            this.doSaveFile(result.path);
+        } catch (e) {
+            this.showAlert(this.t('editor.save_failed', '保存失败: ') + (e.message || e));
+        }
+    }
     setContent(content, path = '') { this.textarea.value = content; this.filenameInput.value = path; this.currentPath = path; this.currentFile = path.split('/').pop(); this.isSaved = true; this.updateStats(); this.updateSaveStatus(); }
 }
 document.addEventListener('DOMContentLoaded', () => { window.editor = new TextEditor(); });

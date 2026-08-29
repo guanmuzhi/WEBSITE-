@@ -1,3 +1,35 @@
+/* 应用级字体：UI 全部走微软雅黑；仅编辑器正文等宽（SF Mono 优先）。
+   因 iframe 文档独立，必须在本样式表再声明一次 @font-face / :root 变量。*/
+@font-face {
+    font-family: 'WebOS Sans';
+    src: local('Microsoft YaHei'), local('微软雅黑'), local('PingFang SC'),
+         local('Source Han Sans SC'), local('Noto Sans CJK SC'), local('Hiragino Sans GB'),
+         local('SimHei'), local('Segoe UI'), local('system-ui'), local('sans-serif');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'SF Mono Stack';
+    src: local('SF Mono'), local('SF Mono Regular'), local('SF Mono Display'),
+         local('SF Mono Text'), local('Menlo'), local('Monaco'), local('Consolas'),
+         local('DejaVu Sans Mono'), local('Liberation Mono');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+:root {
+    --font-sans: 'WebOS Sans', 'Microsoft YaHei', '微软雅黑', 'PingFang SC',
+                 'Source Han Sans SC', 'Noto Sans CJK SC', 'Hiragino Sans GB',
+                 'SimHei', 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'SF Mono Stack', 'SF Mono', 'Menlo', 'Monaco', 'Consolas',
+                 'DejaVu Sans Mono', 'Liberation Mono', ui-monospace, monospace;
+}
+html, body {
+    font-family: var(--font-sans) !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
 .editor-container {
     width: 100%;
     height: 100%;
@@ -33,7 +65,7 @@
     border: none;
     color: #ccc;
     font-size: 14px;
-    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+    font-family: var(--font-mono) !important;
     resize: none;
     line-height: 1.6;
 }

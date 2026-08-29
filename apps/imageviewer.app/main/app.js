@@ -89,6 +89,8 @@ class ImageViewer {
     }
 
     initEvents() {
+        const openBtn = document.getElementById('open-btn');
+        if (openBtn) openBtn.addEventListener('click', () => this.showFilePicker());
         this.zoomInBtn.addEventListener('click', () => this.zoomIn());
         this.zoomOutBtn.addEventListener('click', () => this.zoomOut());
         this.image.addEventListener('wheel', (e) => this.handleWheel(e));
@@ -105,8 +107,24 @@ class ImageViewer {
                     e.preventDefault();
                     this.resetZoom();
                 }
+            } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'o') {
+                e.preventDefault();
+                this.showFilePicker();
             }
         });
+    }
+
+    async showFilePicker() {
+        const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+        if (!Dlg || !Dlg.showOpenFileDialog) { alert(this.t('iv.dialog_unavailable', '文件对话框不可用')); return; }
+        const startPath = this.currentPath ? (() => { const i = this.currentPath.lastIndexOf('/'); return i <= 0 ? '/' : this.currentPath.slice(0, i); })() : null;
+        const result = await Dlg.showOpenFileDialog({
+            title: this.t('iv.file_picker_title', '打开图片'),
+            extensions: Object.keys(IMAGE_EXTENSIONS),
+            startPath,
+        });
+        if (!result || !result.path) return;
+        this.openFileByPath(result.path);
     }
 
     checkUrlParam() {
