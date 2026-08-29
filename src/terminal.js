@@ -1,8 +1,8 @@
-import UserManager from './user-manager.js?v=21';
-import FileSystem from './file-system.js?v=21';
-import ViEditor from './vi-editor.js?v=21';
-import AppManager from './app-manager.js?v=21';
-import { Path, FSEdit } from './lib/index.js?v=21';
+import UserManager from './user-manager.js?v=30';
+import FileSystem from './file-system.js?v=30';
+import ViEditor from './vi-editor.js?v=30';
+import AppManager from './app-manager.js?v=30';
+import { Path, FSEdit } from './lib/index.js?v=30';
 const HISTORY_FILE_NAME = 'history.json';
 const EDIT_UNDO_FILE_NAME = 'editUndoStack.json';
 const EDIT_UNDO_MAX = 50;
@@ -31,16 +31,16 @@ const COMMANDS = [
 const HELP_GROUPS = [
     ['文件与目录', 'Filesystem', [
         ['cd <目录|..> [..]',                 '进入指定目录；cd .. 返回上级；cd 回家目录'],
-        ['cp / copy <源文件> [目标路径]',    '复制文件或目录到目标路径'],
+        ['copy <源文件> [目标路径]',          '复制文件或目录到目标路径'],
         ['du [-h] [-s] [路径]',               '统计目录/文件占用空间大小；-h 人类可读；-s 仅汇总'],
         ['find [路径] [-name 名称] [-type f|d] [-maxdepth N]', '按名称/类型递归搜索文件或目录'],
         ['ls [-b] [-S] [-t] [路径]',          '列出目录（默认长格式+显示隐藏）；-b 仅名称；-S 按大小；-t 按新旧'],
         ['mkdir <名称...>',                   '在当前目录下创建新文件夹（可一次多个）'],
-        ['move / mv <源> <目标路径>',         '移动文件或目录到指定位置'],
+        ['move <源> <目标路径>',              '移动文件或目录到指定位置'],
         ['new <folder|file> <名称>',          '在当前目录创建新文件夹或新文件'],
         ['pwd',                               '打印当前工作目录的绝对路径'],
         ['rename <旧名称> <新名称>',          '重命名当前目录下的文件或文件夹'],
-        ['rm / delete <名称...>',             '删除文件或目录；-r 递归，-f 强制无需确认'],
+        ['delete <名称...>',                  '删除文件或目录；-r 递归，-f 强制无需确认'],
         ['touch <名称...>',                   '创建空文件（已存在则保留原样）'],
         ['tree [-d] [路径]',                  '以树形递归显示目录结构（默认含隐藏项）；-d 仅目录'],
     ]],
@@ -454,9 +454,12 @@ class Terminal {
                     '  * 系统目录 (/application /languages) 与其他用户家目录为只读。',
                 ]);
                 break;
-            case 'delete':
+            case 'delete': case 'rm':
                 lines([
-                    `  ${pad('delete <名称>', 34)}  删除当前目录下的文件或文件夹（需确认）`,
+                    `  ${pad('delete <名称...>', 34)}  删除文件或文件夹`,
+                    `  ${pad('  -r / -rf', 34)}  递归删除目录（非空目录必须带 -r）`,
+                    `  ${pad('  -f / --force', 34)}  强制删除，无需用户确认`,
+                    '  * 系统目录为只读；可同时指定多个名称批量删除。',
                 ]);
                 break;
             case 'rename':
@@ -479,6 +482,7 @@ class Terminal {
                 lines([
                     `  ${pad('move <源名称> <目标路径>', 34)}  把文件或文件夹移动到目标位置`,
                     `  ${pad('', 34)}  目标路径可以是相对路径、.. 或绝对路径`,
+                    '  * 系统目录为只读，不允许作为源或目标。',
                 ]);
                 break;
             case 'copy': case 'cp':
@@ -2143,7 +2147,7 @@ class Terminal {
             const [groupCn, , rows] = HELP_GROUPS[gi];
             const isLastGroup = gi === HELP_GROUPS.length - 1;
             this.print('');
-            this.print((isLastGroup ? '└── ' : '├── ') + `📂 ${groupCn}`, 'folder');
+            this.print((isLastGroup ? '└── ' : '├── ') + `[${groupCn}]`, 'folder');
             for (let ri = 0; ri < rows.length; ri++) {
                 const [sig, desc] = rows[ri];
                 const isLastRow = ri === rows.length - 1;
@@ -2161,14 +2165,14 @@ class Terminal {
 
         // 总是输出目录说明与 vi 快捷键（无需 -a）
         this.print('');
-        this.print('📁 目录说明', 'folder');
+        this.print('[目录说明]', 'folder');
         this.print(`  ${pad('/application/', 28)} 系统应用（只读，文件管理器可见）`);
         this.print(`  ${pad('/languages/', 28)} 语言包（只读，存储 JSON 字符串，文件管理器可见）`);
         this.print(`  ${pad('/user/<你的用户名>/', 28)} 你的个人目录（其他用户无法访问）`);
         this.print(`  ${pad('  /user/<名>/info/', 28)} 系统配置（存放 history.json / editUndoStack.json / 个性化设置 等）`);
         this.print(`  ${pad('  /user/<名>/appinfo/', 28)} 应用私有数据`);
         this.print('');
-        this.print('📝 vi 编辑器快捷键（open 命令进入）', 'folder');
+        this.print('[vi 编辑器快捷键]（open 命令进入）', 'folder');
         const w = 28;
         this.print(`  ${pad('i', w)} 进入插入模式`);
         this.print(`  ${pad('Esc', w)} 返回命令模式`);

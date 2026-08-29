@@ -89,9 +89,22 @@ class TextEditor {
     _textExts() {
         return ['txt', 'md', 'json', 'js', 'css', 'html', 'xml', 'csv', 'log', 'cfg', 'ini', 'yml', 'yaml', 'py', 'java', 'c', 'cpp', 'h', 'sh', 'bat'];
     }
+    // ES modules 在父窗口是 deferred 加载，iframe 普通 script 可能先执行，
+    // 所以需要轮询等待 window.parent.Dialogs 就绪（最多 3s）
+    async _waitForDialogs(timeoutMs = 3000) {
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+            try {
+                const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+                if (Dlg && Dlg.showOpenFileDialog) return Dlg;
+            } catch (_) {}
+            await new Promise(r => setTimeout(r, 50));
+        }
+        return null;
+    }
     async showFilePicker() {
         try {
-            const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+            const Dlg = await this._waitForDialogs();
             if (!Dlg || !Dlg.showOpenFileDialog) { this.showAlert(this.t('editor.dialog_unavailable', '文件对话框不可用')); return; }
             const start = this.currentPath ? this._parentOf(this.currentPath) : null;
             const result = await Dlg.showOpenFileDialog({
@@ -219,7 +232,7 @@ class TextEditor {
     }
     async saveAs() {
         try {
-            const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+            const Dlg = await this._waitForDialogs();
             if (!Dlg || !Dlg.showSaveFileDialog) {
                 const newPath = await this.showPrompt(this.t('editor.prompt_new_path'), this.currentPath || '');
                 if (newPath) { this.filenameInput.value = newPath; this.saveFile(); }

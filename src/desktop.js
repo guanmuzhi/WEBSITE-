@@ -1,7 +1,7 @@
-import UserManager from './user-manager.js?v=18';
-import LockScreen from './lock-screen.js?v=18';
-import StorageService from './storage.js?v=18';
-import { Path } from './lib/index.js?v=18';
+import UserManager from './user-manager.js?v=30';
+import LockScreen from './lock-screen.js?v=30';
+import StorageService from './storage.js?v=30';
+import { Path } from './lib/index.js?v=30';
 class DesktopManager {
     constructor(options = {}) {
         this.desktopEl = options.desktopEl || null;
@@ -48,6 +48,108 @@ class DesktopManager {
         const g = Math.max(0, Math.round(((num >> 8) & 255) * (1 - amount)));
         const b = Math.max(0, Math.round((num & 255) * (1 - amount)));
         return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+    hexToRgb(hex) {
+        let c = String(hex || '').replace('#', '');
+        if (c.length === 3) c = c.split('').map(x => x + x).join('');
+        const num = parseInt(c, 16);
+        if (isNaN(num)) return '26, 188, 156';
+        const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+        return `${r}, ${g}, ${b}`;
+    }
+    getPersonalizationPath() {
+        const user = this.userManager.getCurrentUser();
+        const username = user ? user.username : 'default';
+        return `/user/${username}/info/personalization.json`;
+    }
+    loadPersonalization() {
+        try {
+            let data = this.storage.loadJSON(this.getPersonalizationPath());
+            // 迁移：美式拼写 personalization 已统一；若未找到则尝试英式拼写
+            if (!data) {
+                const alt = this.storage.loadJSON(`/user/${(this.userManager.getCurrentUser()||{}).username || 'default'}/info/personalisation.json`);
+                if (alt) data = alt;
+            }
+            return (data && typeof data === 'object') ? data : {};
+        } catch (e) { return {}; }
+    }
+    applyTaskbarColor(color, opacityPercent) {
+        try {
+            const c = color || '#1abc9c';
+            const o = Math.max(0, Math.min(100, Number(opacityPercent != null ? opacityPercent : 70))) / 100;
+            const rgb = this.hexToRgb(c);
+            const root = document.documentElement;
+            root.style.setProperty('--taskbar-color', c);
+            root.style.setProperty('--taskbar-opacity', o);
+            root.style.setProperty('--taskbar-bg', `rgba(${rgb}, ${o})`);
+            root.style.setProperty('--taskbar-border', `rgba(${rgb}, ${Math.min(o + 0.2, 1)})`);
+        } catch (e) {}
+    }
+    applyFontSize(size) {
+        try { document.documentElement.style.fontSize = (size || 14) + 'px'; } catch (e) {}
+    }
+    applyWindowOpacity(value) {
+        try {
+            const styleId = 'webos-opacity-style';
+            let styleEl = document.getElementById(styleId);
+            if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = styleId; document.head.appendChild(styleEl); }
+            const opacity = Math.max(0, Math.min(100, Number(value || 100))) / 100;
+            styleEl.textContent = `.window { opacity: ${opacity}; } .window:hover { opacity: 1; }`;
+        } catch (e) {}
+    }
+    applyAnimations(enabled) {
+        try {
+            const styleId = 'webos-animations-style';
+            let styleEl = document.getElementById(styleId);
+            if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = styleId; document.head.appendChild(styleEl); }
+            styleEl.textContent = enabled ? '' : `* { transition: none !important; animation: none !important; }`;
+        } catch (e) {}
+    }
+    async applyPersonalization() {
+        const pers = this.loadPersonalization();
+        // 语言（先于 loadLanguageStrings 之后再次同步，保证个性化优先级最高）
+        if (pers.language) {
+            localStorage.setItem('webos-language', pers.language);
+            this.lang = pers.language;
+            document.dispatchEvent(new CustomEvent('language-changed', { detail: { lang: pers.language } }));
+        }
+        // 壁纸：若 personalization 有就覆盖 VFS/wallpaper.json
+        if (pers.wallpaper) {
+            this.applyWallpaper(pers.wallpaper);
+            try { this.storage.saveJSON(`/user/${(this.userManager.getCurrentUser()||{}).username || 'default'}/info/wallpaper.json`, pers.wallpaper); } catch (_) {}
+            localStorage.setItem('webos-wallpaper', JSON.stringify(pers.wallpaper));
+        }
+        // 主题色
+        if (pers.accentColor) {
+            localStorage.setItem('webos-accent-color', pers.accentColor);
+            this.applyThemeColor(pers.accentColor);
+        }
+        // 字体大小
+        if (pers.fontSize) {
+            localStorage.setItem('webos-font-size', String(pers.fontSize));
+            this.applyFontSize(pers.fontSize);
+        }
+        // 窗口不透明度
+        if (pers.windowOpacity != null) {
+            localStorage.setItem('webos-window-opacity', String(pers.windowOpacity));
+            this.applyWindowOpacity(pers.windowOpacity);
+        }
+        // 动画开关
+        if (pers.animations !== undefined) {
+            localStorage.setItem('webos-animations', pers.animations ? 'true' : 'false');
+            this.applyAnimations(!!pers.animations);
+        }
+        // 任务栏自动隐藏
+        if (pers.taskbarAutohide !== undefined) {
+            localStorage.setItem('webos-taskbar-autohide', pers.taskbarAutohide ? 'true' : 'false');
+            this.setTaskbarAutohide(!!pers.taskbarAutohide);
+        }
+        // 任务栏颜色 + 不透明度
+        const tbColor = pers.taskbarColor || localStorage.getItem('webos-taskbar-color') || '#1abc9c';
+        const tbOpacity = pers.taskbarOpacity != null ? String(pers.taskbarOpacity) : (localStorage.getItem('webos-taskbar-opacity') || '70');
+        localStorage.setItem('webos-taskbar-color', tbColor);
+        localStorage.setItem('webos-taskbar-opacity', String(tbOpacity));
+        this.applyTaskbarColor(tbColor, tbOpacity);
     }
     getCurrentAccent() {
         return localStorage.getItem('webos-accent-color') || '#1abc9c';
@@ -119,6 +221,8 @@ class DesktopManager {
         this.setupDesktopIcons();
         this.setupLanguageListener();
         this.startClock();
+        // 在恢复窗口和应用主题前，先应用 personalization.json（含语言/任务栏/动画/字体/壁纸/主题色）
+        try { await this.applyPersonalization(); } catch (e) { console.warn('apply personalization failed:', e); }
         this.loadState();
         this.updateTaskbar();
         this.updateTaskbarUser();
@@ -286,8 +390,18 @@ class DesktopManager {
             let langDir = fs.children.find(c => c.name === 'languages' && c.type === 'folder');
             if (!langDir) { langDir = { type: 'folder', name: 'languages', children: [] }; fs.children.push(langDir); }
             if (!langDir.children) langDir.children = [];
+            // 每次启动都尝试用磁盘最新文件刷新 /languages/*.json（保证文件管理器可见且内容最新；小文件开销可忽略）
             const langFiles = [{ file: 'cmn.json', path: '/languages/cmn.json' }, { file: 'eng.json', path: '/languages/eng.json' }, { file: 'jpn.json', path: '/languages/jpn.json' }];
-            for (const lang of langFiles) { if (!langDir.children.find(c => c.name === lang.file)) { try { const res = await fetch(lang.path); const content = await res.text(); langDir.children.push({ type: 'file', name: lang.file, content }); } catch (e) {} } }
+            for (const lang of langFiles) {
+                try {
+                    const res = await fetch(lang.path);
+                    if (!res.ok) continue;
+                    const content = await res.text();
+                    const existing = langDir.children.find(c => c.name === lang.file);
+                    if (existing) existing.content = content;
+                    else langDir.children.push({ type: 'file', name: lang.file, content });
+                } catch (e) {}
+            }
             const user = this.userManager.getCurrentUser();
             if (user) {
                 const username = user.username;
@@ -409,7 +523,10 @@ class DesktopManager {
         const windows = this.windowManager.getAllWindows();
         windows.forEach(win => { if (this.terminalWindows.has(win.id)) { this.terminalWindows.delete(win.id); } win.close(); });
         this.userManager.setCurrentUser(username); this.updateTaskbarUser(); this.windowManager.zIndexCounter = 1; this.storage.reload(); this.userManager.reload();
-        await this.seedSystemDirectories(); await this.loadState(); this.updateTaskbar();
+        await this.seedSystemDirectories();
+        try { await this.applyPersonalization(); } catch (e) { console.warn('apply personalization after user switch failed:', e); }
+        this.loadLanguageStrings().then(() => this.refreshAppNames()).catch(() => {});
+        await this.loadState(); this.updateTaskbar();
         const desktopIcons = this.desktopEl.querySelector('.desktop-icons');
         if (desktopIcons) { desktopIcons.style.display = ''; }
         document.dispatchEvent(new CustomEvent('user-switched', { detail: { username } }));
@@ -436,12 +553,15 @@ class DesktopManager {
         const user = this.userManager.getCurrentUser();
         if (user && this.taskbarUserNameEl) { this.taskbarUserNameEl.textContent = user.username; }
         if (user && this.compactTaskbarNameEl) { this.compactTaskbarNameEl.textContent = user.username; }
-        if (user && this.compactTaskbarAvatarEl) {
+        const taskbarUserAvatarEl = this.desktopEl ? this.desktopEl.querySelector('#taskbar-user-avatar') : null;
+        if (user && (this.compactTaskbarAvatarEl || taskbarUserAvatarEl)) {
             let avatar = null;
             try { const username = user.username || 'public'; const avatarData = this.storage.loadJSON(`/user/${username}/info/avatar.json`); if (avatarData && avatarData.data) { avatar = avatarData.data; } } catch (e) {}
             if (!avatar) { avatar = localStorage.getItem('webos-user-avatar'); }
-            if (avatar) { this.compactTaskbarAvatarEl.innerHTML = `<img src="${avatar}" alt="avatar">`; }
-            else { this.compactTaskbarAvatarEl.textContent = (user.username || 'U').charAt(0).toUpperCase(); }
+            if (!avatar) { avatar = user.avatar || '/apps/icons/user-avatar.svg'; }
+            const html = avatar ? `<img src="${avatar}" alt="avatar">` : (user.username || 'U').charAt(0).toUpperCase();
+            if (this.compactTaskbarAvatarEl) { this.compactTaskbarAvatarEl.innerHTML = html; }
+            if (taskbarUserAvatarEl) { taskbarUserAvatarEl.innerHTML = html; }
         }
     }
     setupCompactTaskbar() {

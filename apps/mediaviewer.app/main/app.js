@@ -193,19 +193,30 @@ class MediaViewer {
             setTimeout(() => okBtn.focus(), 50);
         });
     }
-    showFilePicker() {
-        const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+    // ES modules 在父窗口是 deferred 加载，iframe 普通 script 可能先执行，需要轮询
+    async _waitForDialogs(timeoutMs = 3000) {
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+            try {
+                const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+                if (Dlg && Dlg.showOpenFileDialog) return Dlg;
+            } catch (_) {}
+            await new Promise(r => setTimeout(r, 50));
+        }
+        return null;
+    }
+    async showFilePicker() {
+        const Dlg = await this._waitForDialogs();
         if (!Dlg || !Dlg.showOpenFileDialog) { this.showAlert(this.t('mv.dialog_unavailable', '文件对话框不可用')); return; }
         const startPath = this.currentPath ? (() => { const i = this.currentPath.lastIndexOf('/'); return i <= 0 ? '/' : this.currentPath.slice(0, i); })() : null;
         const exts = [...Object.keys(IMAGE_EXTENSIONS), ...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS];
-        Dlg.showOpenFileDialog({
+        const result = await Dlg.showOpenFileDialog({
             title: this.t('mv.select_file', '选择媒体文件'),
             extensions: exts,
             startPath,
-        }).then((result) => {
-            if (!result || !result.path) return;
-            this.openFileByPath(result.path);
         });
+        if (!result || !result.path) return;
+        this.openFileByPath(result.path);
     }
     collectMediaFiles(node, currentPath) {
         const files = [];

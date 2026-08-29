@@ -27,7 +27,9 @@ class SettingsApp {
         return 'public';
     }
     getUserInfoPath(filename) {
-        return `/user/${this.getCurrentUser()}/info/${filename}`;
+        // 用户指定：personalization.json（美式拼写）；其它文件名原样使用
+        const mapped = filename === 'personalisation.json' ? 'personalization.json' : filename;
+        return `/user/${this.getCurrentUser()}/info/${mapped}`;
     }
     async saveToVFS(path, data) {
         const storage = this.getStorage();
@@ -41,7 +43,12 @@ class SettingsApp {
         const storage = this.getStorage();
         if (!storage) return null;
         try {
-            const content = await storage.readFile(path);
+            let content = await storage.readFile(path);
+            // 迁移：用户现在用 personalization.json；若找不到且是该路径，尝试旧拼写 personalisation.json
+            if ((content === null || content === undefined) && path.endsWith('/personalization.json')) {
+                const altPath = path.replace('/personalization.json', '/personalisation.json');
+                content = await storage.readFile(altPath);
+            }
             if (content === null || content === undefined) return null;
             return typeof content === 'string' ? JSON.parse(content) : content;
         } catch(e) { return null; }
@@ -110,6 +117,8 @@ class SettingsApp {
         const avatarRemoveBtn = document.getElementById('user-avatar-remove');
         const avatarData = await this.loadFromVFS(this.getUserInfoPath('avatar.json'));
         let savedAvatar = avatarData && avatarData.data ? avatarData.data : localStorage.getItem('webos-user-avatar');
+        // 用户未自定义头像时也显示默认 SVG（不再是空白或字母占位符）
+        if (!savedAvatar) { savedAvatar = '/apps/icons/user-avatar.svg'; }
         if (avatarPreview && savedAvatar) {
             avatarPreview.src = savedAvatar;
             avatarPreview.style.display = 'block';
@@ -136,13 +145,13 @@ class SettingsApp {
             avatarRemoveBtn.addEventListener('click', () => {
                 this.saveToVFS(this.getUserInfoPath('avatar.json'), { data: null, name: null });
                 localStorage.removeItem('webos-user-avatar');
-                if (avatarPreview) { avatarPreview.src = ''; avatarPreview.style.display = 'none'; }
+                if (avatarPreview) { avatarPreview.src = '/apps/icons/user-avatar.svg'; avatarPreview.style.display = 'block'; }
                 try { window.parent.document.dispatchEvent(new CustomEvent('user-avatar-changed', { detail: { avatar: null } })); } catch (err) {}
             });
         }
     }
     async loadPersonalization() {
-        const pers = await this.loadFromVFS(this.getUserInfoPath('personalisation.json')) || {};
+        const pers = await this.loadFromVFS(this.getUserInfoPath('personalization.json')) || {};
         this.setupWallpaperUI(pers.wallpaper);
         const accentColor = pers.accentColor || localStorage.getItem('webos-accent-color') || '#1abc9c';
         document.querySelectorAll('.accent-color').forEach(el => {
@@ -150,7 +159,7 @@ class SettingsApp {
             el.addEventListener('click', () => {
                 document.querySelectorAll('.accent-color').forEach(c => c.classList.remove('active'));
                 el.classList.add('active');
-                this.savePersonalisation({ accentColor: el.dataset.color });
+                this.savePersonalization({ accentColor: el.dataset.color });
                 localStorage.setItem('webos-accent-color', el.dataset.color);
                 this.applyAccentColor(el.dataset.color);
             });
@@ -161,7 +170,7 @@ class SettingsApp {
         if (fontSizeSelect) {
             fontSizeSelect.value = fontSize;
             fontSizeSelect.addEventListener('change', (e) => {
-                this.savePersonalisation({ fontSize: e.target.value });
+                this.savePersonalization({ fontSize: e.target.value });
                 localStorage.setItem('webos-font-size', e.target.value);
                 this.applyFontSize(e.target.value);
             });
@@ -174,7 +183,7 @@ class SettingsApp {
             opacitySlider.value = opacity;
             if (opacityValue) opacityValue.textContent = opacity + '%';
             opacitySlider.addEventListener('input', (e) => {
-                this.savePersonalisation({ windowOpacity: e.target.value });
+                this.savePersonalization({ windowOpacity: e.target.value });
                 localStorage.setItem('webos-window-opacity', e.target.value);
                 if (opacityValue) opacityValue.textContent = e.target.value + '%';
                 this.applyWindowOpacity(e.target.value);
@@ -186,7 +195,7 @@ class SettingsApp {
         if (animationsToggle) {
             animationsToggle.checked = animations;
             animationsToggle.addEventListener('change', (e) => {
-                this.savePersonalisation({ animations: e.target.checked });
+                this.savePersonalization({ animations: e.target.checked });
                 localStorage.setItem('webos-animations', e.target.checked ? 'true' : 'false');
                 this.applyAnimations(e.target.checked);
             });
@@ -197,18 +206,73 @@ class SettingsApp {
         if (taskbarToggle) {
             taskbarToggle.checked = taskbarAutohide;
             taskbarToggle.addEventListener('change', (e) => {
-                this.savePersonalisation({ taskbarAutohide: e.target.checked });
+                this.savePersonalization({ taskbarAutohide: e.target.checked });
                 localStorage.setItem('webos-taskbar-autohide', e.target.checked ? 'true' : 'false');
                 this.applyTaskbarAutohide(e.target.checked);
             });
         }
         this.applyTaskbarAutohide(taskbarAutohide);
+        // ── 任务栏颜色 + 透明度（个性化可配置） ──
+        const taskbarColor   = pers.taskbarColor   || localStorage.getItem('webos-taskbar-color')   || '#1abc9c';
+        const taskbarOpacity = pers.taskbarOpacity != null ? String(pers.taskbarOpacity) : (localStorage.getItem('webos-taskbar-opacity') || '70');
+        const taskbarColorInput = document.getElementById('taskbar-color');
+        const taskbarColorValue = document.getElementById('taskbar-color-value');
+        if (taskbarColorInput) {
+            taskbarColorInput.value = taskbarColor;
+            if (taskbarColorValue) taskbarColorValue.textContent = taskbarColor;
+            taskbarColorInput.addEventListener('input', () => {
+                const v = taskbarColorInput.value;
+                if (taskbarColorValue) taskbarColorValue.textContent = v;
+                localStorage.setItem('webos-taskbar-color', v);
+                const o = document.getElementById('taskbar-opacity') ? document.getElementById('taskbar-opacity').value : taskbarOpacity;
+                this.savePersonalization({ taskbarColor: v });
+                this.applyTaskbarColor(v, o);
+            });
+        }
+        const taskbarOpacitySlider = document.getElementById('taskbar-opacity');
+        const taskbarOpacityValue  = document.getElementById('taskbar-opacity-value');
+        if (taskbarOpacitySlider) {
+            taskbarOpacitySlider.value = taskbarOpacity;
+            if (taskbarOpacityValue) taskbarOpacityValue.textContent = taskbarOpacity + '%';
+            taskbarOpacitySlider.addEventListener('input', () => {
+                const v = taskbarOpacitySlider.value;
+                if (taskbarOpacityValue) taskbarOpacityValue.textContent = v + '%';
+                localStorage.setItem('webos-taskbar-opacity', v);
+                const c = taskbarColorInput ? taskbarColorInput.value : taskbarColor;
+                this.savePersonalization({ taskbarOpacity: Number(v) });
+                this.applyTaskbarColor(c, v);
+            });
+        }
+        this.applyTaskbarColor(taskbarColor, taskbarOpacity);
+        // ── 语言设置内联在个性化 + 独立语言页同步 ──
+        const language = pers.language || localStorage.getItem('webos-language') || 'cmn';
+        const langInline = document.getElementById('lang-select-inline');
+        const langPage   = document.getElementById('lang-select');
+        if (langInline) {
+            langInline.value = language;
+            langInline.addEventListener('change', () => this._changeLanguage(langInline.value, langPage));
+        }
+        if (langPage) {
+            langPage.value = language;
+        }
     }
-    async savePersonalisation(updates) {
-        const path = this.getUserInfoPath('personalisation.json');
+    async savePersonalization(updates) {
+        const path = this.getUserInfoPath('personalization.json');
         const current = await this.loadFromVFS(path) || {};
         const merged = { ...current, ...updates };
         await this.saveToVFS(path, merged);
+    }
+    _changeLanguage(lang, syncTargetSelect) {
+        this.loadLanguagePack(lang).then(() => {
+            this.applyLanguage();
+            this.savePersonalization({ language: lang });
+            if (syncTargetSelect && syncTargetSelect.value !== lang) syncTargetSelect.value = lang;
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.document.dispatchEvent(new CustomEvent('language-changed', { detail: { lang } }));
+                }
+            } catch (_) {}
+        });
     }
     setupWallpaperUI(savedWallpaper) {
         const typeRadios = document.querySelectorAll('input[name="wallpaper-type"]');
@@ -234,7 +298,7 @@ class SettingsApp {
             solidColor.value = wp.color || '#0c3547';
             solidColor.addEventListener('input', () => {
                 const newWp = { type: 'solid', color: solidColor.value };
-                this.savePersonalisation({ wallpaper: newWp });
+                this.savePersonalization({ wallpaper: newWp });
                 this.dispatchWallpaperChange(newWp);
             });
         }
@@ -263,7 +327,7 @@ class SettingsApp {
         const end = document.getElementById('wallpaper-gradient-end').value;
         const direction = document.getElementById('wallpaper-gradient-direction').value;
         const wp = { type: 'gradient', start, end, direction };
-        this.savePersonalisation({ wallpaper: wp });
+        this.savePersonalization({ wallpaper: wp });
         this.dispatchWallpaperChange(wp);
     }
     setupWallpaperFileUploads() {
@@ -286,7 +350,7 @@ class SettingsApp {
                 const preview = document.getElementById('image-wallpaper-preview');
                 if (preview) preview.style.display = 'none';
                 const wp = { type: 'solid', color: '#0c3547' };
-                this.savePersonalisation({ wallpaper: wp });
+                this.savePersonalization({ wallpaper: wp });
                 this.dispatchWallpaperChange(wp);
             });
         }
@@ -295,7 +359,7 @@ class SettingsApp {
                 const preview = document.getElementById('video-wallpaper-preview');
                 if (preview) preview.style.display = 'none';
                 const wp = { type: 'solid', color: '#0c3547' };
-                this.savePersonalisation({ wallpaper: wp });
+                this.savePersonalization({ wallpaper: wp });
                 this.dispatchWallpaperChange(wp);
             });
         }
@@ -305,7 +369,7 @@ class SettingsApp {
         reader.onload = (e) => {
             const dataUrl = e.target.result;
             const wp = { type, data: dataUrl, name: file.name };
-            this.savePersonalisation({ wallpaper: wp });
+            this.savePersonalization({ wallpaper: wp });
             const preview = document.getElementById(type + '-wallpaper-preview');
             const nameEl = document.getElementById(type + '-wallpaper-name');
             if (preview) preview.style.display = 'flex';

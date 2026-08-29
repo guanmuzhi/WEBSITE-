@@ -1,5 +1,6 @@
-import StorageService from './storage.js?v=18';
+import StorageService from './storage.js?v=30';
 const CURRENT_USER_KEY = 'web-terminal-os-current-user';
+const DEFAULT_AVATAR_URL = '/apps/icons/user-avatar.svg';
 class UserManager {
     static instance = null;
     static getInstance() {
@@ -183,7 +184,12 @@ class UserManager {
         });
     }
     getUser(username) {
-        return this.users.find(u => u.username === username);
+        const raw = this.users.find(u => u.username === username);
+        if (!raw) return raw;
+        // 若用户未自定义头像，则统一兜底为 /apps/icons/user-avatar.svg，
+        // 让锁屏、任务栏、设置页都不会再显示字母占位符。
+        if (!raw.avatar) raw.avatar = DEFAULT_AVATAR_URL;
+        return raw;
     }
     verifyPassword(username, password) {
         const user = this.getUser(username);

@@ -127,8 +127,20 @@ class MediaPlayer {
         this.player.addEventListener('volumechange', () => this.updateVolumeDisplay());
     }
 
+    // ES modules 在父窗口是 deferred 加载，iframe 普通 script 可能先执行，需要轮询
+    async _waitForDialogs(timeoutMs = 3000) {
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+            try {
+                const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+                if (Dlg && Dlg.showOpenFileDialog) return Dlg;
+            } catch (_) {}
+            await new Promise(r => setTimeout(r, 50));
+        }
+        return null;
+    }
     async showFilePicker() {
-        const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+        const Dlg = await this._waitForDialogs();
         if (!Dlg || !Dlg.showOpenFileDialog) { alert(this.t('mp.dialog_unavailable', '文件对话框不可用')); return; }
         const startPath = this.currentPath ? (() => { const i = this.currentPath.lastIndexOf('/'); return i <= 0 ? '/' : this.currentPath.slice(0, i); })() : null;
         const result = await Dlg.showOpenFileDialog({
