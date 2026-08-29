@@ -28,6 +28,8 @@
         "lock.currentUsernameLabel": "Current username: {name}",
         "lock.switchToUser": "Switch to {name}",
         "lock.deleteUserConfirm": "Delete user \"{name}\"? This cannot be undone.",
-        "lock.promptForPassword": "Enter password"
+        "lock.promptForPassword": "Enter password",
+        "lock.bottomHint": "Click anywhere · or press any key to start",
+        "lock.welcome": "navore OS"
     }
 }

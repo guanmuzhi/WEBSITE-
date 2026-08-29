@@ -1,7 +1,7 @@
-import UserManager from './user-manager.js?v=31';
-import LockScreen from './lock-screen.js?v=31';
-import StorageService from './storage.js?v=31';
-import { Path } from './lib/index.js?v=31';
+import UserManager from './user-manager.js?v=32';
+import LockScreen from './lock-screen.js?v=32';
+import StorageService from './storage.js?v=32';
+import { Path } from './lib/index.js?v=32';
 class DesktopManager {
     constructor(options = {}) {
         this.desktopEl = options.desktopEl || null;
@@ -682,7 +682,21 @@ class DesktopManager {
         const winCenterX = winLeft + winWidth / 2; const winCenterY = winTop + winHeight / 2;
         this.viewX = viewCenterX - winCenterX; this.viewY = viewCenterY - winCenterY; this.applyViewTransform();
     }
-    lock() { this.lockScreen.show(); }
+    lock() {
+        // 兜底：锁屏对象可能因之前的闪退/destroy 或 init 时机问题未初始化
+        if (!this.lockScreen) {
+            try {
+                this.lockScreen = new LockScreen({
+                    onUnlock: () => { this.updateTaskbarUser(); },
+                    onUserSwitch: (username) => { this.switchUser(username); }
+                });
+            } catch (e) {
+                console.error('Failed to create LockScreen in lock():', e);
+                return;
+            }
+        }
+        try { this.lockScreen.show(); } catch (e) { console.error('lockScreen.show failed:', e); }
+    }
     setupAppLaunchListeners() {
         document.addEventListener('app-launch-real', (e) => { const path = e.detail.path; const app = { path: path, name: path.replace('.app', '') }; this.openAppByPath(app); });
         document.addEventListener('open-file-in-editor', (e) => { const filePath = e.detail.path; this.openAppByPath({ path: 'texteditor.app', name: this.getAppLabelForPath('texteditor.app', '文本编辑器'), params: { path: filePath } }); });

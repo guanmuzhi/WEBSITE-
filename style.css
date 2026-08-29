@@ -364,15 +364,13 @@ body {
     border-radius: 50%;
     border: none;
     cursor: pointer;
+    transition: none !important;
 }
 .btn-minimize {
     background-color: #f1c40f;
 }
 .btn-close {
     background-color: #e74c3c;
-}
-.window-btn:hover {
-    opacity: 0.8;
 }
 .window-content {
     flex: 1;
@@ -712,7 +710,7 @@ body {
     background: #3d3d3d;
     color: #ccc;
 }
-/* ===== Lock Screen · Glass Morphism 重新设计 ===== */
+/* ===== Lock Screen · 稳定重写 ===== */
 .lock-screen {
     position: fixed;
     inset: 0;
@@ -722,526 +720,273 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 99999;
-    animation: lockFadeIn 0.45s cubic-bezier(.2,.8,.2,1);
+    font-family: var(--font-sans, "Microsoft YaHei", system-ui, sans-serif);
     overflow: hidden;
-    /* 动态 aurora 渐变背景 */
-    background:
-        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(102, 126, 234, 0.55), transparent 60%),
-        radial-gradient(ellipse 70% 55% at 80% 20%, rgba(118, 75, 162, 0.50), transparent 60%),
-        radial-gradient(ellipse 75% 65% at 60% 90%, rgba(20, 160, 133, 0.55), transparent 60%),
-        radial-gradient(ellipse 65% 55% at 10% 80%, rgba(52, 152, 219, 0.50), transparent 60%),
-        linear-gradient(135deg, #0a0f1e 0%, #121426 50%, #0b1220 100%);
-    background-size: 140% 140%;
-    animation: lockFadeIn 0.45s cubic-bezier(.2,.8,.2,1), lockAurora 24s ease-in-out infinite alternate;
-}
-@keyframes lockAurora {
-    0%   { background-position: 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0 0; }
-    100% { background-position: 30% 20%, 70% 30%, 80% 80%, 20% 70%, 0 0; }
-}
-@keyframes lockFadeIn {
-    from { opacity: 0; filter: blur(8px); }
-    to   { opacity: 1; filter: blur(0); }
-}
-/* 粒子画布（叠在渐变上，提供缓慢漂浮的亮点） */
-.lock-particles {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
-}
-/* 顶部大时钟区 */
-.lock-clock-area {
-    position: absolute;
-    top: 10%;
-    left: 0;
-    right: 0;
-    text-align: center;
     color: #fff;
-    z-index: 2;
-    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-    user-select: none;
+}
+/* Bing UHD 壁纸（首次加载会有短暂黑屏，可接受） */
+.lock-wallpaper {
+    position: absolute; inset: 0;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    transform: scale(1.04); /* 轻微放大避免边缘空白 */
+}
+/* 深色渐变叠层：保证时钟/卡片对比度 */
+.lock-tint {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.48) 0%, rgba(0,0,0,0.25) 35%, rgba(0,0,0,0.55) 100%);
+    backdrop-filter: blur(1px);
+}
+.lock-particles {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    mix-blend-mode: screen;
+}
+/* ── Stage 通用 ── */
+.lock-stage {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    pointer-events: none;
+    padding: 40px;
+    box-sizing: border-box;
+}
+.lock-stage > * { pointer-events: auto; }
+
+/* ── 时钟 Stage ── */
+.lock-stage-clock {
+    text-align: center;
+    cursor: pointer;
 }
 .lock-clock-time {
-    font-size: clamp(72px, 13vw, 168px);
+    font-size: 168px;
     font-weight: 200;
+    letter-spacing: 2px;
     line-height: 1;
-    letter-spacing: -2px;
-    font-variant-numeric: tabular-nums;
-    background: linear-gradient(180deg, #ffffff 0%, #e8eef8 60%, #b8c4dc 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.25));
+    color: rgba(255,255,255,0.96);
+    text-shadow: 0 6px 30px rgba(0,0,0,0.35);
+    margin-bottom: 20px;
 }
 .lock-clock-date {
-    font-size: clamp(16px, 1.8vw, 22px);
+    font-size: 22px;
     font-weight: 400;
-    margin-top: 14px;
-    color: rgba(255, 255, 255, 0.78);
-    letter-spacing: 2px;
-}
-.lock-clock-weekday {
-    font-size: clamp(13px, 1.3vw, 16px);
-    margin-top: 6px;
-    color: rgba(255, 255, 255, 0.52);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-}
-/* 底部系统信息（版本 + 提示） */
-.lock-bottom-bar {
-    position: absolute;
-    bottom: 20px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-between;
-    padding: 0 32px;
-    color: rgba(255, 255, 255, 0.38);
-    font-size: 12px;
-    z-index: 2;
-    user-select: none;
+    color: rgba(255,255,255,0.85);
+    margin-bottom: 40px;
     letter-spacing: 0.5px;
 }
-.lock-bottom-bar .lock-version {
-    font-family: var(--font-mono);
-}
 .lock-hint {
-    animation: lockHintBlink 3.2s ease-in-out infinite;
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.5px;
+    animation: lockHintPulse 2.6s ease-in-out infinite;
 }
-@keyframes lockHintBlink {
-    0%, 100% { opacity: 0.45; }
-    50%      { opacity: 0.9; }
+@keyframes lockHintPulse {
+    0%,100% { opacity: 0.6; }
+    50%     { opacity: 1; }
 }
-/* ========= 中央登录卡：Glass Morphism ========= */
+
+/* ── 登录 Stage ── */
+.lock-stage-input {
+    background: transparent; /* 直接覆盖在 clock 上，使用同一张壁纸 */
+}
+
+/* ── 底部条 ── */
+.lock-bottom-bar {
+    position: absolute; bottom: 18px; left: 0; right: 0;
+    display: flex; justify-content: center; gap: 24px;
+    font-size: 12px; color: rgba(255,255,255,0.65);
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* ========= Glass 登录卡 ========= */
 .lock-window {
     position: relative;
     width: 420px;
     max-width: 92vw;
     max-height: 82vh;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 22px;
-    box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.35),
-        inset 0 1px 0 rgba(255, 255, 255, 0.18),
-        inset 0 -1px 0 rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(28px) saturate(160%);
-    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    background: rgba(35, 38, 52, 0.62);
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 16px;
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+    box-shadow: 0 18px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.1);
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    z-index: 3;
-    animation: lockCardPop 0.6s cubic-bezier(.2,.9,.2,1.1);
+    /* 用 left/top 定位，初始自动居中 */
+    margin: auto;
+    display: flex; flex-direction: column;
+    transition: none !important;
+    will-change: transform;
 }
-@keyframes lockCardPop {
-    from { opacity: 0; transform: translateY(24px) scale(0.96); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-/* 玻璃光晕装饰 */
-.lock-window::before {
-    content: '';
-    position: absolute;
-    top: -40%;
-    left: -30%;
-    width: 160%;
-    height: 140%;
-    background:
-        radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--accent-color, #1abc9c) 25%, transparent), transparent 55%),
-        radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.18), transparent 55%);
-    pointer-events: none;
-    z-index: 0;
-}
-.lock-window > * { position: relative; z-index: 1; }
-
-/* 拖拽标题栏（保留但简化） */
 .lock-window-titlebar {
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 12px;
-    cursor: grab;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    cursor: default;
     user-select: none;
-    flex-shrink: 0;
-    background: rgba(255, 255, 255, 0.03);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
-.lock-window-titlebar:active { cursor: grabbing; }
 .lock-window-title {
-    color: rgba(255, 255, 255, 0.35);
-    font-size: 11px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 0.5px;
 }
-.lock-window-controls {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
+.lock-window-controls { display: flex; gap: 6px; }
 .lock-window-controls .window-btn {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    opacity: 0.85;
+    width: 12px; height: 12px;
+    border-radius: 50%; border: none;
+    cursor: default; /* 锁屏上的红/黄按钮不响应点击 */
+    transition: none !important;
 }
-.lock-window-controls .btn-minimize { background: #f1c40f; box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.2); }
-.lock-window-controls .btn-close    { background: #e74c3c; box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.2); }
-.lock-window-dragged { transition: none !important; }
+.lock-window-controls .btn-minimize { background: #f1c40f; }
+.lock-window-controls .btn-close    { background: #e74c3c; }
 
 .lock-window-body {
-    padding: 28px 28px 24px;
+    padding: 22px 24px;
     overflow-y: auto;
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.18) transparent;
+    scrollbar-color: rgba(255,255,255,0.2) transparent;
 }
 .lock-window-body::-webkit-scrollbar { width: 6px; }
 .lock-window-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
 
-.lock-screen .lock-header {
-    text-align: center;
-    margin-bottom: 22px;
+/* Header */
+.lock-window-body .lock-header {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 10px;
+    margin-bottom: 16px;
 }
-.lock-screen .lock-user-avatar {
-    width: 92px;
-    height: 92px;
+.lock-window-body .lock-user-avatar {
+    width: 84px; height: 84px;
     border-radius: 50%;
-    margin: 0 auto 16px;
-    padding: 4px;
-    background: linear-gradient(135deg, var(--accent-color, #1abc9c) 0%, #764ba2 100%);
-    box-shadow:
-        0 8px 28px color-mix(in srgb, var(--accent-color, #1abc9c) 35%, transparent),
-        inset 0 0 0 2px rgba(255, 255, 255, 0.25);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     overflow: hidden;
+    background: rgba(255,255,255,0.12);
+    border: 2px solid rgba(255,255,255,0.28);
+    box-shadow: 0 8px 26px rgba(0,0,0,0.3);
 }
-.lock-screen .lock-user-avatar img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
+.lock-window-body .lock-user-avatar .lock-avatar-img {
+    width: 100%; height: 100%;
     object-fit: cover;
-    background: rgba(255,255,255,0.95);
     display: block;
 }
-.lock-screen .lock-user-avatar .lock-avatar-fallback {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 34px;
-    font-weight: 600;
-    color: var(--accent-color, #1abc9c);
+.lock-window-body .lock-user-avatar .lock-avatar-fallback {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    background: linear-gradient(135deg, #667eea, #764ba2);
 }
-.lock-screen .lock-username {
-    color: #f8fafc;
-    font-size: 24px;
-    font-weight: 600;
-    text-align: center;
-    letter-spacing: 0.4px;
+.lock-window-body .lock-username {
+    font-size: 17px; font-weight: 600;
+    color: rgba(255,255,255,0.92);
 }
-.lock-screen .lock-content {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-.lock-screen .lock-password-input {
-    width: 100%;
-    padding: 14px 18px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    color: #fff;
-    font-size: 15px;
-    text-align: center;
-    box-sizing: border-box;
-    transition: all 0.25s ease;
-    backdrop-filter: blur(10px);
-}
-.lock-screen .lock-password-input:focus {
-    outline: none;
-    border-color: var(--accent-color, #1abc9c);
-    background: color-mix(in srgb, var(--accent-color, #1abc9c) 12%, rgba(255, 255, 255, 0.06));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color, #1abc9c) 20%, transparent);
-    transform: translateY(-1px);
-}
-.lock-screen .lock-password-input::placeholder {
-    color: rgba(255, 255, 255, 0.35);
-}
-.lock-screen .lock-unlock-btn {
-    width: 100%;
-    padding: 13px;
-    background: linear-gradient(135deg, var(--accent-color, #1abc9c) 0%, var(--accent-hover, #16a085) 100%);
-    border: none;
-    border-radius: 12px;
-    color: #fff;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    letter-spacing: 0.4px;
-    transition: all 0.2s ease;
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-color, #1abc9c) 38%, transparent),
-                inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-.lock-screen .lock-unlock-btn:hover {
-    transform: translateY(-1.5px);
-    box-shadow: 0 10px 26px color-mix(in srgb, var(--accent-color, #1abc9c) 48%, transparent),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    filter: brightness(1.05);
-}
-.lock-screen .lock-unlock-btn:active {
-    transform: translateY(0);
-}
-.lock-screen .lock-error {
-    color: #ff7675;
-    font-size: 13px;
-    min-height: 18px;
-    text-align: center;
-    font-weight: 500;
-}
-.lock-screen .lock-create-user-btn {
-    width: 100%;
-    padding: 11px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    color: rgba(255, 255, 255, 0.72);
-    font-size: 13px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    transition: all 0.2s ease;
-}
-.lock-screen .lock-create-user-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.18);
-}
-.lock-screen .lock-create-title,
-.lock-screen .lock-switch-title {
-    color: #f8fafc;
-    font-size: 19px;
-    font-weight: 600;
-    margin-bottom: 16px;
-    text-align: center;
-    letter-spacing: 0.3px;
-}
-.lock-screen .lock-create-input {
-    width: 100%;
-    padding: 13px 16px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    color: #fff;
-    font-size: 14px;
-    margin-bottom: 10px;
-    box-sizing: border-box;
-    transition: all 0.2s ease;
-}
-.lock-screen .lock-create-input:focus {
-    outline: none;
-    border-color: var(--accent-color, #1abc9c);
-    background: color-mix(in srgb, var(--accent-color, #1abc9c) 10%, rgba(255, 255, 255, 0.06));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color, #1abc9c) 18%, transparent);
-}
-.lock-screen .lock-create-input::placeholder {
-    color: rgba(255, 255, 255, 0.35);
-}
-.lock-screen .lock-btn-row {
-    display: flex;
-    gap: 10px;
-    margin-top: 8px;
-}
-.lock-screen .lock-cancel-btn {
-    flex: 1;
-    padding: 11px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    color: rgba(255, 255, 255, 0.72);
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-.lock-screen .lock-cancel-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-}
-.lock-screen .lock-confirm-btn {
-    flex: 1;
-    padding: 11px;
-    background: linear-gradient(135deg, var(--accent-color, #1abc9c) 0%, var(--accent-hover, #16a085) 100%);
-    border: none;
-    border-radius: 12px;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-color, #1abc9c) 30%, transparent);
-}
-.lock-screen .lock-confirm-btn:hover {
-    transform: translateY(-1px);
-    filter: brightness(1.05);
-    box-shadow: 0 7px 20px color-mix(in srgb, var(--accent-color, #1abc9c) 40%, transparent);
-}
-/* ===== 用户切换区 ===== */
-.lock-screen .lock-user-list-header {
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-top: 22px;
-    margin-bottom: 10px;
-    padding-top: 18px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    text-align: center;
-}
-.lock-screen .lock-user-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 8px;
-    max-height: 200px;
-    overflow-y: auto;
-    padding: 4px;
-}
-.lock-screen .lock-user-list::-webkit-scrollbar { width: 4px; }
-.lock-screen .lock-user-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
 
-.lock-screen .lock-user-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 12px 8px;
-    border-radius: 14px;
+/* Content / 密码输入区 */
+.lock-window-body .lock-content {
+    display: flex; flex-direction: column; gap: 10px;
+    margin-bottom: 10px;
+}
+.lock-password-input {
+    padding: 11px 14px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.18s;
+}
+.lock-password-input:focus {
+    border-color: rgba(26,188,156,0.8);
+    box-shadow: 0 0 0 3px rgba(26,188,156,0.12);
+}
+.lock-unlock-btn {
+    padding: 11px 18px;
+    background: #1abc9c;
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    border: 1px solid transparent;
+    font-family: inherit;
 }
-.lock-screen .lock-user-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.1);
-    transform: translateY(-1px);
+.lock-unlock-btn:active { transform: translateY(1px); }
+
+.lock-window-body .lock-error {
+    min-height: 16px;
+    font-size: 12px;
+    color: #ff7675;
+    text-align: center;
 }
-.lock-screen .lock-user-item-current {
-    background: color-mix(in srgb, var(--accent-color, #1abc9c) 14%, rgba(255, 255, 255, 0.04));
-    border-color: color-mix(in srgb, var(--accent-color, #1abc9c) 30%, rgba(255, 255, 255, 0.14));
+
+/* 用户列表 */
+.lock-window-body .lock-user-list-header {
+    margin-top: 12px; margin-bottom: 8px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.5px;
+}
+.lock-window-body .lock-user-list {
+    display: grid; gap: 6px;
+}
+.lock-window-body .lock-user-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: background 0.15s, border-color 0.15s;
+}
+.lock-window-body .lock-user-item:hover {
+    background: rgba(255,255,255,0.09);
+    border-color: rgba(26,188,156,0.35);
+}
+.lock-window-body .lock-user-item-current {
     cursor: default;
+    background: rgba(26,188,156,0.12);
+    border-color: rgba(26,188,156,0.4);
 }
-.lock-screen .lock-user-item-current:hover {
-    transform: none;
-    background: color-mix(in srgb, var(--accent-color, #1abc9c) 14%, rgba(255, 255, 255, 0.04));
-}
-.lock-screen .lock-user-item-avatar {
-    width: 44px;
-    height: 44px;
+.lock-window-body .lock-user-item-avatar {
+    width: 32px; height: 32px;
     border-radius: 50%;
-    padding: 2px;
-    background: linear-gradient(135deg, var(--accent-color, #1abc9c) 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     overflow: hidden;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
     flex-shrink: 0;
 }
-.lock-screen .lock-user-item-avatar img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-    background: rgba(255,255,255,0.95);
-    display: block;
+.lock-window-body .lock-user-item-avatar .lock-avatar-img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
 }
-.lock-screen .lock-user-item-avatar .lock-item-avatar-fallback {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--accent-color, #1abc9c);
+.lock-window-body .lock-user-item-avatar .lock-avatar-fallback {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+    color: rgba(255,255,255,0.9);
+    background: linear-gradient(135deg, #667eea, #764ba2);
 }
-.lock-screen .lock-user-item-info {
-    flex: 1;
-    min-width: 0;
-    text-align: center;
+.lock-window-body .lock-user-item-info { flex: 1; min-width: 0; }
+.lock-window-body .lock-user-item-name {
+    font-size: 13px;
+    color: rgba(255,255,255,0.9);
 }
-.lock-screen .lock-user-item-name {
-    color: #f1f5f9;
-    font-size: 12.5px;
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 120px;
+.lock-window-body .lock-user-item-status {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
 }
-.lock-screen .lock-user-item-status {
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 10.5px;
-    margin-top: 2px;
-}
-.lock-screen .lock-user-item-delete,
-.lock-screen .lock-user-item-rename {
-    position: absolute;
-    top: 4px;
-    width: 22px;
-    height: 22px;
-    background: rgba(0, 0, 0, 0.35);
-    border: none;
-    border-radius: 50%;
-    color: #ddd;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.15s;
-}
-.lock-screen .lock-user-item-rename { left: 4px; }
-.lock-screen .lock-user-item-delete { right: 4px; }
-.lock-screen .lock-user-item:hover .lock-user-item-rename,
-.lock-screen .lock-user-item:hover .lock-user-item-delete { opacity: 1; }
-.lock-screen .lock-user-item-rename:hover {
-    background: color-mix(in srgb, var(--accent-color, #1abc9c) 35%, rgba(0, 0, 0, 0.5));
-    color: #fff;
-}
-.lock-screen .lock-user-item-delete:hover {
-    background: rgba(231, 76, 60, 0.75);
-    color: #fff;
-}
-.lock-screen .lock-user-item-delete svg,
-.lock-screen .lock-user-item-rename svg {
-    width: 12px;
-    height: 12px;
-}
-/* 移动端适配 */
+
+/* 移动端 */
 @media (max-width: 600px) {
-    .lock-clock-area { top: 6%; }
-    .lock-clock-time { font-size: 72px; }
+    .lock-clock-time { font-size: 96px; }
+    .lock-clock-date { font-size: 16px; margin-bottom: 28px; }
     .lock-window { width: 94vw; }
-    .lock-window-body { padding: 22px 18px 18px; }
-    .lock-screen .lock-user-list { grid-template-columns: repeat(2, 1fr); }
 }
+
 /* ===== 壁纸视频 ===== */
 .wallpaper-video {
     position: absolute;

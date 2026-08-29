@@ -1,8 +1,8 @@
-import UserManager from './user-manager.js?v=31';
-import FileSystem from './file-system.js?v=31';
-import ViEditor from './vi-editor.js?v=31';
-import AppManager from './app-manager.js?v=31';
-import { Path, FSEdit } from './lib/index.js?v=31';
+import UserManager from './user-manager.js?v=32';
+import FileSystem from './file-system.js?v=32';
+import ViEditor from './vi-editor.js?v=32';
+import AppManager from './app-manager.js?v=32';
+import { Path, FSEdit } from './lib/index.js?v=32';
 const HISTORY_FILE_NAME = 'history.json';
 const EDIT_UNDO_FILE_NAME = 'editUndoStack.json';
 const EDIT_UNDO_MAX = 50;

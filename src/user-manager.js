@@ -1,4 +1,4 @@
-import StorageService from './storage.js?v=31';
+import StorageService from './storage.js?v=32';
 const CURRENT_USER_KEY = 'web-terminal-os-current-user';
 const DEFAULT_AVATAR_URL = '/apps/icons/user-avatar.svg';
 class UserManager {

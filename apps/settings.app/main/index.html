@@ -18,13 +18,36 @@
         <div class="settings-content">
             <section id="section-system" class="settings-section active">
                 <h2>系统信息</h2>
+                <h3>操作系统</h3>
                 <div class="info-grid">
                     <div class="info-row"><span id="sys-name-label" class="info-label">系统名称</span><span id="sys-name" class="info-value"></span></div>
-                    <div class="info-row"><span id="sys-browser-label" class="info-label">浏览器</span><span id="sys-browser" class="info-value"></span></div>
-                    <div class="info-row"><span id="sys-os-label" class="info-label">操作系统</span><span id="sys-os" class="info-value"></span></div>
-                    <div class="info-row"><span id="sys-resolution-label" class="info-label">屏幕分辨率</span><span id="sys-resolution" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-version-label" class="info-label">系统版本</span><span id="sys-version" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-os-label" class="info-label">宿主系统</span><span id="sys-os" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-browser-label" class="info-label">浏览器引擎</span><span id="sys-browser" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-useragent-label" class="info-label">User-Agent</span><span id="sys-useragent" class="info-value"></span></div>
+                </div>
+                <h3>硬件</h3>
+                <div class="info-grid">
+                    <div class="info-row"><span id="sys-cpu-label" class="info-label">CPU 核心数</span><span id="sys-cpu" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-memory-label" class="info-label">内存容量</span><span id="sys-memory" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-gpu-label" class="info-label">GPU / 渲染器</span><span id="sys-gpu" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-gpu-vendor-label" class="info-label">GPU 厂商</span><span id="sys-gpu-vendor" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-display-label" class="info-label">屏幕分辨率</span><span id="sys-display" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-dpr-label" class="info-label">像素密度 (DPR)</span><span id="sys-dpr" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-color-depth-label" class="info-label">色深</span><span id="sys-color-depth" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-orientation-label" class="info-label">屏幕方向</span><span id="sys-orientation" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-audio-label" class="info-label">音频输出</span><span id="sys-audio" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-network-label" class="info-label">网络类型</span><span id="sys-network" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-storage-label" class="info-label">存储配额</span><span id="sys-storage" class="info-value"></span></div>
+                </div>
+                <h3>环境</h3>
+                <div class="info-grid">
                     <div class="info-row"><span id="sys-online-label" class="info-label">在线状态</span><span id="sys-online" class="info-value"></span></div>
-                    <div class="info-row"><span id="sys-version-label" class="info-label">版本</span><span id="sys-version" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-tz-label" class="info-label">时区</span><span id="sys-tz" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-language-label" class="info-label">系统语言</span><span id="sys-language" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-platform-label" class="info-label">平台</span><span id="sys-platform" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-touch-label" class="info-label">触屏支持</span><span id="sys-touch" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-timezone-offset-label" class="info-label">UTC 偏移</span><span id="sys-timezone-offset" class="info-value"></span></div>
                 </div>
             </section>
             <section id="section-user" class="settings-section">

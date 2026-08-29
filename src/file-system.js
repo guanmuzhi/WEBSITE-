@@ -1,5 +1,5 @@
-import StorageService from './storage.js?v=31';
-import { Path as PathUtil } from './lib/index.js?v=31';
+import StorageService from './storage.js?v=32';
+import { Path as PathUtil } from './lib/index.js?v=32';
 const CURRENT_DIR_KEY = 'web-terminal-os-cwd';
 // System directories that are read-only for all users
 const SYSTEM_PATHS = ['/application', '/languages'];

@@ -28,6 +28,8 @@
         "lock.currentUsernameLabel": "当前用户名: {name}",
         "lock.switchToUser": "切换到 {name}",
         "lock.deleteUserConfirm": "确定要删除用户 \"{name}\" 吗？此操作无法撤销。",
-        "lock.promptForPassword": "请输入密码"
+        "lock.promptForPassword": "请输入密码",
+        "lock.bottomHint": "点击屏幕任意位置 · 或按任意键开始",
+        "lock.welcome": "navore OS"
     }
 }

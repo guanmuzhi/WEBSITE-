@@ -28,6 +28,8 @@
         "lock.currentUsernameLabel": "現在のユーザー名: {name}",
         "lock.switchToUser": "{name} に切り替え",
         "lock.deleteUserConfirm": "ユーザー \"{name}\" を削除しますか？この操作は元に戻せません。",
-        "lock.promptForPassword": "パスワードを入力"
+        "lock.promptForPassword": "パスワードを入力",
+        "lock.bottomHint": "画面をクリック · または任意のキーを押して開始",
+        "lock.welcome": "navore OS"
     }
 }

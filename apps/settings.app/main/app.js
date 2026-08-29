@@ -92,12 +92,117 @@ class SettingsApp {
         });
     }
     loadSystemInfo() {
-        document.getElementById('sys-name').textContent = 'navore OS';
-        document.getElementById('sys-browser').textContent = navigator.userAgent.split(') ')[0] + ')';
-        document.getElementById('sys-os').textContent = navigator.platform || 'Unknown';
-        document.getElementById('sys-resolution').textContent = `${window.screen.width} x ${window.screen.height}`;
-        document.getElementById('sys-online').textContent = navigator.onLine ? '在线' : '离线';
-        document.getElementById('sys-version').textContent = this.version ? 'v' + this.version : '';
+        const $ = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        const ua = navigator.userAgent;
+        // UA 解析：尝试提取真正的浏览器名/版本
+        let browser = 'Unknown';
+        if (/Edg\//.test(ua))      { const m = ua.match(/Edg\/([\d.]+)/); browser = `Edge ${m ? m[1] : ''}`; }
+        else if (/OPR\//.test(ua)) { const m = ua.match(/OPR\/([\d.]+)/); browser = `Opera ${m ? m[1] : ''}`; }
+        else if (/Chrome\//.test(ua) && /Safari\//.test(ua) && !/Edg\/|OPR\/|Chrome\//.test(ua.replace(/Chrome/g,'_'))) {
+            const m = ua.match(/Chrome\/([\d.]+)/); browser = `Chrome ${m ? m[1] : ''}`;
+        } else if (/Firefox\//.test(ua))  { const m = ua.match(/Firefox\/([\d.]+)/); browser = `Firefox ${m ? m[1] : ''}`; }
+        else if (/Safari\//.test(ua) && /Version\//.test(ua)) { const m = ua.match(/Version\/([\d.]+)/); browser = `Safari ${m ? m[1] : ''}`; }
+        else { const m = ua.match(/\) ([A-Za-z]+)\/([\d.]+)/); browser = m ? `${m[1]} ${m[2]}` : navigator.userAgent.split(') ')[0]; }
+
+        // OS 解析
+        let hostOS = navigator.platform || 'Unknown';
+        if (/Windows/.test(ua))    hostOS = 'Windows';
+        else if (/Mac OS X/.test(ua)) hostOS = 'macOS';
+        else if (/Android/.test(ua))  hostOS = 'Android';
+        else if (/iPhone|iPad|iPod/.test(ua)) hostOS = 'iOS';
+        else if (/Linux/.test(ua))    hostOS = 'Linux';
+
+        // GPU 信息（webgl 上下文）
+        let gpuRenderer = '不可用';
+        let gpuVendor = '不可用';
+        try {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (gl) {
+                const ext = gl.getExtension('WEBGL_debug_renderer_info');
+                if (ext) {
+                    gpuRenderer = (gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '').replace(/^ANGLE \(|DirectX\s+[0-9]+\)|Mesa\s+/g, '');
+                    gpuVendor = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) || '';
+                } else {
+                    gpuRenderer = gl.getParameter(gl.RENDERER) || '';
+                    gpuVendor = gl.getParameter(gl.VENDOR) || '';
+                }
+                if (!gpuRenderer) gpuRenderer = '未检测';
+                if (!gpuVendor)   gpuVendor   = '未检测';
+            }
+        } catch (_) { /* 忽略 */ }
+
+        // 网络信息
+        let netType = '不可用';
+        try {
+            const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (c) {
+                netType = c.effectiveType
+                    ? `${c.effectiveType.toUpperCase()}${c.rtt != null ? ` · RTT ${c.rtt}ms` : ''}${c.downlink != null ? ` · ${c.downlink}Mbps` : ''}`
+                    : (c.type || '检测中');
+            }
+        } catch (_) {}
+
+        // 存储配额
+        let storageInfo = '不可用';
+        if ('storage' in navigator && 'estimate' in navigator.storage) {
+            navigator.storage.estimate().then(est => {
+                const used = est.usage || 0, total = est.quota || 0;
+                storageInfo = `${(used / 1024 / 1024).toFixed(1)} MB / ${(total / 1024 / 1024 / 1024).toFixed(2)} GB`;
+                $('sys-storage', storageInfo);
+            }).catch(() => { $('sys-storage', '不可用'); });
+        }
+
+        // 音频输出设备（仅列数）
+        let audioInfo = '检测中';
+        try {
+            if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                navigator.mediaDevices.enumerateDevices().then(devs => {
+                    const out = devs.filter(d => d.kind === 'audiooutput');
+                    audioInfo = out.length
+                        ? `${out.length} 个输出设备${out[0].label ? ' · ' + out[0].label : ''}`
+                        : '无音频输出';
+                    $('sys-audio', audioInfo);
+                }).catch(() => { $('sys-audio', '不可用'); });
+            } else audioInfo = '不可用';
+        } catch (_) {}
+
+        // 屏幕方向
+        let orientation = '不可用';
+        try {
+            if (screen.orientation && screen.orientation.type) orientation = screen.orientation.type;
+            else if (window.orientation != null) orientation = window.orientation === 0 ? 'portrait-primary' : (window.orientation === 90 ? 'landscape-primary' : String(window.orientation));
+            else orientation = window.innerWidth >= window.innerHeight ? 'landscape' : 'portrait';
+        } catch (_) {}
+
+        // UTC 偏移
+        const tzOffset = -(new Date().getTimezoneOffset());
+        const tzH = Math.floor(Math.abs(tzOffset) / 60), tzM = Math.abs(tzOffset) % 60;
+        const tzSign = tzOffset >= 0 ? '+' : '-';
+
+        $('sys-name', 'navore OS');
+        $('sys-version', this.version ? 'v' + this.version : 'v1.6');
+        $('sys-os', hostOS);
+        $('sys-browser', browser);
+        $('sys-useragent', ua.length > 140 ? ua.slice(0, 140) + '...' : ua);
+
+        $('sys-cpu', navigator.hardwareConcurrency ? navigator.hardwareConcurrency + ' 线程' : '不可用');
+        $('sys-memory', navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '不可用');
+        $('sys-gpu', gpuRenderer);
+        $('sys-gpu-vendor', gpuVendor);
+        $('sys-display', `${window.screen.width} × ${window.screen.height}`);
+        $('sys-dpr', window.devicePixelRatio ? window.devicePixelRatio.toFixed(2) : '1');
+        $('sys-color-depth', `${window.screen.colorDepth || '?'} bit`);
+        $('sys-orientation', orientation);
+        $('sys-network', netType);
+        $('sys-storage', storageInfo);
+
+        $('sys-online', navigator.onLine ? '在线' : '离线');
+        $('sys-tz', Intl.DateTimeFormat().resolvedOptions().timeZone || '本地时区');
+        $('sys-language', navigator.language);
+        $('sys-platform', navigator.platform || 'Unknown');
+        $('sys-touch', (('ontouchstart' in window) || navigator.maxTouchPoints > 0) ? '支持' : '不支持');
+        $('sys-timezone-offset', `UTC${tzSign}${String(tzH).padStart(2,'0')}:${String(tzM).padStart(2,'0')}`);
     }
     loadUserInfo() {
         try {
