@@ -559,7 +559,7 @@ class DesktopManager {
             try { const username = user.username || 'public'; const avatarData = this.storage.loadJSON(`/user/${username}/info/avatar.json`); if (avatarData && avatarData.data) { avatar = avatarData.data; } } catch (e) {}
             if (!avatar) { avatar = localStorage.getItem('webos-user-avatar'); }
             if (!avatar) { avatar = user.avatar || '/apps/icons/user-avatar.svg'; }
-            const html = avatar ? `<img src="${avatar}" alt="avatar">` : (user.username || 'U').charAt(0).toUpperCase();
+            const html = `<img src="${avatar}" alt="avatar">`;
             if (this.compactTaskbarAvatarEl) { this.compactTaskbarAvatarEl.innerHTML = html; }
             if (taskbarUserAvatarEl) { taskbarUserAvatarEl.innerHTML = html; }
         }

@@ -314,8 +314,8 @@ class FileManager {
         this.devices.forEach((dev) => {
             const el = document.createElement('div');
             el.className = 'fm-landrop-device';
-            const initial = (dev.name || '?').charAt(0).toUpperCase();
-            el.innerHTML = '<div class="fm-landrop-device-icon">' + this.escapeHtml(initial) + '</div>' +
+            const deviceIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>';
+            el.innerHTML = '<div class="fm-landrop-device-icon">' + deviceIcon + '</div>' +
                 '<div class="fm-landrop-device-name">' + this.escapeHtml(dev.name) + '</div>' +
                 '<div class="fm-landrop-device-hint">点击发送文件</div>';
             el.addEventListener('click', () => this.connectToDevice(dev.id, dev.name));

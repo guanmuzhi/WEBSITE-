@@ -115,7 +115,11 @@ class UserSwitcher {
             }
             const avatar = document.createElement('div');
             avatar.className = 'user-switcher-avatar';
-            avatar.textContent = user.username.charAt(0).toUpperCase();
+            const avatarImg = document.createElement('img');
+            avatarImg.src = user.avatar || '/apps/icons/user-avatar.svg';
+            avatarImg.alt = user.username;
+            avatarImg.draggable = false;
+            avatar.appendChild(avatarImg);
             item.appendChild(avatar);
             const name = document.createElement('div');
             name.className = 'user-switcher-name';

@@ -624,9 +624,15 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ecf0f1;
-    font-size: 14px;
+    overflow: hidden;
     flex-shrink: 0;
+}
+.user-switcher-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
 }
 .user-switcher-name {
     color: #ecf0f1;

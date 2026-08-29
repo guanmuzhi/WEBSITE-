@@ -55,7 +55,7 @@ class LockScreen {
         return this.defaultAvatarUrl;
     }
 
-    /** 构造头像元素（纯 <img>，失败也用 onerror 兜底为字母/默认 SVG） */
+    /** 构造头像元素（纯 <img>，彻底无文字 fallback） */
     _buildAvatarEl(user) {
         const url = this._getAvatarFor(user);
         const img = document.createElement('img');
@@ -65,18 +65,13 @@ class LockScreen {
         img.decoding = 'async';
         img.src = url;
         img.onerror = () => {
-            // SVG 也挂了 → 退化成字母圆
-            try {
-                const letter = user && user.username ? (user.username.charAt(0) || '?').toUpperCase() : '?';
-                img.style.display = 'none';
-                const parent = img.parentElement;
-                if (parent && !parent.querySelector('.lock-avatar-fallback')) {
-                    const fb = document.createElement('div');
-                    fb.className = 'lock-avatar-fallback';
-                    fb.textContent = letter;
-                    parent.appendChild(fb);
-                }
-            } catch (_) {}
+            // 防止无限循环：如果当前已经是默认 SVG 还挂了就放弃
+            if (img.src === window.location.origin + '/apps/icons/user-avatar.svg' ||
+                img.src.endsWith('/apps/icons/user-avatar.svg')) {
+                img.style.visibility = 'hidden';
+                return;
+            }
+            img.src = '/apps/icons/user-avatar.svg';
         };
         return img;
     }
