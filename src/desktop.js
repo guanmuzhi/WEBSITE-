@@ -1,7 +1,7 @@
-import UserManager from './user-manager.js?v=30';
-import LockScreen from './lock-screen.js?v=30';
-import StorageService from './storage.js?v=30';
-import { Path } from './lib/index.js?v=30';
+import UserManager from './user-manager.js?v=31';
+import LockScreen from './lock-screen.js?v=31';
+import StorageService from './storage.js?v=31';
+import { Path } from './lib/index.js?v=31';
 class DesktopManager {
     constructor(options = {}) {
         this.desktopEl = options.desktopEl || null;

@@ -1,5 +1,5 @@
-import UserManager from './user-manager.js?v=30';
-import StorageService from './storage.js?v=30';
+import UserManager from './user-manager.js?v=31';
+import StorageService from './storage.js?v=31';
 
 // ── 内联对话框样式（避免依赖外部 CSS；iframe 应用调 window.parent.Dialogs 也能直接看到样式） ──
 const DIALOG_CSS = `

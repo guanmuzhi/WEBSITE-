@@ -1,4 +1,4 @@
-import UserManager from './user-manager.js?v=30';
+import UserManager from './user-manager.js?v=31';
 /**
  * LockScreen · v1.6 重新设计
  *  - Glass morphism 玻璃态卡片
@@ -8,20 +8,26 @@ import UserManager from './user-manager.js?v=30';
  */
 class LockScreen {
     constructor(options = {}) {
-        this.userManager = UserManager.getInstance();
-        this.onUnlock = options.onUnlock || null;
-        this.onUserSwitch = options.onUserSwitch || null;
-        this.el = null;
-        this.lang = localStorage.getItem('webos-language') || 'cmn';
-        this.langStrings = {};
-        this._particlesCanvas = null;
-        this._particlesAnim = null;
-        this._clockTimer = null;
-        this._create();
-        this._loadLanguage();
-        document.addEventListener('language-changed', (e) => {
-            if (e.detail && e.detail.lang) { this.lang = e.detail.lang; this._loadLanguage(); }
-        });
+        try {
+            this.userManager = UserManager.getInstance();
+            this.onUnlock = options.onUnlock || null;
+            this.onUserSwitch = options.onUserSwitch || null;
+            this.el = null;
+            this.lang = localStorage.getItem('webos-language') || 'cmn';
+            this.langStrings = {};
+            this._particlesCanvas = null;
+            this._particlesAnim = null;
+            this._clockTimer = null;
+            this._create();
+            this._loadLanguage();
+            document.addEventListener('language-changed', (e) => {
+                try {
+                    if (e.detail && e.detail.lang) { this.lang = e.detail.lang; this._loadLanguage(); }
+                } catch (_) {}
+            });
+        } catch (e) {
+            console.error('LockScreen construction failed:', e);
+        }
     }
     async _loadLanguage() {
         const langFiles = { cmn: '/languages/cmn.json', eng: '/languages/eng.json', jpn: '/languages/jpn.json' };
@@ -65,185 +71,196 @@ class LockScreen {
     }
 
     _create() {
-        const existing = document.querySelector('.lock-screen');
-        if (existing) existing.remove();
-        const overlay = document.createElement('div');
-        overlay.className = 'lock-screen';
+        try {
+            const existing = document.querySelector('.lock-screen');
+            if (existing) existing.remove();
+            const overlay = document.createElement('div');
+            overlay.className = 'lock-screen';
 
-        // ── 1. 粒子画布 ──
-        const canvas = document.createElement('canvas');
-        canvas.className = 'lock-particles';
-        overlay.appendChild(canvas);
-        this._particlesCanvas = canvas;
-        this._initParticles();
+            // ── 1. 粒子画布（失败则跳过动画，不让锁屏挂掉） ──
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.className = 'lock-particles';
+                overlay.appendChild(canvas);
+                this._particlesCanvas = canvas;
+                this._initParticles();
+            } catch (_) { this._particlesCanvas = null; }
 
-        // ── 2. 顶部大时钟 ──
-        const clockArea = document.createElement('div');
-        clockArea.className = 'lock-clock-area';
-        clockArea.innerHTML = `
-            <div class="lock-clock-time" id="lock-clock-time">00:00</div>
-            <div class="lock-clock-date" id="lock-clock-date">—</div>
-            <div class="lock-clock-weekday" id="lock-clock-weekday">—</div>
-        `;
-        overlay.appendChild(clockArea);
+            // ── 2. 顶部大时钟 ──
+            const clockArea = document.createElement('div');
+            clockArea.className = 'lock-clock-area';
+            clockArea.innerHTML = `
+                <div class="lock-clock-time" id="lock-clock-time">00:00</div>
+                <div class="lock-clock-date" id="lock-clock-date">—</div>
+                <div class="lock-clock-weekday" id="lock-clock-weekday">—</div>
+            `;
+            overlay.appendChild(clockArea);
 
-        // ── 3. 底部版本 + 提示条 ──
-        const bottomBar = document.createElement('div');
-        bottomBar.className = 'lock-bottom-bar';
-        bottomBar.innerHTML = `
-            <span class="lock-hint" id="lock-bottom-hint">${this.t('lock.bottomHint', '点击屏幕任意位置 · 或按任意键开始')}</span>
-            <span class="lock-version">navore OS v1.6</span>
-        `;
-        overlay.appendChild(bottomBar);
-        this._hintEl = bottomBar.querySelector('#lock-bottom-hint');
-        this._clockTimeEl = clockArea.querySelector('#lock-clock-time');
-        this._clockDateEl = clockArea.querySelector('#lock-clock-date');
-        this._clockWeekdayEl = clockArea.querySelector('#lock-clock-weekday');
-        this._startClock();
+            // ── 3. 底部版本 + 提示条 ──
+            const bottomBar = document.createElement('div');
+            bottomBar.className = 'lock-bottom-bar';
+            bottomBar.innerHTML = `
+                <span class="lock-hint" id="lock-bottom-hint">点击屏幕任意位置 · 或按任意键开始</span>
+                <span class="lock-version">navore OS v1.6</span>
+            `;
+            overlay.appendChild(bottomBar);
+            this._hintEl = bottomBar.querySelector('#lock-bottom-hint');
+            this._clockTimeEl = clockArea.querySelector('#lock-clock-time');
+            this._clockDateEl = clockArea.querySelector('#lock-clock-date');
+            this._clockWeekdayEl = clockArea.querySelector('#lock-clock-weekday');
+            this._startClock();
 
-        // ── 4. 中央 Glass 登录卡 ──
-        const lockWindow = document.createElement('div');
-        lockWindow.className = 'lock-window';
+            // ── 4. 中央 Glass 登录卡 ──
+            const lockWindow = document.createElement('div');
+            lockWindow.className = 'lock-window';
 
-        const titlebar = document.createElement('div');
-        titlebar.className = 'lock-window-titlebar';
-        const title = document.createElement('span');
-        title.className = 'lock-window-title';
-        title.textContent = this.t('lock.title', 'navore OS');
-        titlebar.appendChild(title);
-        const controls = document.createElement('div');
-        controls.className = 'lock-window-controls';
-        const minBtn = document.createElement('button');
-        minBtn.className = 'window-btn btn-minimize';
-        minBtn.title = this.t('lock.minimize', '最小化');
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'window-btn btn-close';
-        closeBtn.title = this.t('lock.close', '关闭');
-        controls.appendChild(minBtn);
-        controls.appendChild(closeBtn);
-        titlebar.appendChild(controls);
+            const titlebar = document.createElement('div');
+            titlebar.className = 'lock-window-titlebar';
+            const title = document.createElement('span');
+            title.className = 'lock-window-title';
+            title.textContent = 'navore OS';
+            titlebar.appendChild(title);
+            const controls = document.createElement('div');
+            controls.className = 'lock-window-controls';
+            const minBtn = document.createElement('button');
+            minBtn.className = 'window-btn btn-minimize';
+            minBtn.title = '最小化';
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'window-btn btn-close';
+            closeBtn.title = '关闭';
+            controls.appendChild(minBtn);
+            controls.appendChild(closeBtn);
+            titlebar.appendChild(controls);
 
-        // 主体
-        const body = document.createElement('div');
-        body.className = 'lock-window-body';
-        const header = document.createElement('div');
-        header.className = 'lock-header';
-        const avatar = document.createElement('div');
-        avatar.className = 'lock-user-avatar';
-        header.appendChild(avatar);
-        const username = document.createElement('div');
-        username.className = 'lock-username';
-        header.appendChild(username);
-        body.appendChild(header);
-        // 中部：解锁区域
-        const content = document.createElement('div');
-        content.className = 'lock-content';
-        body.appendChild(content);
-        const error = document.createElement('div');
-        error.className = 'lock-error';
-        content.appendChild(error);
-        // 底部：用户列表
-        const userListHeader = document.createElement('div');
-        userListHeader.className = 'lock-user-list-header';
-        userListHeader.textContent = this.t('lock.switchUser', '切换用户 · Switch User');
-        body.appendChild(userListHeader);
-        const userList = document.createElement('div');
-        userList.className = 'lock-user-list';
-        body.appendChild(userList);
+            // 主体
+            const body = document.createElement('div');
+            body.className = 'lock-window-body';
+            const header = document.createElement('div');
+            header.className = 'lock-header';
+            const avatar = document.createElement('div');
+            avatar.className = 'lock-user-avatar';
+            header.appendChild(avatar);
+            const username = document.createElement('div');
+            username.className = 'lock-username';
+            header.appendChild(username);
+            body.appendChild(header);
+            // 中部：解锁区域
+            const content = document.createElement('div');
+            content.className = 'lock-content';
+            body.appendChild(content);
+            const error = document.createElement('div');
+            error.className = 'lock-error';
+            content.appendChild(error);
+            // 底部：用户列表
+            const userListHeader = document.createElement('div');
+            userListHeader.className = 'lock-user-list-header';
+            userListHeader.textContent = '切换用户 · Switch User';
+            body.appendChild(userListHeader);
+            const userList = document.createElement('div');
+            userList.className = 'lock-user-list';
+            body.appendChild(userList);
 
-        lockWindow.appendChild(titlebar);
-        lockWindow.appendChild(body);
-        overlay.appendChild(lockWindow);
-        document.body.appendChild(overlay);
+            lockWindow.appendChild(titlebar);
+            lockWindow.appendChild(body);
+            overlay.appendChild(lockWindow);
+            document.body.appendChild(overlay);
 
-        this.el = overlay;
-        this.lockContainer = lockWindow;
-        this.lockWindow = lockWindow;
-        this.avatarEl = avatar;
-        this.usernameEl = username;
-        this.contentEl = content;
-        this.errorEl = error;
-        this.userListEl = userList;
-        this.passwordInput = null;
-        this._setupDrag(titlebar, lockWindow);
+            this.el = overlay;
+            this.lockContainer = lockWindow;
+            this.lockWindow = lockWindow;
+            this.avatarEl = avatar;
+            this.usernameEl = username;
+            this.contentEl = content;
+            this.errorEl = error;
+            this.userListEl = userList;
+            this.passwordInput = null;
+            try { this._setupDrag(titlebar, lockWindow); } catch (_) {}
 
-        // 开始/任意键唤醒
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay && this.passwordInput) {
-                this.passwordInput.focus();
-            }
-        });
-        const onWakeKey = (e) => {
-            if (this.el.style.display !== 'none' && this.passwordInput && document.activeElement !== this.passwordInput) {
-                this.passwordInput.focus();
-                e.preventDefault();
-            }
-        };
-        document.addEventListener('keydown', onWakeKey);
-        this._onWakeKeyCleanup = () => document.removeEventListener('keydown', onWakeKey);
+            // 开始/任意键唤醒
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay && this.passwordInput) {
+                    this.passwordInput.focus();
+                }
+            });
+            const onWakeKey = (e) => {
+                if (this.el.style.display !== 'none' && this.passwordInput && document.activeElement !== this.passwordInput) {
+                    this.passwordInput.focus();
+                    e.preventDefault();
+                }
+            };
+            document.addEventListener('keydown', onWakeKey);
+            this._onWakeKeyCleanup = () => document.removeEventListener('keydown', onWakeKey);
 
-        this._render();
+            this._render();
+        } catch (e) {
+            console.error('LockScreen _create failed:', e);
+        }
     }
 
     // ========== 动态粒子背景 ==========
     _initParticles() {
-        const canvas = this._particlesCanvas;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        const DPR = Math.min(window.devicePixelRatio || 1, 2);
-        const resize = () => {
-            canvas.width = window.innerWidth * DPR;
-            canvas.height = window.innerHeight * DPR;
-            canvas.style.width = window.innerWidth + 'px';
-            canvas.style.height = window.innerHeight + 'px';
-            ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-        };
-        resize();
-        window.addEventListener('resize', resize);
-        const N = Math.max(32, Math.floor((window.innerWidth * window.innerHeight) / 28000));
-        const particles = Array.from({ length: N }, () => ({
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
-            r: Math.random() * 1.8 + 0.4,
-            vx: (Math.random() - 0.5) * 0.25,
-            vy: (Math.random() - 0.5) * 0.25,
-            a:  Math.random() * 0.55 + 0.15,
-            hue: 170 + Math.random() * 90,  // cyan → violet
-        }));
-        const step = () => {
-            ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-            const W = window.innerWidth, H = window.innerHeight;
-            // 连线（近距离）
-            for (let i = 0; i < particles.length; i++) {
-                const p = particles[i];
-                p.x += p.vx; p.y += p.vy;
-                if (p.x < 0 || p.x > W) p.vx *= -1;
-                if (p.y < 0 || p.y > H) p.vy *= -1;
-                for (let j = i + 1; j < particles.length; j++) {
-                    const q = particles[j];
-                    const dx = p.x - q.x, dy = p.y - q.y;
-                    const d2 = dx * dx + dy * dy;
-                    if (d2 < 150 * 150) {
-                        const alpha = (1 - Math.sqrt(d2) / 150) * 0.18;
-                        ctx.strokeStyle = `hsla(${(p.hue + q.hue) * 0.5}, 85%, 72%, ${alpha})`;
-                        ctx.lineWidth = 0.6;
-                        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+        try {
+            const canvas = this._particlesCanvas;
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return; // 浏览器不支持 Canvas，直接跳过
+            const DPR = Math.min(window.devicePixelRatio || 1, 2);
+            const resize = () => {
+                try {
+                    canvas.width = window.innerWidth * DPR;
+                    canvas.height = window.innerHeight * DPR;
+                    canvas.style.width = window.innerWidth + 'px';
+                    canvas.style.height = window.innerHeight + 'px';
+                    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+                } catch (_) {}
+            };
+            resize();
+            window.addEventListener('resize', resize);
+            const N = Math.max(32, Math.floor((window.innerWidth * window.innerHeight) / 28000));
+            const particles = Array.from({ length: N }, () => ({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                r: Math.random() * 1.8 + 0.4,
+                vx: (Math.random() - 0.5) * 0.25,
+                vy: (Math.random() - 0.5) * 0.25,
+                a:  Math.random() * 0.55 + 0.15,
+                hue: 170 + Math.random() * 90,
+            }));
+            const step = () => {
+                try {
+                    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+                    const W = window.innerWidth, H = window.innerHeight;
+                    for (let i = 0; i < particles.length; i++) {
+                        const p = particles[i];
+                        p.x += p.vx; p.y += p.vy;
+                        if (p.x < 0 || p.x > W) p.vx *= -1;
+                        if (p.y < 0 || p.y > H) p.vy *= -1;
+                        for (let j = i + 1; j < particles.length; j++) {
+                            const q = particles[j];
+                            const dx = p.x - q.x, dy = p.y - q.y;
+                            const d2 = dx * dx + dy * dy;
+                            if (d2 < 150 * 150) {
+                                const alpha = (1 - Math.sqrt(d2) / 150) * 0.18;
+                                ctx.strokeStyle = `hsla(${(p.hue + q.hue) * 0.5}, 85%, 72%, ${alpha})`;
+                                ctx.lineWidth = 0.6;
+                                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+                            }
+                        }
                     }
-                }
-            }
-            // 光点
-            for (const p of particles) {
-                const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4);
-                g.addColorStop(0, `hsla(${p.hue}, 90%, 78%, ${p.a})`);
-                g.addColorStop(1, `hsla(${p.hue}, 90%, 78%, 0)`);
-                ctx.fillStyle = g;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 4, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = `hsla(${p.hue}, 100%, 92%, ${Math.min(1, p.a + 0.2)})`;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
-            }
-            this._particlesAnim = requestAnimationFrame(step);
-        };
-        step();
+                    for (const p of particles) {
+                        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4);
+                        g.addColorStop(0, `hsla(${p.hue}, 90%, 78%, ${p.a})`);
+                        g.addColorStop(1, `hsla(${p.hue}, 90%, 78%, 0)`);
+                        ctx.fillStyle = g;
+                        ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 4, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = `hsla(${p.hue}, 100%, 92%, ${Math.min(1, p.a + 0.2)})`;
+                        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+                    }
+                    this._particlesAnim = requestAnimationFrame(step);
+                } catch (_) { /* particle loop broken; silently stop */ }
+            };
+            step();
+        } catch (_) { /* 粒子初始化完全失败，锁屏仍应正常显示 */ }
     }
 
     // ========== 时钟 ==========
@@ -645,32 +662,50 @@ class LockScreen {
     }
 
     unlock() {
-        const user = this.userManager.getCurrentUser();
-        if (!user) return;
-        if (!user.password) { this._onUnlockSuccess(); return; }
-        const inputPwd = this.passwordInput ? this.passwordInput.value : '';
-        if (this.userManager.verifyPassword(user.username, inputPwd)) this._onUnlockSuccess();
-        else {
-            this.errorEl.textContent = this.t('lock.passwordError', '密码错误');
-            if (this.passwordInput) {
-                this.lockWindow.animate(
-                    [{ transform: 'translateX(0)' }, { transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'translateX(0)' }],
-                    { duration: 260, easing: 'ease-in-out' }
-                );
-                this.passwordInput.value = '';
-                this.passwordInput.focus();
+        try {
+            const user = this.userManager.getCurrentUser();
+            if (!user) return;
+            if (!user.password) { this._onUnlockSuccess(); return; }
+            const inputPwd = this.passwordInput ? this.passwordInput.value : '';
+            if (this.userManager.verifyPassword(user.username, inputPwd)) this._onUnlockSuccess();
+            else {
+                if (this.errorEl) this.errorEl.textContent = '密码错误';
+                if (this.passwordInput && this.lockWindow && typeof this.lockWindow.animate === 'function') {
+                    try {
+                        this.lockWindow.animate(
+                            [{ transform: 'translateX(0)' }, { transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'translateX(0)' }],
+                            { duration: 260, easing: 'ease-in-out' }
+                        );
+                    } catch (_) {}
+                    this.passwordInput.value = '';
+                    this.passwordInput.focus();
+                }
             }
-        }
+        } catch (e) { console.error('unlock failed:', e); }
     }
 
     _onUnlockSuccess() {
-        // 成功进入桌面的滑出动画
-        this.el.animate([
-            { opacity: 1, transform: 'translateY(0)', filter: 'blur(0)' },
-            { opacity: 0, transform: 'translateY(-20px)', filter: 'blur(12px)' }
-        ], { duration: 360, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' })
-            .addEventListener('finish', () => { this.hide(); this.el.style.opacity = ''; this.el.style.transform = ''; this.el.style.filter = ''; });
-        if (typeof this.onUnlock === 'function') this.onUnlock();
+        // 成功进入桌面的滑出动画（只使用 Web Animations API 可靠支持的属性：opacity + transform）
+        try {
+            if (this.el && typeof this.el.animate === 'function') {
+                const anim = this.el.animate([
+                    { opacity: 1, transform: 'translateY(0)' },
+                    { opacity: 0, transform: 'translateY(-20px)' }
+                ], { duration: 360, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' });
+                anim.addEventListener('finish', () => {
+                    this.hide();
+                    if (this.el) {
+                        this.el.style.opacity = '';
+                        this.el.style.transform = '';
+                    }
+                });
+            } else {
+                this.hide();
+            }
+        } catch (_) {
+            this.hide();
+        }
+        try { if (typeof this.onUnlock === 'function') this.onUnlock(); } catch (_) {}
     }
 
     switchUser(username) {

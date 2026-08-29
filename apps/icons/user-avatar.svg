@@ -1,52 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-  <defs>
-    <linearGradient id="avatarBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#fddbb4;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#f5c394;stop-opacity:1" />
-    </linearGradient>
-    <radialGradient id="hairGrad" cx="50%" cy="30%" r="60%">
-      <stop offset="0%" style="stop-color:#4a3728;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#2d1f15;stop-opacity:1" />
-    </radialGradient>
-    <linearGradient id="shirtGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#5fa8d3;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#3a7ca5;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <!-- 背景圆 -->
-  <circle cx="64" cy="64" r="62" fill="url(#avatarBg)" />
-  <circle cx="64" cy="64" r="62" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" />
-  <!-- 身体/肩膀 -->
-  <path d="M12 128 Q12 92 42 84 L48 84 Q52 78 64 78 Q76 78 80 84 L86 84 Q116 92 116 128 Z" fill="url(#shirtGrad)" />
-  <!-- 衣领 -->
-  <path d="M54 82 L64 94 L74 82 Q70 88 64 90 Q58 88 54 82 Z" fill="#fff" opacity="0.85" />
-  <!-- 脖子 -->
-  <rect x="58" y="70" width="12" height="16" rx="4" fill="url(#skinGrad)" />
-  <!-- 头部 -->
-  <circle cx="64" cy="56" r="26" fill="url(#skinGrad)" />
-  <!-- 头发（顶部） -->
-  <path d="M38 52 Q36 34 56 28 Q72 22 86 32 Q92 42 90 54 Q86 48 80 46 Q78 38 70 38 Q60 36 56 42 Q50 44 46 50 Q42 52 38 52 Z" fill="url(#hairGrad)" />
-  <!-- 鬓角 -->
-  <path d="M40 54 Q38 66 44 72 Q42 66 42 60 Q42 56 40 54 Z" fill="url(#hairGrad)" opacity="0.85" />
-  <path d="M88 54 Q90 66 84 72 Q86 66 86 60 Q86 56 88 54 Z" fill="url(#hairGrad)" opacity="0.85" />
-  <!-- 眼睛（左眼） -->
-  <ellipse cx="53" cy="56" rx="3.2" ry="3.8" fill="#2d1f15" />
-  <circle cx="52" cy="55" r="1" fill="#fff" />
-  <!-- 眼睛（右眼） -->
-  <ellipse cx="75" cy="56" rx="3.2" ry="3.8" fill="#2d1f15" />
-  <circle cx="74" cy="55" r="1" fill="#fff" />
-  <!-- 眉毛 -->
-  <path d="M47 48 Q53 46 59 48" stroke="#3a2a1c" stroke-width="2" stroke-linecap="round" fill="none" />
-  <path d="M69 48 Q75 46 81 48" stroke="#3a2a1c" stroke-width="2" stroke-linecap="round" fill="none" />
-  <!-- 鼻子 -->
-  <path d="M64 60 Q62 65 61 67 Q63 68 64 68 Q65 68 67 67 Q66 65 64 60" fill="none" stroke="#d4a373" stroke-width="1.5" stroke-linecap="round" />
-  <!-- 嘴巴（微笑） -->
-  <path d="M56 72 Q64 78 72 72" stroke="#b5651d" stroke-width="2" stroke-linecap="round" fill="none" />
-  <!-- 腮红 -->
-  <ellipse cx="46" cy="65" rx="4" ry="2.4" fill="#f4a6a6" opacity="0.55" />
-  <ellipse cx="82" cy="65" rx="4" ry="2.4" fill="#f4a6a6" opacity="0.55" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" aria-hidden="true">
+  <!-- 半透明圆形底 -->
+  <circle cx="64" cy="64" r="60" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>
+  <!-- 白色 outline 人物图标（Material Person 风格） -->
+  <g fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- 头 -->
+    <circle cx="64" cy="50" r="18"/>
+    <!-- 肩膀弧线 -->
+    <path d="M26 104 C 26 78, 102 78, 102 104"/>
+  </g>
 </svg>
