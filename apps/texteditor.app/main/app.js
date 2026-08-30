@@ -60,8 +60,12 @@ class TextEditor {
         this.updateStats();
         this.updateSaveStatus();
     }
-    showAlert(message) {
-        return new Promise((resolve) => {
+    async showAlert(message) {
+        try {
+            const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+            if (Dlg && typeof Dlg.showAlert === 'function') { await Dlg.showAlert(message, this.t('editor.title_info', '提示')); return; }
+        } catch (_) {}
+        return await new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
             const dialog = document.createElement('div');
@@ -125,8 +129,12 @@ class TextEditor {
         if (i === 0) return '/';
         return path.slice(0, i);
     }
-    showPrompt(message, defaultValue = '') {
-        return new Promise((resolve) => {
+    async showPrompt(message, defaultValue = '') {
+        try {
+            const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+            if (Dlg && typeof Dlg.showPrompt === 'function') return await Dlg.showPrompt(message, defaultValue, this.t('editor.title_input', '输入'));
+        } catch (_) {}
+        return await new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
             const dialog = document.createElement('div');
@@ -169,8 +177,12 @@ class TextEditor {
             input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { document.body.removeChild(overlay); resolve(input.value); } else if (e.key === 'Escape') { document.body.removeChild(overlay); resolve(null); } });
         });
     }
-    showConfirm(message) {
-        return new Promise((resolve) => {
+    async showConfirm(message) {
+        try {
+            const Dlg = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+            if (Dlg && typeof Dlg.showConfirm === 'function') return await Dlg.showConfirm(message, this.t('editor.title_confirm', '确认'));
+        } catch (_) {}
+        return await new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
             const dialog = document.createElement('div');
@@ -205,12 +217,10 @@ class TextEditor {
             setTimeout(() => confirmBtn.focus(), 50);
         });
     }
-    newFile() {
+    async newFile() {
         if (!this.isSaved && this.textarea.value.trim()) {
-            this.showConfirm(this.t('editor.confirm_discard')).then((confirmed) => {
-                if (confirmed) { this.textarea.value = ''; this.filenameInput.value = ''; this.currentFile = ''; this.currentPath = ''; this.isSaved = true; this.updateStats(); this.updateSaveStatus(); }
-            });
-            return;
+            const confirmed = await this.showConfirm(this.t('editor.confirm_discard'));
+            if (!confirmed) return;
         }
         this.textarea.value = ''; this.filenameInput.value = ''; this.currentFile = ''; this.currentPath = ''; this.isSaved = true; this.updateStats(); this.updateSaveStatus();
     }
@@ -219,10 +229,41 @@ class TextEditor {
         if (content === null) { this.showAlert(this.t('editor.file_not_found').replace('{file}', path)); return; }
         this.textarea.value = content; this.filenameInput.value = path; this.currentFile = path.split('/').pop(); this.currentPath = path; this.isSaved = true; this.updateStats(); this.updateSaveStatus();
     }
-    saveFile() {
-        let path = this.filenameInput.value.trim();
-        if (!path) { this.showPrompt(this.t('editor.prompt_path')).then((inputPath) => { if (inputPath) { this.filenameInput.value = inputPath; this.doSaveFile(inputPath); } }); return; }
-        this.doSaveFile(path);
+    async _pickSavePath({ title, suggestName, startPath } = {}) {
+        // 优先使用层层点击式文件对话框；失败/不可用时才退化成路径输入
+        const Dlg = await this._waitForDialogs();
+        if (Dlg && typeof Dlg.showSaveFileDialog === 'function') {
+            const r = await Dlg.showSaveFileDialog({
+                title: title || this.t('editor.save_as', '另存为'),
+                extensions: this._textExts(),
+                startPath: startPath || null,
+                defaultFileName: (suggestName || '').trim() || this.t('editor.default_filename', '未命名.txt'),
+            });
+            return r && r.path ? String(r.path) : null;
+        }
+        // 退化路径：整路径输入（不推荐，但兜底保留）
+        const message = this.t('editor.prompt_new_path', '请输入新文件路径：');
+        const fallbackDefault = (startPath ? startPath + '/' : '') + (suggestName || this.t('editor.default_filename', '未命名.txt'));
+        const input = await this.showPrompt(message, fallbackDefault);
+        return input ? String(input).trim() || null : null;
+    }
+    async saveFile() {
+        const path = (this.filenameInput ? this.filenameInput.value : '').trim();
+        if (path) { this.doSaveFile(path); return; }
+        try {
+            const defaultName = this.currentFile || this.t('editor.default_filename', '未命名.txt');
+            const start = this.currentPath ? this._parentOf(this.currentPath) : null;
+            const newPath = await this._pickSavePath({
+                title: this.t('editor.save', '保存文件'),
+                suggestName: defaultName,
+                startPath: start,
+            });
+            if (!newPath) return;
+            this.filenameInput.value = newPath;
+            this.doSaveFile(newPath);
+        } catch (e) {
+            this.showAlert(this.t('editor.save_failed', '保存失败: ') + (e.message || e));
+        }
     }
     doSaveFile(path) {
         this.storage.writeFile(path, this.textarea.value);
@@ -232,23 +273,18 @@ class TextEditor {
     }
     async saveAs() {
         try {
-            const Dlg = await this._waitForDialogs();
-            if (!Dlg || !Dlg.showSaveFileDialog) {
-                const newPath = await this.showPrompt(this.t('editor.prompt_new_path'), this.currentPath || '');
-                if (newPath) { this.filenameInput.value = newPath; this.saveFile(); }
-                return;
-            }
-            const defaultName = this.currentFile || (this.filenameInput ? this.filenameInput.value : '') || '未命名.txt';
+            const defaultName = this.currentFile
+                || (this.filenameInput ? this.filenameInput.value.split('/').pop() : '')
+                || this.t('editor.default_filename', '未命名.txt');
             const startPath = this.currentPath ? this._parentOf(this.currentPath) : null;
-            const result = await Dlg.showSaveFileDialog({
+            const newPath = await this._pickSavePath({
                 title: this.t('editor.save_as', '另存为'),
-                extensions: this._textExts(),
+                suggestName: defaultName,
                 startPath,
-                defaultFileName: defaultName,
             });
-            if (!result || !result.path) return;
-            this.filenameInput.value = result.path;
-            this.doSaveFile(result.path);
+            if (!newPath) return;
+            this.filenameInput.value = newPath;
+            this.doSaveFile(newPath);
         } catch (e) {
             this.showAlert(this.t('editor.save_failed', '保存失败: ') + (e.message || e));
         }
