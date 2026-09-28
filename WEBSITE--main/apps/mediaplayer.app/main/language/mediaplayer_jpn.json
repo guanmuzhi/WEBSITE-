@@ -1,0 +1,21 @@
+{
+    "strings": {
+        "app.mediaplayer": "メディアプレーヤー",
+        "mp.no_file": "ファイルが選択されていません",
+        "mp.no_audio": "オーディオが選択されていません",
+        "mp.unknown_artist": "不明なアーティスト",
+        "mp.no_media": "メディアファイルがありません",
+        "mp.local_file": "ローカルファイル",
+        "mp.video": "動画",
+        "mp.audio": "音声",
+        "mp.duration": "再生時間:",
+        "mp.type": "種類:",
+        "mp.file_not_found": "ファイル \"{path}\" は存在しません",
+        "mp.unsupported_format": "サポートされていないファイル形式: {ext}",
+        "mp.prev": "前へ",
+        "mp.next": "次へ",
+        "mp.play_pause": "再生/一時停止",
+        "mp.volume": "音量",
+        "mp.fullscreen": "全画面"
+    }
+}

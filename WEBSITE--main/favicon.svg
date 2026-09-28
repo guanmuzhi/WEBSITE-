@@ -1,0 +1,20 @@
+<svg width="600" height="600" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- 倾斜行星环，后段 -->
+  <ellipse cx="300" cy="300" rx="210" ry="55" fill="none" stroke="#2563eb" stroke-width="28"
+           transform="rotate(22 300 300)" opacity="0.35"/>
+
+  <!-- 土星主体 -->
+  <circle cx="300" cy="300" r="150" fill="#60a5fa"/>
+
+  <!-- 倾斜行星环，前段 -->
+  <ellipse cx="300" cy="300" rx="210" ry="55" fill="none" stroke="#2563eb" stroke-width="28"
+           transform="rotate(22 300 300)" clip-path="url(#ringFrontClip)"/>
+
+  <!-- 前段环遮罩 -->
+  <defs>
+    <clipPath id="ringFrontClip">
+      <rect x="0" y="0" width="600" height="300"/>
+    </clipPath>
+  </defs>
+</svg>

@@ -1,0 +1,18 @@
+{
+    "strings": {
+        "app.imageviewer": "Image Viewer",
+        "iv.no_image_open": "No image open",
+        "iv.no_image": "No image",
+        "iv.image": "Image",
+        "iv.file": "file",
+        "iv.size": "Size:",
+        "iv.dimensions": "Dimensions:",
+        "iv.format": "Format:",
+        "iv.unknown": "Unknown",
+        "iv.loading": "Loading",
+        "iv.file_not_found": "File \"{path}\" does not exist",
+        "iv.unsupported_format": "Unsupported image format: {name}",
+        "iv.empty_content": "Image content is empty",
+        "iv.load_failed": "Failed to load image"
+    }
+}

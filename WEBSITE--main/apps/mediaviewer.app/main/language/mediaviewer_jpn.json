@@ -1,0 +1,33 @@
+{
+    "strings": {
+        "app.mediaviewer": "メディアビューア",
+        "mv.no_file": "ファイルが開かれていません",
+        "mv.placeholder_text": "「開く」ボタンをクリックしてファイルを選択してください",
+        "mv.placeholder_hint": "画像・動画・音声フォーマットをサポート",
+        "mv.loading": "読み込み中...",
+        "mv.unknown": "不明",
+        "mv.local_file": "ローカルファイル",
+        "mv.size": "サイズ:",
+        "mv.dimensions": "寸法:",
+        "mv.format": "形式:",
+        "mv.duration": "再生時間:",
+        "mv.image": "画像",
+        "mv.video": "動画",
+        "mv.audio": "音声",
+        "mv.alert": "確認",
+        "mv.ok": "OK",
+        "mv.cancel": "キャンセル",
+        "mv.select_file": "ファイルを選択",
+        "mv.no_media_files": "サポートされているメディアファイルが見つかりません",
+        "mv.file_not_found": "ファイル \"{path}\" は存在しません",
+        "mv.unsupported_format": "サポートされていないファイル形式: {name}",
+        "mv.empty_content": "画像の内容が空です",
+        "mv.load_failed": "画像の読み込みに失敗しました",
+        "mv.open": "ファイルを開く",
+        "mv.zoom_in": "拡大",
+        "mv.zoom_out": "縮小",
+        "mv.play_pause": "再生/一時停止",
+        "mv.prev": "前へ",
+        "mv.next": "次へ"
+    }
+}

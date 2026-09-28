@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置</title>
+    <link rel="stylesheet" href="../../common.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="settings-container">
+        <div class="settings-sidebar">
+            <div class="settings-nav-item active" data-section="system">系统信息</div>
+            <div class="settings-nav-item" data-section="user">用户信息</div>
+            <div class="settings-nav-item" data-section="personalization">个性化</div>
+            <div class="settings-nav-item" data-section="language">语言</div>
+        </div>
+        <div class="settings-content">
+            <section id="section-system" class="settings-section active">
+                <h2>系统信息</h2>
+                <h3>操作系统</h3>
+                <div class="info-grid">
+                    <div class="info-row"><span id="sys-name-label" class="info-label">系统名称</span><span id="sys-name" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-version-label" class="info-label">系统版本</span><span id="sys-version" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-os-label" class="info-label">宿主系统</span><span id="sys-os" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-browser-label" class="info-label">浏览器引擎</span><span id="sys-browser" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-useragent-label" class="info-label">User-Agent</span><span id="sys-useragent" class="info-value"></span></div>
+                </div>
+                <h3>硬件</h3>
+                <div class="info-grid">
+                    <div class="info-row"><span id="sys-cpu-label" class="info-label">CPU 核心数</span><span id="sys-cpu" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-memory-label" class="info-label">内存容量</span><span id="sys-memory" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-gpu-label" class="info-label">GPU / 渲染器</span><span id="sys-gpu" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-gpu-vendor-label" class="info-label">GPU 厂商</span><span id="sys-gpu-vendor" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-display-label" class="info-label">屏幕分辨率</span><span id="sys-display" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-dpr-label" class="info-label">像素密度 (DPR)</span><span id="sys-dpr" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-color-depth-label" class="info-label">色深</span><span id="sys-color-depth" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-orientation-label" class="info-label">屏幕方向</span><span id="sys-orientation" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-audio-label" class="info-label">音频输出</span><span id="sys-audio" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-network-label" class="info-label">网络类型</span><span id="sys-network" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-storage-label" class="info-label">存储配额</span><span id="sys-storage" class="info-value"></span></div>
+                </div>
+                <h3>环境</h3>
+                <div class="info-grid">
+                    <div class="info-row"><span id="sys-online-label" class="info-label">在线状态</span><span id="sys-online" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-tz-label" class="info-label">时区</span><span id="sys-tz" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-language-label" class="info-label">系统语言</span><span id="sys-language" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-platform-label" class="info-label">平台</span><span id="sys-platform" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-touch-label" class="info-label">触屏支持</span><span id="sys-touch" class="info-value"></span></div>
+                    <div class="info-row"><span id="sys-timezone-offset-label" class="info-label">UTC 偏移</span><span id="sys-timezone-offset" class="info-value"></span></div>
+                </div>
+            </section>
+            <section id="section-user" class="settings-section">
+                <h2>用户信息</h2>
+                <div class="user-avatar-section">
+                    <div class="user-avatar-wrapper">
+                        <img id="user-avatar-preview" class="user-avatar-preview" src="../../icons/user-avatar.svg" alt="头像">
+                    </div>
+                    <div class="user-avatar-actions">
+                        <button id="user-avatar-upload" class="wallpaper-upload-btn">上传头像</button>
+                        <button id="user-avatar-remove" class="wallpaper-clear-btn">移除头像</button>
+                        <input type="file" id="user-avatar-input" accept="image/*" style="display:none;">
+                    </div>
+                </div>
+                <div class="info-grid">
+                    <div class="info-row"><span id="user-name-label" class="info-label">用户名</span><span id="user-name" class="info-value"></span></div>
+                    <div class="info-row"><span id="user-created-label" class="info-label">创建时间</span><span id="user-created" class="info-value"></span></div>
+                </div>
+            </section>
+            <section id="section-personalization" class="settings-section">
+                <h2>个性化</h2>
+                <h3 id="pers-wallpaper-title">壁纸设置</h3>
+                <div class="wallpaper-type-selector">
+                    <label class="wallpaper-type-option">
+                        <input type="radio" name="wallpaper-type" value="solid" checked>
+                        <span>纯色</span>
+                    </label>
+                    <label class="wallpaper-type-option">
+                        <input type="radio" name="wallpaper-type" value="gradient">
+                        <span>渐变色</span>
+                    </label>
+                    <label class="wallpaper-type-option">
+                        <input type="radio" name="wallpaper-type" value="image">
+                        <span>图片</span>
+                    </label>
+                    <label class="wallpaper-type-option">
+                        <input type="radio" name="wallpaper-type" value="video">
+                        <span>视频</span>
+                    </label>
+                </div>
+                <div id="wallpaper-solid-panel" class="wallpaper-panel">
+                    <div class="setting-row">
+                        <span>颜色:</span>
+                        <input type="color" id="wallpaper-solid-color" value="#0c3547">
+                    </div>
+                </div>
+                <div id="wallpaper-gradient-panel" class="wallpaper-panel" style="display:none;">
+                    <div class="setting-row">
+                        <span>起始颜色:</span>
+                        <input type="color" id="wallpaper-gradient-start" value="#0c3547">
+                    </div>
+                    <div class="setting-row">
+                        <span>终止颜色:</span>
+                        <input type="color" id="wallpaper-gradient-end" value="#14a085">
+                    </div>
+                    <div class="setting-row">
+                        <span>方向:</span>
+                        <select id="wallpaper-gradient-direction">
+                            <option value="to right">水平 (左→右)</option>
+                            <option value="to bottom">垂直 (上→下)</option>
+                            <option value="135deg" selected>对角线 (左上→右下)</option>
+                            <option value="45deg">对角线 (左下→右上)</option>
+                            <option value="to right bottom">角向 (左上→右下)</option>
+                            <option value="circle">径向</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="wallpaper-image-panel" class="wallpaper-panel" style="display:none;">
+                    <div class="wallpaper-upload-row">
+                        <button id="upload-image-wallpaper" class="wallpaper-upload-btn">上传图片 (支持GIF动图)</button>
+                        <input type="file" id="image-wallpaper-input" accept="image/*" style="display:none;">
+                    </div>
+                    <div id="image-wallpaper-preview" class="wallpaper-preview" style="display:none;">
+                        <span>当前图片:</span>
+                        <span id="image-wallpaper-name"></span>
+                        <button id="image-wallpaper-clear" class="wallpaper-clear-btn">清除</button>
+                    </div>
+                </div>
+                <div id="wallpaper-video-panel" class="wallpaper-panel" style="display:none;">
+                    <div class="wallpaper-upload-row">
+                        <button id="upload-video-wallpaper" class="wallpaper-upload-btn">上传视频</button>
+                        <input type="file" id="video-wallpaper-input" accept="video/*" style="display:none;">
+                    </div>
+                    <div id="video-wallpaper-preview" class="wallpaper-preview" style="display:none;">
+                        <span>当前视频:</span>
+                        <span id="video-wallpaper-name"></span>
+                        <button id="video-wallpaper-clear" class="wallpaper-clear-btn">清除</button>
+                    </div>
+                </div>
+                <h3 id="pers-accent-title">主题色</h3>
+                <div class="accent-colors">
+                    <div class="accent-color" data-color="#3498db" style="background:#3498db;"></div>
+                    <div class="accent-color" data-color="#2ecc71" style="background:#2ecc71;"></div>
+                    <div class="accent-color" data-color="#e74c3c" style="background:#e74c3c;"></div>
+                    <div class="accent-color" data-color="#f39c12" style="background:#f39c12;"></div>
+                    <div class="accent-color" data-color="#9b59b6" style="background:#9b59b6;"></div>
+                    <div class="accent-color" data-color="#1abc9c" style="background:#1abc9c;"></div>
+                    <div class="accent-color" data-color="#e91e63" style="background:#e91e63;"></div>
+                    <div class="accent-color" data-color="#00bcd4" style="background:#00bcd4;"></div>
+                </div>
+                <h3 id="pers-appearance-title">外观</h3>
+                <div class="setting-row">
+                    <span id="pers-fontsize-label">字体大小:</span>
+                    <select id="font-size-select">
+                        <option value="12">小 (12px)</option>
+                        <option value="14" selected>中 (14px)</option>
+                        <option value="16">大 (16px)</option>
+                        <option value="18">特大 (18px)</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <span id="pers-opacity-label">窗口透明度:</span>
+                    <input type="range" id="window-opacity" min="70" max="100" value="100">
+                    <span id="opacity-value">100%</span>
+                </div>
+                <div class="setting-row toggle-row">
+                    <span id="pers-animations-label">窗口动画:</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="animations-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row toggle-row">
+                    <span id="pers-taskbar-autohide-label">任务栏自动隐藏:</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="taskbar-autohide">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <h3 id="pers-taskbar-title">任务栏外观</h3>
+                <div class="setting-row">
+                    <span id="pers-taskbar-color-label">任务栏颜色:</span>
+                    <input type="color" id="taskbar-color" value="#1abc9c" title="选择任务栏背景颜色">
+                    <span id="taskbar-color-value" style="font-size:12px;color:#999;min-width:70px;font-family:var(--font-mono);">#1abc9c</span>
+                </div>
+                <div class="setting-row">
+                    <span id="pers-taskbar-opacity-label">任务栏透明度:</span>
+                    <input type="range" id="taskbar-opacity" min="10" max="100" value="70">
+                    <span id="taskbar-opacity-value">70%</span>
+                </div>
+            </section>
+            <section id="section-language" class="settings-section">
+                <h2>语言设置</h2>
+                <div class="lang-select-row">
+                    <label id="lang-select-label" for="lang-select">选择语言:</label>
+                    <select id="lang-select">
+                        <option value="cmn">简体中文</option>
+                        <option value="eng">English</option>
+                        <option value="jpn">日本語</option>
+                    </select>
+                </div>
+            </section>
+        </div>
+    </div>
+    <div id="settings-version" class="settings-footer"></div>
+    <script src="app.js"></script>
+</body>
+</html>

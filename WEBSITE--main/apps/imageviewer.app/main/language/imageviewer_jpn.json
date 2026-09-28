@@ -1,0 +1,18 @@
+{
+    "strings": {
+        "app.imageviewer": "画像ビューア",
+        "iv.no_image_open": "画像が開いていません",
+        "iv.no_image": "画像はありません",
+        "iv.image": "画像",
+        "iv.file": "ファイル",
+        "iv.size": "サイズ:",
+        "iv.dimensions": "寸法:",
+        "iv.format": "形式:",
+        "iv.unknown": "不明",
+        "iv.loading": "読み込み中",
+        "iv.file_not_found": "ファイル \"{path}\" は存在しません",
+        "iv.unsupported_format": "サポートされていない画像形式: {name}",
+        "iv.empty_content": "画像の内容が空です",
+        "iv.load_failed": "画像の読み込みに失敗しました"
+    }
+}

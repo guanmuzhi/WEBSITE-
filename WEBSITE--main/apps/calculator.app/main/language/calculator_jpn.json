@@ -1,0 +1,10 @@
+{
+    "strings": {
+        "app.calculator": "電卓",
+        "calculator.error": "エラー",
+        "calculator.clear": "クリア",
+        "calculator.delete": "削除",
+        "common.ok": "OK",
+        "common.cancel": "キャンセル"
+    }
+}

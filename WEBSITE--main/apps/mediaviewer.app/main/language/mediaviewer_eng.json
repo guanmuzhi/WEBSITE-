@@ -1,0 +1,33 @@
+{
+    "strings": {
+        "app.mediaviewer": "Media Viewer",
+        "mv.no_file": "No file open",
+        "mv.placeholder_text": "Click the \"Open\" button to select a file",
+        "mv.placeholder_hint": "Supports image, video and audio formats",
+        "mv.loading": "Loading...",
+        "mv.unknown": "Unknown",
+        "mv.local_file": "Local file",
+        "mv.size": "Size:",
+        "mv.dimensions": "Dimensions:",
+        "mv.format": "Format:",
+        "mv.duration": "Duration:",
+        "mv.image": "Image",
+        "mv.video": "Video",
+        "mv.audio": "Audio",
+        "mv.alert": "Prompt",
+        "mv.ok": "OK",
+        "mv.cancel": "Cancel",
+        "mv.select_file": "Select File",
+        "mv.no_media_files": "No supported media files found",
+        "mv.file_not_found": "File \"{path}\" does not exist",
+        "mv.unsupported_format": "Unsupported file format: {name}",
+        "mv.empty_content": "Image content is empty",
+        "mv.load_failed": "Failed to load image",
+        "mv.open": "Open File",
+        "mv.zoom_in": "Zoom In",
+        "mv.zoom_out": "Zoom Out",
+        "mv.play_pause": "Play/Pause",
+        "mv.prev": "Previous",
+        "mv.next": "Next"
+    }
+}

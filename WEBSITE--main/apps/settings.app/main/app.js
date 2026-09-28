@@ -1,0 +1,585 @@
+class SettingsApp {
+    constructor() {
+        this.languagePack = { strings: {} };
+        this.currentLang = localStorage.getItem('webos-language') || 'cmn';
+        this.currentUser = 'public';
+        this.version = '';
+        this.init();
+    }
+    async init() {
+        await this.loadVersion();
+        await this.loadLanguagePack(this.currentLang);
+        this.setupNavigation();
+        this.loadSystemInfo();
+        this.loadUserInfo();
+        this.loadPersonalization();
+        this.loadLanguageSettings();
+        this.applyLanguage();
+    }
+    getStorage() {
+        // 必须用单例实例（StorageService.getInstance()），而非类本身——
+        // writeFile / readFile 是实例方法，直接拿类会导致 "storage.writeFile is not a function"
+        try {
+            const S = window.parent.StorageService || window.StorageService;
+            if (S && typeof S.getInstance === 'function') return S.getInstance();
+        } catch(e) {}
+        return null;
+    }
+    getCurrentUser() {
+        try {
+            const um = window.parent.UserManager || window.UserManager;
+            if (um && um.getInstance) return um.getInstance().getCurrentUser().username || 'public';
+        } catch(e) {}
+        return 'public';
+    }
+    getUserInfoPath(filename) {
+        // 用户指定：personalization.json（美式拼写）；其它文件名原样使用
+        const mapped = filename === 'personalisation.json' ? 'personalization.json' : filename;
+        return `/user/${this.getCurrentUser()}/info/${mapped}`;
+    }
+    async saveToVFS(path, data) {
+        const storage = this.getStorage();
+        if (!storage) return false;
+        try {
+            await storage.writeFile(path, typeof data === 'string' ? data : JSON.stringify(data));
+            return true;
+        } catch(e) { console.error('VFS save failed:', e); return false; }
+    }
+    async loadFromVFS(path) {
+        const storage = this.getStorage();
+        if (!storage) return null;
+        try {
+            let content = await storage.readFile(path);
+            // 迁移：用户现在用 personalization.json；若找不到且是该路径，尝试旧拼写 personalisation.json
+            if ((content === null || content === undefined) && path.endsWith('/personalization.json')) {
+                const altPath = path.replace('/personalization.json', '/personalisation.json');
+                content = await storage.readFile(altPath);
+            }
+            if (content === null || content === undefined) return null;
+            return typeof content === 'string' ? JSON.parse(content) : content;
+        } catch(e) { return null; }
+    }
+    async loadLanguagePack(lang) {
+        const langFiles = { cmn: './language/settings_cmn.json', eng: './language/settings_eng.json', jpn: './language/settings_jpn.json' };
+        try {
+            const res = await fetch(langFiles[lang] || langFiles.cmn);
+            this.languagePack = await res.json();
+            this.currentLang = lang;
+            localStorage.setItem('webos-language', lang);
+        } catch (e) {
+            this.languagePack = { strings: {} };
+        }
+    }
+    t(key, fallback) {
+        const strings = this.languagePack.strings || {};
+        return strings[key] !== undefined ? strings[key] : (fallback || key);
+    }
+    async loadVersion() {
+        // 版本号固定为 1.6（无需依赖 info.json 网络请求，锁屏与设置页保持一致）
+        this.version = '1.6';
+        try {
+            const res = await fetch('../info.json');
+            if (res.ok) {
+                const info = await res.json();
+                if (info && info.version) { /* 允许 info.json 覆盖，但系统级当前版本仍以硬编码为准 */ }
+            }
+        } catch(e) { /* ignore */ }
+    }
+    setupNavigation() {
+        const navItems = document.querySelectorAll('.settings-nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                navItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                const section = item.dataset.section;
+                document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+                document.getElementById('section-' + section).classList.add('active');
+            });
+        });
+    }
+    loadSystemInfo() {
+        const $ = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        const ua = navigator.userAgent;
+        // UA 解析：尝试提取真正的浏览器名/版本
+        let browser = 'Unknown';
+        if (/Edg\//.test(ua))      { const m = ua.match(/Edg\/([\d.]+)/); browser = `Edge ${m ? m[1] : ''}`; }
+        else if (/OPR\//.test(ua)) { const m = ua.match(/OPR\/([\d.]+)/); browser = `Opera ${m ? m[1] : ''}`; }
+        else if (/Chrome\//.test(ua) && /Safari\//.test(ua) && !/Edg\/|OPR\/|Chrome\//.test(ua.replace(/Chrome/g,'_'))) {
+            const m = ua.match(/Chrome\/([\d.]+)/); browser = `Chrome ${m ? m[1] : ''}`;
+        } else if (/Firefox\//.test(ua))  { const m = ua.match(/Firefox\/([\d.]+)/); browser = `Firefox ${m ? m[1] : ''}`; }
+        else if (/Safari\//.test(ua) && /Version\//.test(ua)) { const m = ua.match(/Version\/([\d.]+)/); browser = `Safari ${m ? m[1] : ''}`; }
+        else { const m = ua.match(/\) ([A-Za-z]+)\/([\d.]+)/); browser = m ? `${m[1]} ${m[2]}` : navigator.userAgent.split(') ')[0]; }
+
+        // OS 解析
+        let hostOS = navigator.platform || 'Unknown';
+        if (/Windows/.test(ua))    hostOS = 'Windows';
+        else if (/Mac OS X/.test(ua)) hostOS = 'macOS';
+        else if (/Android/.test(ua))  hostOS = 'Android';
+        else if (/iPhone|iPad|iPod/.test(ua)) hostOS = 'iOS';
+        else if (/Linux/.test(ua))    hostOS = 'Linux';
+
+        // GPU 信息（webgl 上下文）
+        let gpuRenderer = '不可用';
+        let gpuVendor = '不可用';
+        try {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (gl) {
+                const ext = gl.getExtension('WEBGL_debug_renderer_info');
+                if (ext) {
+                    gpuRenderer = (gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '').replace(/^ANGLE \(|DirectX\s+[0-9]+\)|Mesa\s+/g, '');
+                    gpuVendor = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) || '';
+                } else {
+                    gpuRenderer = gl.getParameter(gl.RENDERER) || '';
+                    gpuVendor = gl.getParameter(gl.VENDOR) || '';
+                }
+                if (!gpuRenderer) gpuRenderer = '未检测';
+                if (!gpuVendor)   gpuVendor   = '未检测';
+            }
+        } catch (_) { /* 忽略 */ }
+
+        // 网络信息
+        let netType = '不可用';
+        try {
+            const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (c) {
+                netType = c.effectiveType
+                    ? `${c.effectiveType.toUpperCase()}${c.rtt != null ? ` · RTT ${c.rtt}ms` : ''}${c.downlink != null ? ` · ${c.downlink}Mbps` : ''}`
+                    : (c.type || '检测中');
+            }
+        } catch (_) {}
+
+        // 存储配额
+        let storageInfo = '不可用';
+        if ('storage' in navigator && 'estimate' in navigator.storage) {
+            navigator.storage.estimate().then(est => {
+                const used = est.usage || 0, total = est.quota || 0;
+                storageInfo = `${(used / 1024 / 1024).toFixed(1)} MB / ${(total / 1024 / 1024 / 1024).toFixed(2)} GB`;
+                $('sys-storage', storageInfo);
+            }).catch(() => { $('sys-storage', '不可用'); });
+        }
+
+        // 音频输出设备（仅列数）
+        let audioInfo = '检测中';
+        try {
+            if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                navigator.mediaDevices.enumerateDevices().then(devs => {
+                    const out = devs.filter(d => d.kind === 'audiooutput');
+                    audioInfo = out.length
+                        ? `${out.length} 个输出设备${out[0].label ? ' · ' + out[0].label : ''}`
+                        : '无音频输出';
+                    $('sys-audio', audioInfo);
+                }).catch(() => { $('sys-audio', '不可用'); });
+            } else audioInfo = '不可用';
+        } catch (_) {}
+
+        // 屏幕方向
+        let orientation = '不可用';
+        try {
+            if (screen.orientation && screen.orientation.type) orientation = screen.orientation.type;
+            else if (window.orientation != null) orientation = window.orientation === 0 ? 'portrait-primary' : (window.orientation === 90 ? 'landscape-primary' : String(window.orientation));
+            else orientation = window.innerWidth >= window.innerHeight ? 'landscape' : 'portrait';
+        } catch (_) {}
+
+        // UTC 偏移
+        const tzOffset = -(new Date().getTimezoneOffset());
+        const tzH = Math.floor(Math.abs(tzOffset) / 60), tzM = Math.abs(tzOffset) % 60;
+        const tzSign = tzOffset >= 0 ? '+' : '-';
+
+        $('sys-name', 'navore OS');
+        $('sys-version', this.version ? 'v' + this.version : 'v1.6');
+        $('sys-os', hostOS);
+        $('sys-browser', browser);
+        $('sys-useragent', ua.length > 140 ? ua.slice(0, 140) + '...' : ua);
+
+        $('sys-cpu', navigator.hardwareConcurrency ? navigator.hardwareConcurrency + ' 线程' : '不可用');
+        $('sys-memory', navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '不可用');
+        $('sys-gpu', gpuRenderer);
+        $('sys-gpu-vendor', gpuVendor);
+        $('sys-display', `${window.screen.width} × ${window.screen.height}`);
+        $('sys-dpr', window.devicePixelRatio ? window.devicePixelRatio.toFixed(2) : '1');
+        $('sys-color-depth', `${window.screen.colorDepth || '?'} bit`);
+        $('sys-orientation', orientation);
+        $('sys-network', netType);
+        $('sys-storage', storageInfo);
+
+        $('sys-online', navigator.onLine ? '在线' : '离线');
+        $('sys-tz', Intl.DateTimeFormat().resolvedOptions().timeZone || '本地时区');
+        $('sys-language', navigator.language);
+        $('sys-platform', navigator.platform || 'Unknown');
+        $('sys-touch', (('ontouchstart' in window) || navigator.maxTouchPoints > 0) ? '支持' : '不支持');
+        $('sys-timezone-offset', `UTC${tzSign}${String(tzH).padStart(2,'0')}:${String(tzM).padStart(2,'0')}`);
+    }
+    loadUserInfo() {
+        try {
+            const userManager = window.parent.UserManager.getInstance();
+            const user = userManager.getCurrentUser();
+            if (user) {
+                document.getElementById('user-name').textContent = user.name || user.username;
+                document.getElementById('user-created').textContent = user.createdAt || '未知';
+            }
+        } catch (e) {}
+        this.setupUserAvatar();
+    }
+    async setupUserAvatar() {
+        const avatarPreview = document.getElementById('user-avatar-preview');
+        const avatarInput = document.getElementById('user-avatar-input');
+        const avatarUploadBtn = document.getElementById('user-avatar-upload');
+        const avatarRemoveBtn = document.getElementById('user-avatar-remove');
+        const avatarData = await this.loadFromVFS(this.getUserInfoPath('avatar.json'));
+        let savedAvatar = avatarData && avatarData.data ? avatarData.data : localStorage.getItem('webos-user-avatar');
+        // 用户未自定义头像时也显示默认 SVG（不再是空白或字母占位符）
+        if (!savedAvatar) { savedAvatar = '../../icons/user-avatar.svg'; }
+        if (avatarPreview && savedAvatar) {
+            avatarPreview.src = savedAvatar;
+            avatarPreview.style.display = 'block';
+        }
+        if (avatarUploadBtn && avatarInput) {
+            avatarUploadBtn.addEventListener('click', () => avatarInput.click());
+            avatarInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) {
+                    const D = (window.parent && window.parent.Dialogs) ? window.parent.Dialogs : null;
+                    if (D) await D.showAlert('请选择图片文件'); else alert('请选择图片文件');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const dataUrl = ev.target.result;
+                    this.saveToVFS(this.getUserInfoPath('avatar.json'), { data: dataUrl, name: file.name });
+                    localStorage.setItem('webos-user-avatar', dataUrl);
+                    if (avatarPreview) { avatarPreview.src = dataUrl; avatarPreview.style.display = 'block'; }
+                    try { window.parent.document.dispatchEvent(new CustomEvent('user-avatar-changed', { detail: { avatar: dataUrl } })); } catch (err) {}
+                };
+                reader.readAsDataURL(file);
+                e.target.value = '';
+            });
+        }
+        if (avatarRemoveBtn) {
+            avatarRemoveBtn.addEventListener('click', () => {
+                this.saveToVFS(this.getUserInfoPath('avatar.json'), { data: null, name: null });
+                localStorage.removeItem('webos-user-avatar');
+                if (avatarPreview) { avatarPreview.src = '../../icons/user-avatar.svg'; avatarPreview.style.display = 'block'; }
+                try { window.parent.document.dispatchEvent(new CustomEvent('user-avatar-changed', { detail: { avatar: null } })); } catch (err) {}
+            });
+        }
+    }
+    async loadPersonalization() {
+        const pers = await this.loadFromVFS(this.getUserInfoPath('personalization.json')) || {};
+        this.setupWallpaperUI(pers.wallpaper);
+        const accentColor = pers.accentColor || localStorage.getItem('webos-accent-color') || '#1abc9c';
+        document.querySelectorAll('.accent-color').forEach(el => {
+            if (el.dataset.color === accentColor) el.classList.add('active');
+            el.addEventListener('click', () => {
+                document.querySelectorAll('.accent-color').forEach(c => c.classList.remove('active'));
+                el.classList.add('active');
+                this.savePersonalization({ accentColor: el.dataset.color });
+                localStorage.setItem('webos-accent-color', el.dataset.color);
+                this.applyAccentColor(el.dataset.color);
+            });
+        });
+        this.applyAccentColor(accentColor);
+        const fontSize = pers.fontSize || localStorage.getItem('webos-font-size') || '14';
+        const fontSizeSelect = document.getElementById('font-size-select');
+        if (fontSizeSelect) {
+            fontSizeSelect.value = fontSize;
+            fontSizeSelect.addEventListener('change', (e) => {
+                this.savePersonalization({ fontSize: e.target.value });
+                localStorage.setItem('webos-font-size', e.target.value);
+                this.applyFontSize(e.target.value);
+            });
+        }
+        this.applyFontSize(fontSize);
+        const opacity = pers.windowOpacity || localStorage.getItem('webos-window-opacity') || '100';
+        const opacitySlider = document.getElementById('window-opacity');
+        const opacityValue = document.getElementById('opacity-value');
+        if (opacitySlider) {
+            opacitySlider.value = opacity;
+            if (opacityValue) opacityValue.textContent = opacity + '%';
+            opacitySlider.addEventListener('input', (e) => {
+                this.savePersonalization({ windowOpacity: e.target.value });
+                localStorage.setItem('webos-window-opacity', e.target.value);
+                if (opacityValue) opacityValue.textContent = e.target.value + '%';
+                this.applyWindowOpacity(e.target.value);
+            });
+        }
+        this.applyWindowOpacity(opacity);
+        const animations = pers.animations !== undefined ? pers.animations : localStorage.getItem('webos-animations') !== 'false';
+        const animationsToggle = document.getElementById('animations-toggle');
+        if (animationsToggle) {
+            animationsToggle.checked = animations;
+            animationsToggle.addEventListener('change', (e) => {
+                this.savePersonalization({ animations: e.target.checked });
+                localStorage.setItem('webos-animations', e.target.checked ? 'true' : 'false');
+                this.applyAnimations(e.target.checked);
+            });
+        }
+        this.applyAnimations(animations);
+        const taskbarAutohide = pers.taskbarAutohide !== undefined ? pers.taskbarAutohide : localStorage.getItem('webos-taskbar-autohide') === 'true';
+        const taskbarToggle = document.getElementById('taskbar-autohide');
+        if (taskbarToggle) {
+            taskbarToggle.checked = taskbarAutohide;
+            taskbarToggle.addEventListener('change', (e) => {
+                this.savePersonalization({ taskbarAutohide: e.target.checked });
+                localStorage.setItem('webos-taskbar-autohide', e.target.checked ? 'true' : 'false');
+                this.applyTaskbarAutohide(e.target.checked);
+            });
+        }
+        this.applyTaskbarAutohide(taskbarAutohide);
+        // ── 任务栏颜色 + 透明度（个性化可配置） ──
+        const taskbarColor   = pers.taskbarColor   || localStorage.getItem('webos-taskbar-color')   || '#1abc9c';
+        const taskbarOpacity = pers.taskbarOpacity != null ? String(pers.taskbarOpacity) : (localStorage.getItem('webos-taskbar-opacity') || '70');
+        const taskbarColorInput = document.getElementById('taskbar-color');
+        const taskbarColorValue = document.getElementById('taskbar-color-value');
+        if (taskbarColorInput) {
+            taskbarColorInput.value = taskbarColor;
+            if (taskbarColorValue) taskbarColorValue.textContent = taskbarColor;
+            taskbarColorInput.addEventListener('input', () => {
+                const v = taskbarColorInput.value;
+                if (taskbarColorValue) taskbarColorValue.textContent = v;
+                localStorage.setItem('webos-taskbar-color', v);
+                const o = document.getElementById('taskbar-opacity') ? document.getElementById('taskbar-opacity').value : taskbarOpacity;
+                this.savePersonalization({ taskbarColor: v });
+                this.applyTaskbarTheme(v, o);
+            });
+        }
+        const taskbarOpacitySlider = document.getElementById('taskbar-opacity');
+        const taskbarOpacityValue  = document.getElementById('taskbar-opacity-value');
+        if (taskbarOpacitySlider) {
+            taskbarOpacitySlider.value = taskbarOpacity;
+            if (taskbarOpacityValue) taskbarOpacityValue.textContent = taskbarOpacity + '%';
+            taskbarOpacitySlider.addEventListener('input', () => {
+                const v = taskbarOpacitySlider.value;
+                if (taskbarOpacityValue) taskbarOpacityValue.textContent = v + '%';
+                localStorage.setItem('webos-taskbar-opacity', v);
+                const c = taskbarColorInput ? taskbarColorInput.value : taskbarColor;
+                this.savePersonalization({ taskbarOpacity: Number(v) });
+                this.applyTaskbarTheme(c, v);
+            });
+        }
+        // 任务栏主题由父窗口在启动时统一应用（applyPersonalization），此处无需重复
+        // ── 语言设置：仅从独立语言页读取 ──
+        const language = pers.language || localStorage.getItem('webos-language') || 'cmn';
+        const langPage = document.getElementById('lang-select');
+        if (langPage) { langPage.value = language; }
+    }
+    async savePersonalization(updates) {
+        const path = this.getUserInfoPath('personalization.json');
+        const current = await this.loadFromVFS(path) || {};
+        const merged = { ...current, ...updates };
+        await this.saveToVFS(path, merged);
+    }
+    _changeLanguage(lang, syncTargetSelect) {
+        this.loadLanguagePack(lang).then(() => {
+            this.applyLanguage();
+            this.savePersonalization({ language: lang });
+            if (syncTargetSelect && syncTargetSelect.value !== lang) syncTargetSelect.value = lang;
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.document.dispatchEvent(new CustomEvent('language-changed', { detail: { lang } }));
+                }
+            } catch (_) {}
+        });
+    }
+    setupWallpaperUI(savedWallpaper) {
+        const typeRadios = document.querySelectorAll('input[name="wallpaper-type"]');
+        const panels = { solid: document.getElementById('wallpaper-solid-panel'), gradient: document.getElementById('wallpaper-gradient-panel'), image: document.getElementById('wallpaper-image-panel'), video: document.getElementById('wallpaper-video-panel') };
+        let wp = savedWallpaper || { type: 'gradient', start: '#0c3547', end: '#14a085', direction: '135deg' };
+        if (typeof wp === 'string') {
+            const oldMap = { default: {type:'gradient',start:'#0c3547',end:'#14a085',direction:'135deg'}, ocean: {type:'gradient',start:'#0c3547',end:'#14a085',direction:'135deg'}, dark: {type:'solid',color:'#0a0a0a'}, custom: {type:'solid',color:localStorage.getItem('webos-custom-color')||'#1a1a2e'}, gradient: {type:'gradient',start:'#667eea',end:'#764ba2',direction:'135deg'}, sunset: {type:'gradient',start:'#2c1810',end:'#e67e22',direction:'135deg'}, forest: {type:'gradient',start:'#0d1f0d',end:'#2d7a3e',direction:'135deg'} };
+            wp = oldMap[wp] || oldMap.default;
+        }
+        typeRadios.forEach(radio => {
+            radio.checked = radio.value === wp.type;
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                    Object.values(panels).forEach(p => p && (p.style.display = 'none'));
+                    if (panels[radio.value]) panels[radio.value].style.display = 'block';
+                }
+            });
+        });
+        Object.values(panels).forEach(p => p && (p.style.display = 'none'));
+        if (panels[wp.type]) panels[wp.type].style.display = 'block';
+        const solidColor = document.getElementById('wallpaper-solid-color');
+        if (solidColor) {
+            solidColor.value = wp.color || '#0c3547';
+            solidColor.addEventListener('input', () => {
+                const newWp = { type: 'solid', color: solidColor.value };
+                this.savePersonalization({ wallpaper: newWp });
+                this.dispatchWallpaperChange(newWp);
+            });
+        }
+        const gradStart = document.getElementById('wallpaper-gradient-start');
+        const gradEnd = document.getElementById('wallpaper-gradient-end');
+        const gradDir = document.getElementById('wallpaper-gradient-direction');
+        if (gradStart) { gradStart.value = wp.start || '#0c3547'; gradStart.addEventListener('input', () => this.applyGradient()); }
+        if (gradEnd) { gradEnd.value = wp.end || '#14a085'; gradEnd.addEventListener('input', () => this.applyGradient()); }
+        if (gradDir) { gradDir.value = wp.direction || '135deg'; gradDir.addEventListener('change', () => this.applyGradient()); }
+        this.setupWallpaperFileUploads();
+        if (wp.type === 'image' && wp.data) {
+            const preview = document.getElementById('image-wallpaper-preview');
+            const name = document.getElementById('image-wallpaper-name');
+            if (preview) preview.style.display = 'flex';
+            if (name) name.textContent = wp.name || '自定义图片';
+        }
+        if (wp.type === 'video' && wp.data) {
+            const preview = document.getElementById('video-wallpaper-preview');
+            const name = document.getElementById('video-wallpaper-name');
+            if (preview) preview.style.display = 'flex';
+            if (name) name.textContent = wp.name || '自定义视频';
+        }
+    }
+    applyGradient() {
+        const start = document.getElementById('wallpaper-gradient-start').value;
+        const end = document.getElementById('wallpaper-gradient-end').value;
+        const direction = document.getElementById('wallpaper-gradient-direction').value;
+        const wp = { type: 'gradient', start, end, direction };
+        this.savePersonalization({ wallpaper: wp });
+        this.dispatchWallpaperChange(wp);
+    }
+    setupWallpaperFileUploads() {
+        const imgBtn = document.getElementById('upload-image-wallpaper');
+        const imgInput = document.getElementById('image-wallpaper-input');
+        const vidBtn = document.getElementById('upload-video-wallpaper');
+        const vidInput = document.getElementById('video-wallpaper-input');
+        const imgClear = document.getElementById('image-wallpaper-clear');
+        const vidClear = document.getElementById('video-wallpaper-clear');
+        if (imgBtn && imgInput) {
+            imgBtn.addEventListener('click', () => imgInput.click());
+            imgInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) this.handleWallpaperFile(file, 'image'); e.target.value = ''; });
+        }
+        if (vidBtn && vidInput) {
+            vidBtn.addEventListener('click', () => vidInput.click());
+            vidInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) this.handleWallpaperFile(file, 'video'); e.target.value = ''; });
+        }
+        if (imgClear) {
+            imgClear.addEventListener('click', () => {
+                const preview = document.getElementById('image-wallpaper-preview');
+                if (preview) preview.style.display = 'none';
+                const wp = { type: 'solid', color: '#0c3547' };
+                this.savePersonalization({ wallpaper: wp });
+                this.dispatchWallpaperChange(wp);
+            });
+        }
+        if (vidClear) {
+            vidClear.addEventListener('click', () => {
+                const preview = document.getElementById('video-wallpaper-preview');
+                if (preview) preview.style.display = 'none';
+                const wp = { type: 'solid', color: '#0c3547' };
+                this.savePersonalization({ wallpaper: wp });
+                this.dispatchWallpaperChange(wp);
+            });
+        }
+    }
+    handleWallpaperFile(file, type) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            const wp = { type, data: dataUrl, name: file.name };
+            this.savePersonalization({ wallpaper: wp });
+            const preview = document.getElementById(type + '-wallpaper-preview');
+            const nameEl = document.getElementById(type + '-wallpaper-name');
+            if (preview) preview.style.display = 'flex';
+            if (nameEl) nameEl.textContent = file.name;
+            this.dispatchWallpaperChange(wp);
+        };
+        reader.readAsDataURL(file);
+    }
+    dispatchWallpaperChange(wp) {
+        try { window.parent.document.dispatchEvent(new CustomEvent('wallpaper-changed', { detail: wp })); } catch (e) {}
+    }
+    applyAccentColor(color) {
+        try {
+            const root = window.parent.document.documentElement;
+            root.style.setProperty('--accent-color', color);
+            window.parent.document.dispatchEvent(new CustomEvent('accent-color-changed', { detail: { color } }));
+        } catch (e) {}
+    }
+    applyFontSize(size) { try { const root = window.parent.document.documentElement; root.style.fontSize = size + 'px'; } catch (e) {} }
+    applyWindowOpacity(value) {
+        try {
+            const styleId = 'webos-opacity-style';
+            let styleEl = window.parent.document.getElementById(styleId);
+            if (!styleEl) { styleEl = window.parent.document.createElement('style'); styleEl.id = styleId; window.parent.document.head.appendChild(styleEl); }
+            const opacity = value / 100;
+            styleEl.textContent = `.window { opacity: ${opacity}; } .window:hover { opacity: 1; }`;
+        } catch (e) {}
+    }
+    applyAnimations(enabled) {
+        try {
+            const styleId = 'webos-animations-style';
+            let styleEl = window.parent.document.getElementById(styleId);
+            if (!styleEl) { styleEl = window.parent.document.createElement('style'); styleEl.id = styleId; window.parent.document.head.appendChild(styleEl); }
+            styleEl.textContent = enabled ? '' : `* { transition: none !important; animation: none !important; }`;
+        } catch (e) {}
+    }
+    applyTaskbarAutohide(enabled) { try { window.parent.document.dispatchEvent(new CustomEvent('taskbar-autohide-changed', { detail: { enabled } })); } catch (e) {} }
+    applyTaskbarTheme(color, opacity) { try { window.parent.document.dispatchEvent(new CustomEvent('taskbar-theme-changed', { detail: { color, opacity: Number(opacity) } })); } catch (e) {} }
+    loadLanguageSettings() {
+        const langSelect = document.getElementById('lang-select');
+        if (langSelect) {
+            langSelect.value = this.currentLang;
+            langSelect.addEventListener('change', async (e) => {
+                const lang = e.target.value;
+                await this.loadLanguagePack(lang);
+                this.applyLanguage();
+                try { if (window.parent && window.parent !== window) { window.parent.document.dispatchEvent(new CustomEvent('language-changed', { detail: { lang } })); } } catch (err) {}
+            });
+        }
+    }
+    applyLanguage() {
+        const strings = this.languagePack.strings || {};
+        const navKeyMap = { system: 'system', user: 'user_info', personalization: 'personalization', language: 'language' };
+        document.querySelectorAll('.settings-nav-item').forEach(item => { const section = item.dataset.section; const key = navKeyMap[section] || section; if (strings[key]) item.textContent = strings[key]; });
+        const sectionTitles = { 'section-system': 'system', 'section-user': 'user_info', 'section-personalization': 'personalization', 'section-language': 'language' };
+        Object.entries(sectionTitles).forEach(([id, key]) => { const el = document.querySelector('#' + id + ' h2'); if (el && strings[key]) el.textContent = strings[key]; });
+        // 系统信息分组
+        document.querySelectorAll('#section-system h3').forEach((h, i) => { const keys = ['settings.sys_group_os', 'settings.sys_group_hw', 'settings.sys_group_env']; if (strings[keys[i]]) h.textContent = strings[keys[i]]; });
+        const sysLabels = {
+            'sys-name-label': 'settings.sys_name',
+            'sys-version-label': 'settings.sys_version',
+            'sys-os-label': 'settings.sys_host_os',
+            'sys-browser-label': 'settings.sys_engine',
+            'sys-useragent-label': 'settings.sys_useragent',
+            'sys-cpu-label': 'settings.sys_cpu',
+            'sys-memory-label': 'settings.sys_memory',
+            'sys-gpu-label': 'settings.sys_gpu',
+            'sys-gpu-vendor-label': 'settings.sys_gpu_vendor',
+            'sys-display-label': 'settings.sys_display',
+            'sys-dpr-label': 'settings.sys_dpr',
+            'sys-color-depth-label': 'settings.sys_color_depth',
+            'sys-orientation-label': 'settings.sys_orientation',
+            'sys-audio-label': 'settings.sys_audio',
+            'sys-network-label': 'settings.sys_network',
+            'sys-storage-label': 'settings.sys_storage',
+            'sys-online-label': 'settings.sys_online',
+            'sys-tz-label': 'settings.sys_tz',
+            'sys-language-label': 'settings.sys_language',
+            'sys-platform-label': 'settings.sys_platform',
+            'sys-touch-label': 'settings.sys_touch',
+            'sys-timezone-offset-label': 'settings.sys_tz_offset'
+        };
+        Object.entries(sysLabels).forEach(([id, key]) => { const el = document.getElementById(id); if (el && strings[key]) el.textContent = strings[key]; });
+        const userLabels = { 'user-name-label': 'settings.user_name', 'user-created-label': 'settings.user_created' };
+        Object.entries(userLabels).forEach(([id, key]) => { const el = document.getElementById(id); if (el && strings[key]) el.textContent = strings[key]; });
+        const persLabels = {
+            'pers-wallpaper-title': 'settings.wallpaper',
+            'pers-accent-title': 'settings.accent_color',
+            'pers-appearance-title': 'settings.appearance',
+            'pers-fontsize-label': 'settings.font_size',
+            'pers-opacity-label': 'settings.window_opacity',
+            'pers-animations-label': 'settings.window_animations',
+            'pers-taskbar-autohide-label': 'settings.taskbar_autohide',
+            'pers-taskbar-color-label': 'settings.taskbar_color',
+            'pers-taskbar-opacity-label': 'settings.taskbar_opacity'
+        };
+        Object.entries(persLabels).forEach(([id, key]) => { const el = document.getElementById(id); if (el && strings[key]) el.textContent = strings[key]; });
+        const langLabels = { 'lang-select-label': 'settings.select_language' };
+        Object.entries(langLabels).forEach(([id, key]) => { const el = document.getElementById(id); if (el && strings[key]) el.textContent = strings[key]; });
+        const versionEl = document.getElementById('settings-version');
+        if (versionEl && strings['version']) versionEl.textContent = strings['version'] + (this.version ? ' v' + this.version : '');
+        if (strings['app.settings']) document.title = strings['app.settings'];
+    }
+}
+document.addEventListener('DOMContentLoaded', () => { new SettingsApp(); });

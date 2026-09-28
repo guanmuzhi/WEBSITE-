@@ -1,0 +1,415 @@
+/* =========================================================
+   计算器样式 — iframe 安全的响应式实现
+   核心：不在 iframe 中使用 vh/vw/vmin/media queries（它们引用外层浏览器视口）
+   替代：html/body 100% 占满 iframe，body 作为 size container，
+   所有相对尺寸使用 cqmin（= min(容器宽度, 容器高度)），完全相对于 iframe 本身。
+   ========================================================= */
+
+:root {
+    --primary-bg: #0f0f1a;
+    --secondary-bg: #1a1a2e;
+    --card-bg: #16213e;
+    --num-btn-bg: #2d2d44;
+    --num-btn-hover: #3d3d54;
+    --op-btn-bg: var(--accent-color, #1abc9c);
+    --op-btn-hover: var(--accent-hover, #16a085);
+    --func-btn-bg: #1e1e32;
+    --func-btn-hover: #2e2e42;
+    --clear-btn-bg: #e74c3c;
+    --clear-btn-hover: #f75c4c;
+    --delete-btn-bg: #7f8c8d;
+    --delete-btn-hover: #95a5a6;
+    --equals-btn-bg: var(--accent-color, #1abc9c);
+    --equals-btn-hover: var(--accent-hover, #16a085);
+    --text-primary: #ffffff;
+    --text-secondary: #aaa;
+    --text-muted: #666;
+    --border-radius: 12px;
+    --btn-radius: 10px;
+    --shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    --btn-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --btn-active-scale: 0.96;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    min-width: 100%;
+    min-height: 100%;
+    /* 注意：不要在 html/body 上声明 container-type: size。
+       container-type: size 会触发 size containment，
+       浏览器必须"忽略后代对容器尺寸的贡献"独立计算容器。
+       但 body 高度默认由内容决定，在 iframe / 旧 Chromium 中会发生：
+       body height 解析为 auto（因为内容未初始化时 size containment 强制忽略内容）
+       → body 高度 0 → cqmin 恒为 0 → 所有 cqmin 取值为 0 → 按钮字全部看不见。
+       解决方案：把容器查询上下文下放到 body 的直接子 wrapper #calc-frame 上，
+       wrapper 的宽高从 html/body 的 100% 继承（iframe 直接给定，非内容依赖），稳定。*/
+}
+
+@font-face {
+    font-family: 'SF Mono Stack';
+    src: local('SF Mono'), local('SF Mono Regular'), local('SF Mono Display'),
+         local('SF Mono Text'), local('Menlo'), local('Monaco'), local('Consolas'),
+         local('DejaVu Sans Mono'), local('Liberation Mono');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+:root {
+    --font-mono: 'SF Mono Stack', 'SF Mono', 'Menlo', 'Monaco', 'Consolas',
+                 'DejaVu Sans Mono', 'Liberation Mono', ui-monospace, monospace;
+}
+body {
+    font-family: var(--font-mono) !important;
+    background: #000000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 显式容器查询尺寸容器：宽高继承自 body（100%），声明为 calc-frame 的 size container。
+   所有 cqw/cqh/cqmin 以及 @container calc-frame 查询都基于此元素。*/
+#calc-frame {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    container-type: size;
+    container-name: calc-frame;
+}
+
+/* 浏览器不支持 container-type（或 cqmin）时的兜底：
+   - #calc-frame / .calculator 仍使用百分比/flex 默认布局
+   - 关键长度（字体、padding、按钮尺寸）仍用 clamp()，但 fallback 到
+     clamp(X, min(相对父容器宽高百分比), Y) 的混合表达式，
+     保证在不支持 cqmin 的环境下也能按 iframe 大致尺寸缩放，不出现溢出。*/
+@supports not (container-type: size) {
+    :root {
+        /* 在无 cqmin 情况下以 CSS 变量传递 min(宽度, 高度) 的代理值：
+           fallback 用单位继承的写法，完全不用 JS。*/
+    }
+}
+
+.calculator {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    /* 默认 padding/gap 同时提供 cqmin + fallback(百分比/固定下限) 两种写法；
+       不支持 cqmin 的浏览器会把 "1.2cqmin" 整段值视为无效，回落到
+       "clamp(4px, 1.2%, 12px)"（百分比相对于父容器，近似 cqmin 的效果）。
+       新版浏览器因为前面已有 cqmin 版本声明，会优先生效 cqmin。
+       但 CSS 不支持"在属性内回退"，所以这里统一用 @supports 两段：
+       先给 fallback（百分比 + clamp），再在支持 cqmin 的浏览器用 @supports 覆盖为 cqmin。*/
+    padding: clamp(4px, 1.2%, 12px);
+    gap: clamp(4px, 0.8%, 10px);
+    background: #000000;
+    box-sizing: border-box;
+    /* 横向/纵向极端窄时溢出不裁剪（子元素会按 container query 适配，正常不溢出；兜底允许极窄时内部 scroll 但不崩）*/
+    overflow: auto;
+}
+
+/* 在明确支持 container-type 的浏览器里，把 fallback 的百分比基准升级为 cqmin，更贴合容器真实最小边。*/
+@supports (container-type: size) {
+    .calculator {
+        padding: clamp(4px, 1.2cqmin, 12px);
+        gap: clamp(4px, 0.8cqmin, 10px);
+    }
+}
+
+/* ===== Fallback（不支持 cqmin / container-type 的老浏览器 / 加载瞬态）：
+   所有长度先用 clamp(下限, 百分比, 上限) 写一遍。百分比会相对父容器宽度，
+   对"接近 1:1 尺寸"的窗口近似 cqmin（但窄/扁容器时不如 cqmin 精确），
+   足以保证不崩。再在 @supports (container-type: size) 块中把它们统一覆盖为 cqmin 版本。
+   cqmin 单位必须在支持 container-type 的环境下才有非零值，否则会被浏览器整段忽略。
+   ====================================================================================== */
+
+.display {
+    background: #000000;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: var(--border-radius);
+    padding: clamp(8px, 1.5%, 18px) clamp(12px, 2.2%, 20px);
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    min-height: clamp(56px, 16%, 110px);
+    box-shadow: var(--shadow);
+}
+
+.expression {
+    color: var(--text-secondary);
+    font-size: clamp(11px, 1.8%, 17px);
+    min-height: clamp(16px, 2.6%, 22px);
+    max-height: 30%;
+    overflow: hidden;
+    word-break: break-all;
+    margin-bottom: clamp(2px, 0.4%, 6px);
+    opacity: 0.7;
+    line-height: 1.2;
+}
+
+.result {
+    color: var(--text-primary);
+    font-size: clamp(22px, 5%, 48px);
+    font-weight: 300;
+    line-height: 1.1;
+    word-break: break-all;
+    overflow: hidden;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.buttons {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-rows: repeat(8, minmax(0, 1fr));
+    gap: clamp(3px, 0.6%, 8px);
+    min-height: 0;
+    overflow: hidden;
+}
+
+.btn-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(3px, 0.6%, 8px);
+    min-height: 0;
+}
+
+/* 最后一行：0 和 . 各占1份，= 占2份 */
+.btn-row:last-child {
+    grid-template-columns: 1fr 1fr 2fr;
+}
+
+.calculator .btn {
+    border: 1px solid transparent;
+    border-radius: max(6px, 0.8%);
+    font-size: clamp(12px, 2.4%, 22px);
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--text-primary);
+    user-select: none;
+    -webkit-user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-height: clamp(30px, 7%, 60px);
+    line-height: 1;
+    padding: 0 clamp(2px, 0.4%, 6px);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 150ms ease, transform 80ms ease, background-color 150ms ease;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.calculator .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    pointer-events: none;
+}
+
+.calculator .btn:hover {
+    border-color: var(--accent-color, #1abc9c);
+    z-index: 1;
+}
+
+.calculator .btn:active {
+    transform: scale(var(--btn-active-scale));
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.calculator .btn-icon {
+    width: clamp(14px, 3%, 22px);
+    height: clamp(14px, 3%, 22px);
+    flex-shrink: 0;
+}
+
+.num {
+    background: #000000;
+    border: 1px solid rgba(255,255,255,0.06);
+    font-size: clamp(14px, 3%, 24px);
+}
+
+.num:hover {
+    background: #0a0a0a;
+    border-color: var(--accent-color, #1abc9c);
+}
+
+.op {
+    background: #000000;
+    border: 1px solid rgba(26,188,156,0.25);
+    color: var(--accent-color, #1abc9c);
+    font-size: clamp(16px, 3.6%, 30px);
+}
+
+.op:hover {
+    background: #0a0a0a;
+    border-color: var(--accent-color, #1abc9c);
+}
+
+.func {
+    background: #000000;
+    border: 1px solid rgba(255,255,255,0.06);
+    font-size: clamp(11px, 2%, 18px);
+    color: var(--text-secondary);
+    line-height: 1.1;
+}
+
+.func:hover {
+    background: #0a0a0a;
+    color: var(--text-primary);
+    border-color: var(--accent-color, #1abc9c);
+}
+
+.clear {
+    background: #000000;
+    border: 1px solid rgba(231,76,60,0.3);
+    color: #e74c3c;
+}
+
+.clear:hover {
+    background: #1a0807;
+    border-color: #e74c3c;
+}
+
+.delete {
+    background: #000000;
+    border: 1px solid rgba(127,140,141,0.3);
+    color: #95a5a6;
+}
+
+.delete:hover {
+    background: #0a0a0a;
+    border-color: #bdc3c7;
+}
+
+.equals {
+    background: #000000;
+    border: 1px solid var(--accent-color, #1abc9c);
+    color: var(--accent-color, #1abc9c);
+    font-size: clamp(18px, 4%, 34px);
+    font-weight: 600;
+}
+
+.equals:hover {
+    background: rgba(26,188,156,0.08);
+    border-color: var(--accent-hover, #16a085);
+    color: var(--accent-hover, #16a085);
+}
+
+/* ===== 支持 container-type:size 的现代浏览器：
+   把 fallback 的百分比全部升级为 cqmin（更贴合容器最小边，正方形/扁/窄窗口缩放更准），
+   同时激活下面的 @container calc-frame 查询（它们依赖命名容器 calc-frame 才会触发）。*/
+@supports (container-type: size) {
+    .calculator {
+        padding: clamp(4px, 1.2cqmin, 12px);
+        gap: clamp(4px, 0.8cqmin, 10px);
+    }
+    .display {
+        padding: clamp(8px, 1.5cqmin, 18px) clamp(12px, 2.2cqmin, 20px);
+        min-height: clamp(56px, 16cqmin, 110px);
+    }
+    .expression {
+        font-size: clamp(11px, 1.8cqmin, 17px);
+        min-height: clamp(16px, 2.6cqmin, 22px);
+        margin-bottom: clamp(2px, 0.4cqmin, 6px);
+    }
+    .result { font-size: clamp(22px, 5cqmin, 48px); }
+    .buttons { gap: clamp(3px, 0.6cqmin, 8px); }
+    .btn-row { gap: clamp(3px, 0.6cqmin, 8px); }
+    .calculator .btn {
+        border-radius: max(6px, 0.8cqmin);
+        font-size: clamp(12px, 2.4cqmin, 22px);
+        min-height: clamp(30px, 7cqmin, 60px);
+        padding: 0 clamp(2px, 0.4cqmin, 6px);
+    }
+    .calculator .btn-icon {
+        width: clamp(14px, 3cqmin, 22px);
+        height: clamp(14px, 3cqmin, 22px);
+    }
+    .num { font-size: clamp(14px, 3cqmin, 24px); }
+    .op { font-size: clamp(16px, 3.6cqmin, 30px); }
+    .func { font-size: clamp(11px, 2cqmin, 18px); }
+    .equals { font-size: clamp(18px, 4cqmin, 34px); }
+}
+
+/* =========================================================
+   容器查询（响应 iframe 自身尺寸，而不是浏览器外层视口）
+   @container calc-frame 引用 #calc-frame 的 container-name。
+   不支持 @container 的老浏览器会整段忽略，会继续用上面的 fallback。
+   ========================================================= */
+
+/* 窄容器（iframe 宽度 < 400px） */
+@container calc-frame (max-width: 400px) {
+    .calculator { padding: 4px; gap: 4px; }
+    .btn-row { gap: 3px; }
+    .buttons { gap: 3px; }
+    .display { padding: 8px 10px; min-height: 60px; border-radius: 10px; }
+    .expression { font-size: 12px; }
+    .result { font-size: 28px; }
+    .calculator .btn { border-radius: 6px; }
+    .calculator .btn { min-height: 40px; }
+}
+
+/* 扁容器（iframe 高度 < 380px） */
+@container calc-frame (max-height: 380px) {
+    .calculator .btn {
+        min-height: 28px;
+        border-radius: 5px;
+    }
+    .expression { font-size: 11px; min-height: 14px; }
+    .result { font-size: 22px; }
+    .display { min-height: 46px; padding: 6px 10px; }
+    .func { font-size: 11px; letter-spacing: -0.2px; }
+    .num { font-size: 13px; }
+    .op { font-size: 15px; }
+    .equals { font-size: 17px; }
+}
+
+/* 极矮容器 */
+@container calc-frame (max-height: 280px) {
+    .display { min-height: 36px; }
+    .calculator .btn { min-height: 22px; font-size: 11px; }
+    .calculator .btn-icon { width: 14px; height: 14px; }
+    .op { font-size: 13px !important; }
+    .equals { font-size: 14px !important; }
+}
+
+/* 大容器：防止按钮无限变大，居中固定最大宽度 */
+@container calc-frame (min-width: 520px) and (min-height: 640px) {
+    .calculator {
+        max-width: 420px;
+        margin: 0 auto;
+    }
+}
+
+/* 不支持容器查询的老浏览器降级：仍使用 clamp 兜底 + 百分比布局（不写无效属性）*/
+@supports not (container-type: size) {
+    html, body { height: 100%; width: 100%; }
+    .calculator { padding: 2%; gap: 1.5%; }
+    /* 窄/矮容器用 JS 无法介入时，退化为 clamp 基于下限的硬性上限，
+       保证在非常窄（< 360px 宽）或非常扁（< 320px 高）的 iframe 中
+       按钮不被挤压到不可见。最外层 flex + min-height:0 会把 .buttons grid
+       压缩到可用高度，整体不溢出。*/
+}

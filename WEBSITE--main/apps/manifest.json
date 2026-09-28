@@ -1,0 +1,66 @@
+[
+  {
+    "id": "calculator",
+    "name": "计算器",
+    "path": "calculator.app",
+    "description": "支持基本四则运算的科学计算器",
+    "category": "productivity",
+    "version": "1.0.0"
+  },
+  {
+    "id": "texteditor",
+    "name": "文本编辑器",
+    "path": "texteditor.app",
+    "description": "轻量级文本和代码编辑工具",
+    "category": "productivity",
+    "version": "1.0.0"
+  },
+  {
+    "id": "filemanager",
+    "name": "文件管理器",
+    "path": "filemanager.app",
+    "description": "管理文件和文件夹，支持网络共享",
+    "category": "system",
+    "version": "1.0.0"
+  },
+  {
+    "id": "mediaviewer",
+    "name": "媒体查看器",
+    "path": "mediaviewer.app",
+    "description": "查看图片、播放音频和视频",
+    "category": "media",
+    "version": "1.0.0"
+  },
+  {
+    "id": "browser",
+    "name": "浏览器",
+    "path": "browser.app",
+    "description": "浏览网页、搜索信息的轻量浏览器",
+    "category": "productivity",
+    "version": "1.0.0"
+  },
+  {
+    "id": "settings",
+    "name": "设置",
+    "path": "settings.app",
+    "description": "系统设置、个性化、用户信息管理",
+    "category": "system",
+    "version": "1.0.0"
+  },
+  {
+    "id": "appstore",
+    "name": "应用商店",
+    "path": "appstore.app",
+    "description": "查看和管理已安装的应用",
+    "category": "system",
+    "version": "1.0.0"
+  },
+  {
+    "id": "agent",
+    "name": "AI 助手",
+    "path": "agent.app",
+    "description": "支持多模型配置、工具调用和终端命令执行的 AI 对话助手",
+    "category": "productivity",
+    "version": "1.0.0"
+  }
+]

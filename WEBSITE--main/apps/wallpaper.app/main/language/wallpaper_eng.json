@@ -1,0 +1,18 @@
+{
+    "strings": {
+        "app.title": "Wallpaper Settings",
+        "wallpaper.title": "Wallpaper Settings",
+        "wallpaper.current": "Current Wallpaper",
+        "wallpaper.solid": "Solid Color",
+        "wallpaper.solid_wallpaper": "Solid Wallpaper",
+        "wallpaper.custom_color_label": "Custom Color:",
+        "wallpaper.apply": "Apply",
+        "wallpaper.gradient": "Gradient Wallpaper",
+        "wallpaper.image": "Image Wallpaper",
+        "wallpaper.image_url_label": "Image URL:",
+        "wallpaper.image_url_placeholder": "Enter image URL",
+        "wallpaper.reset": "Reset",
+        "wallpaper.reset_default": "Restore default wallpaper",
+        "wallpaper.current_solid": "Solid: {color}"
+    }
+}

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件管理器</title>
+    <link rel="stylesheet" href="../../common.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="filemanager">
+        <div class="fm-toolbar">
+            <button class="btn" id="fm-back" title="返回上级">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5"/>
+                    <polyline points="12 19 5 12 12 5"/>
+                </svg>
+            </button>
+            <button class="btn" id="fm-home" title="根目录">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+            </button>
+            <div class="fm-path" id="fm-path">/</div>
+            <button class="btn" id="fm-refresh" title="刷新">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10"/>
+                    <polyline points="1 20 1 14 7 14"/>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+            </button>
+            <div class="fm-toolbar-divider"></div>
+            <button class="btn" id="fm-new-folder" title="新建文件夹">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    <path d="M12 11v6"/>
+                    <path d="M9 14h6"/>
+                </svg>
+            </button>
+            <button class="btn" id="fm-new-file" title="新建文件">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <path d="M12 11v6"/>
+                    <path d="M9 14h6"/>
+                </svg>
+            </button>
+            <button class="btn" id="fm-upload" title="上传文件">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+            </button>
+            <button class="btn" id="fm-paste" title="粘贴" style="display:none;">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 15v2"/>
+                    <path d="M8 21h8"/>
+                    <path d="M19 21h2c.55 0 1-.45 1-1V5c0-.55-.45-1-1-1h-2"/>
+                    <path d="M12 17v-4"/>
+                    <path d="M8 13H6c-.55 0-1-.45-1-1V3c0-.55.45-1 1-1h2"/>
+                </svg>
+            </button>
+        </div>
+        <div class="fm-sidebar">
+            <div class="fm-sidebar-title">导航</div>
+            <div class="fm-sidebar-item active" id="fm-sidebar-files">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                文件
+            </div>
+            <div class="fm-sidebar-item" id="fm-sidebar-network">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                    <path d="M12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+                    <line x1="12" y1="3" x2="12" y2="5"/>
+                    <line x1="12" y1="19" x2="12" y2="21"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="3" y1="12" x2="5" y2="12"/>
+                    <line x1="19" y1="12" x2="21" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                LAN Drop
+            </div>
+        </div>
+        <div class="fm-main">
+            <div class="fm-filelist" id="fm-filelist"></div>
+            <div class="fm-network-panel" id="fm-network-panel" style="display:none;">
+                <div class="fm-landrop-header">
+                    <h3>LAN Drop</h3>
+                    <p>跨设备文件传输 · 基于 tempfile.org 中转，上传后将提取码分享给对方</p>
+                </div>
+                <div class="fm-landrop-modes">
+                    <button class="fm-landrop-mode active" id="fm-landrop-mode-send">发送文件</button>
+                    <button class="fm-landrop-mode" id="fm-landrop-mode-recv">接收文件</button>
+                </div>
+                <div class="fm-landrop-section" id="fm-landrop-send">
+                    <div class="fm-landrop-pick-row">
+                        <button class="fm-landrop-filebtn" id="fm-landrop-pick">从本地选择文件</button>
+                        <button class="fm-landrop-filebtn" id="fm-landrop-pick-fs">从文件系统选择</button>
+                    </div>
+                    <input type="file" id="fm-landrop-file-input" style="display:none;">
+                    <div class="fm-landrop-status" id="fm-landrop-send-status"></div>
+                    <div class="fm-landrop-field">
+                        <label>提取码（复制给接收方，24 小时内有效）</label>
+                        <textarea class="fm-landrop-code" id="fm-landrop-offer-code" readonly placeholder="选择文件上传后将自动生成提取码"></textarea>
+                        <button class="fm-landrop-action" id="fm-landrop-copy-offer">复制提取码</button>
+                    </div>
+                    <div class="fm-landrop-progress" id="fm-landrop-send-progress" style="display:none;"></div>
+                </div>
+                <div class="fm-landrop-section" id="fm-landrop-recv" style="display:none;">
+                    <div class="fm-landrop-status" id="fm-landrop-recv-status"></div>
+                    <div class="fm-landrop-field">
+                        <label>提取码（来自发送方）</label>
+                        <textarea class="fm-landrop-code" id="fm-landrop-offer-input" placeholder="粘贴发送方提供的提取码或下载链接"></textarea>
+                        <button class="fm-landrop-action primary" id="fm-landrop-gen-answer">获取文件</button>
+                    </div>
+                    <div class="fm-landrop-progress" id="fm-landrop-recv-progress" style="display:none;"></div>
+                    <div class="fm-landrop-actions" id="fm-landrop-recv-actions" style="display:none;">
+                        <button class="fm-landrop-action primary" id="fm-landrop-save-fs">保存到文件系统</button>
+                        <button class="fm-landrop-action" id="fm-landrop-download">下载</button>
+                    </div>
+                </div>
+                <div class="fm-landrop-divider">—— 使用说明 ——</div>
+                <div class="fm-landrop-devices" id="fm-landrop-devices">
+                    <div class="fm-landrop-empty">① 发送方：选择文件后会上传到 tempfile.org，并生成 9 位 <b>提取码</b>（24 小时有效）。<br>② 接收方：粘贴 <b>提取码</b> 或完整下载链接，即可获取文件并保存到文件系统。</div>
+                </div>
+            </div>
+        </div>
+        <div class="fm-fs-picker-overlay" id="fm-fs-picker-overlay" style="display:none;">
+            <div class="fm-fs-picker">
+                <div class="fm-fs-picker-header">
+                    <span>从文件系统选择</span>
+                    <button class="fm-fs-picker-close" id="fm-fs-picker-close"><img src="../../icons/close.svg" alt="关闭" style="width:14px;height:14px;filter:invert(1)"></button>
+                </div>
+                <div class="fm-fs-picker-list" id="fm-fs-picker-list"></div>
+            </div>
+        </div>
+        <div class="fm-viewer" id="fm-viewer" style="display:none;">
+            <div class="fm-viewer-header">
+                <span class="fm-viewer-title" id="fm-viewer-title"></span>
+                <button class="fm-btn" id="fm-viewer-close">关闭</button>
+            </div>
+            <pre class="fm-viewer-content" id="fm-viewer-content"></pre>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

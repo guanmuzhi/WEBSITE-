@@ -1,0 +1,26 @@
+{
+    "strings": {
+        "app.title": "Text Editor",
+        "editor.new": "New",
+        "editor.open": "Open",
+        "editor.save": "Save",
+        "editor.save_as": "Save As",
+        "editor.filename_placeholder": "File name...",
+        "editor.textarea_placeholder": "Type text here...",
+        "editor.status_chars": "Chars: {n}",
+        "editor.status_lines": "Lines: {n}",
+        "editor.saved": "Saved",
+        "editor.unsaved": "Unsaved",
+        "editor.title_info": "Notice",
+        "editor.title_input": "Input",
+        "editor.title_confirm": "Confirm",
+        "editor.ok": "OK",
+        "editor.cancel": "Cancel",
+        "editor.file_picker_title": "Select a file to open",
+        "editor.file_picker_empty": "No text files found",
+        "editor.confirm_discard": "The current file is unsaved. Continue?",
+        "editor.file_not_found": "File \"{file}\" does not exist",
+        "editor.prompt_path": "Enter a file path (e.g. /user/public/test.txt):",
+        "editor.prompt_new_path": "Enter the new file path:"
+    }
+}

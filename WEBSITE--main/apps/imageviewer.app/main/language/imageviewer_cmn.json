@@ -1,0 +1,18 @@
+{
+    "strings": {
+        "app.imageviewer": "图片查看器",
+        "iv.no_image_open": "未打开图片",
+        "iv.no_image": "暂无图片",
+        "iv.image": "图片",
+        "iv.file": "文件",
+        "iv.size": "大小:",
+        "iv.dimensions": "尺寸:",
+        "iv.format": "格式:",
+        "iv.unknown": "未知",
+        "iv.loading": "加载中",
+        "iv.file_not_found": "文件 \"{path}\" 不存在",
+        "iv.unsupported_format": "不支持的图片格式: {name}",
+        "iv.empty_content": "图片内容为空",
+        "iv.load_failed": "图片加载失败"
+    }
+}
