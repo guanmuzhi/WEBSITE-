@@ -16,12 +16,70 @@
                  'Noto Sans CJK SC', 'Hiragino Sans GB', 'SimHei', 'Segoe UI', system-ui, sans-serif;
     --font-mono: 'SF Mono Stack', 'SF Mono', 'Menlo', 'Monaco', 'Consolas',
                  'DejaVu Sans Mono', 'Liberation Mono', ui-monospace, monospace;
-    /* ── 任务栏可定制变量（颜色 + 不透明度 0-1；背景/边框具体值由 --taskbar-bg / --taskbar-border 合成）── */
-    --taskbar-color: #1abc9c;
+    /* ── 任务栏可定制变量（颜色 + 不透明度 0-1；背景/边框具体值由 --taskbar-bg / --taskbar-border 合成）──
+       默认颜色跟随强调色（--accent-color），这样切换主题色时任务栏自动同步。
+       JS 启动时会用个性化设置覆盖 --taskbar-bg / --taskbar-border 为计算后的 rgba。*/
+    --taskbar-color: var(--accent-color, #1abc9c);
     --taskbar-opacity: 0.7;
-    --taskbar-bg: rgba(26, 188, 156, 0.7);
-    --taskbar-border: rgba(26, 188, 156, 0.9);
+    --taskbar-bg: color-mix(in srgb, var(--taskbar-color) 70%, transparent);
+    --taskbar-border: color-mix(in srgb, var(--taskbar-color) 90%, transparent);
+    --taskbar-fg: #000000;   /* 任务栏文字对比色，JS 按亮度自动改写 */
 }
+
+/* ── 明暗主题变量：data-theme="dark"（默认）与 data-theme="light" ──
+   浅色：白底 / 黑字；深色：相反。由 JS 在 <html> 上设置 data-theme。 */
+:root, [data-theme="dark"] {
+    --webos-bg: #14161a;
+    --webos-bg-2: #1b1e24;
+    --webos-fg: #e6e6e6;
+    --webos-surface: #1e2025;
+    --webos-surface-2: #2a2d34;
+    --webos-border: #3a3d44;
+    --webos-muted: #9aa0a6;
+    --webos-on-accent: #000000;   /* 深色模式：悬停底色上的图标用黑色 */
+    --desktop-icons-bg: rgba(0, 0, 0, 0.5);   /* 桌面左侧图标栏底 */
+}
+[data-theme="light"] {
+    --webos-bg: #ffffff;
+    --webos-bg-2: #f0f2f5;
+    --webos-fg: #1a1a1a;
+    --webos-surface: #ffffff;
+    --webos-surface-2: #f0f2f5;
+    --webos-border: #d0d4da;
+    --webos-muted: #6b7280;
+    --webos-on-accent: #ffffff;   /* 浅色模式：悬停底色上的图标用白色 */
+    --desktop-icons-bg: rgba(255, 255, 255, 0.65);
+}
+
+/* ── 通用图标按钮：默认无底色 + 主题色图标；悬停/按下 = 主题色底 + 反色图标 ── */
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--accent-color, #1abc9c);
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+    transition: background-color .15s ease, color .15s ease;
+}
+.icon-btn svg {
+    width: 18px; height: 18px; display: block;
+    stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.icon-btn img { width: 18px; height: 18px; display: block; }
+.icon-btn:hover, .icon-btn:active, .icon-btn.active, .icon-btn[aria-pressed="true"] {
+    background-color: var(--accent-color, #1abc9c);
+    color: var(--webos-on-accent, #fff);
+}
+.icon-btn:disabled { opacity: .4; cursor: not-allowed; }
+
 * {
     margin: 0;
     padding: 0;
@@ -37,9 +95,9 @@ html, body {
     text-rendering: optimizeLegibility;
 }
 body {
-    background-color: #000;
+    background-color: var(--webos-bg, #000);
     font-family: var(--font-sans) !important;
-    color: #e6e6e6;
+    color: var(--webos-fg, #e6e6e6);
     font-size: 14px;
 }
 /* 让 .app 的 iframe 里继承无衬线（避免应用自身回退到 Monaco），终端窗口仍走下面的 terminal 规则 */
@@ -224,7 +282,7 @@ body {
 .desktop {
     width: 100vw;
     height: 100vh;
-    background-color: #000;
+    background-color: var(--webos-bg, #000);
     position: relative;
     overflow: hidden;
     cursor: grab;
@@ -242,7 +300,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--desktop-icons-bg, rgba(0, 0, 0, 0.5));
     backdrop-filter: blur(4px);
     box-sizing: border-box;
     z-index: 1;
@@ -272,26 +330,28 @@ body {
 .desktop-icon .icon-image {
     width: 56px;
     height: 56px;
-    background-color: #2c3e50;
+    background-color: transparent;
     border-radius: 12px;
     margin: 0 auto 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #ecf0f1;
-    transition: transform 0.15s;
+    transition: transform 0.15s, background-color 0.15s;
 }
 .desktop-icon .icon-image svg,
 .desktop-icon .icon-image img {
     width: 28px;
     height: 28px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 .desktop-icon .icon-label {
-    color: #fff;
+    color: var(--webos-fg, #fff);
     font-size: 12px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 .desktop-icon:hover .icon-image {
-    background-color: #3d566e;
+    background-color: rgba(255, 255, 255, 0.15);
     transform: scale(1.05);
 }
 .desktop-icon:active .icon-image {
@@ -312,8 +372,8 @@ body {
 }
 .window {
     position: absolute;
-    background-color: #1e1e1e;
-    border: 1px solid #34495e;
+    background-color: var(--webos-surface, #1e1e1e);
+    border: 1px solid var(--webos-border, #34495e);
     border-radius: 6px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     display: flex;
@@ -370,7 +430,7 @@ body {
     user-select: none;
 }
 .window-title {
-    color: #ecf0f1;
+    color: var(--webos-on-accent, #ecf0f1);
     font-size: 13px;
     flex: 1;
     text-align: center;
@@ -531,13 +591,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(0, 0, 0, 0.25);
+    background-color: transparent;
     border-radius: 6px;
     cursor: pointer;
     flex-shrink: 0;
 }
 .taskbar-item:hover {
-    background-color: rgba(0, 0, 0, 0.45);
+    background-color: rgba(255, 255, 255, 0.18);
 }
 .taskbar-item.active {
     background-color: var(--accent-color, #1abc9c);
@@ -548,7 +608,7 @@ body {
     pointer-events: none;
 }
 .taskbar-clock {
-    color: #ecf0f1;
+    color: var(--taskbar-fg, #000000);
     font-size: 13px;
     padding: 0 8px;
 }
@@ -563,12 +623,12 @@ body {
     gap: 8px;
     padding: 0 12px;
     height: 36px;
-    background-color: rgba(0, 0, 0, 0.25);
+    background-color: transparent;
     border-radius: 6px;
     cursor: pointer;
 }
 .taskbar-user:hover {
-    background-color: rgba(0, 0, 0, 0.45);
+    background-color: rgba(255, 255, 255, 0.18);
 }
 .taskbar-user-avatar {
     width: 26px;
@@ -588,7 +648,7 @@ body {
     border-radius: 50%;
 }
 .taskbar-user-name {
-    color: #ecf0f1;
+    color: var(--taskbar-fg, #000000);
     font-size: 13px;
 }
 /* 多桌面 / 工作区分页器 */
@@ -607,8 +667,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(0, 0, 0, 0.25);
-    color: #ecf0f1;
+    background-color: transparent;
+    color: var(--webos-on-accent, #ecf0f1);
     border-radius: 6px;
     cursor: pointer;
     font-size: 12px;
@@ -616,7 +676,7 @@ body {
     transition: background-color 0.2s ease;
 }
 .workspace-pager-item:hover {
-    background-color: rgba(0, 0, 0, 0.45);
+    background-color: rgba(255, 255, 255, 0.18);
 }
 .workspace-pager-item.active {
     background-color: var(--accent-color, #1abc9c);
@@ -958,10 +1018,10 @@ body {
     width: 440px;
     max-width: 92vw;
     max-height: 82vh;
-    background: rgba(20, 22, 32, 0.78);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 18px;
-    box-shadow: 0 18px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
     overflow: hidden;
     margin: auto;
     display: flex;
@@ -986,9 +1046,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 14px;
-    background: rgba(255,255,255,0.04);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 12px 14px 4px;
+    background: transparent;
+    border-bottom: none;
 }
 .lock-back-btn {
     width: 32px; height: 32px;
@@ -1061,8 +1121,8 @@ body {
 }
 .lock-password-input {
     padding: 11px 14px;
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(0, 0, 0, 0.32);
+    border: 1px solid rgba(255,255,255,0.25);
     border-radius: 10px;
     color: #fff;
     font-size: 14px;
@@ -1118,8 +1178,8 @@ body {
 .lock-create-form { display: flex; flex-direction: column; gap: 10px; }
 .lock-create-form .lock-input {
     padding: 11px 14px;
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(0, 0, 0, 0.32);
+    border: 1px solid rgba(255,255,255,0.25);
     border-radius: 10px;
     color: #fff;
     font-size: 14px;
@@ -1416,20 +1476,49 @@ a:hover {
 }
 .overview-card:hover { transform: translateY(-4px); background: rgba(255, 255, 255, 0.1); }
 .overview-card.active { border-color: var(--accent-color, #1abc9c); background: rgba(26, 188, 156, 0.16); }
+/* 缩略图 = 真实桌面的克隆镜像（壁纸/程序坞/窗口/任务栏逐层克隆后整体缩放） */
 .overview-thumb {
     position: relative;
-    background: linear-gradient(135deg, #0c3547 0%, #0d7377 50%, #14a085 100%);
+    background: #0a1a22;
     border-radius: 6px;
     overflow: hidden;
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
-.overview-thumb-win {
+/* 舞台：与真实桌面等尺寸，1:1 摆好克隆内容后由 transform 缩放进缩略图 */
+.overview-thumb-stage {
     position: absolute;
-    background: rgba(236, 240, 241, 0.92);
-    border: 1px solid rgba(0, 0, 0, 0.35);
-    border-radius: 2px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    top: 0;
+    left: 0;
+    transform-origin: top left;
+    pointer-events: none;
 }
+/* 视频壁纸取帧画布 */
+.overview-thumb-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+/* ── 工作区切换动画（任务栏点击 / 桌面总览 / Ctrl+Alt+方向键） ── */
+.windows-container.ws-enter { animation: wsContainerEnter 0.3s cubic-bezier(0.22, 0.61, 0.36, 1); }
+@keyframes wsContainerEnter {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+.desktop-surface-taskbar.ws-enter { animation: wsTaskbarEnter 0.3s cubic-bezier(0.22, 0.61, 0.36, 1); }
+@keyframes wsTaskbarEnter {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+}
+.window.ws-win-enter { animation: wsWinEnter 0.34s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+@keyframes wsWinEnter {
+    from { opacity: 0; transform: translateY(16px) scale(0.99); }
+    to   { opacity: 1; transform: none; }
+}
+/* 任务栏点击窗口后的「平移居中」过渡（避免瞬移） */
+.windows-container.view-animating { transition: transform 0.38s cubic-bezier(0.22, 0.61, 0.36, 1); }
 .overview-label {
     color: #ecf0f1;
     font-size: 13px;
@@ -1484,3 +1573,181 @@ a:hover {
     cursor: pointer;
 }
 .overview-logout:hover { background: var(--accent-hover, #16a085); }
+
+/* ══════════════════════════════════════════════════════════════
+   本轮新增：① 窗口后台运行 ② 锁屏时钟头像 ③ 任务视图新布局
+   追加在文件末尾，用于覆盖上面旧版的 .desktop-overview 等规则
+   ══════════════════════════════════════════════════════════════ */
+
+/* ① 跨工作区 / 最小化的窗口：不 display:none，保留布局与 iframe 状态 */
+.window.window-hidden {
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* ② 锁屏时钟阶段也显示当前用户头像与用户名 */
+.lock-clock-user {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+    margin: -18px 0 26px;
+}
+.lock-clock-avatar {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.12);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.3);
+}
+.lock-clock-avatar .lock-avatar-img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.lock-clock-username {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.92);
+    letter-spacing: 0.5px;
+}
+
+/* ③ 任务视图：底部 48px 留给真实任务栏，z-index 低于任务栏(9000) */
+.desktop-overview {
+    position: fixed;
+    inset: 0 0 48px 0;
+    z-index: 8900;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 14px;
+    background: rgba(8, 18, 24, 0.78);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 18px 24px 20px;
+}
+/* 顶部：所有桌面缩略图，窄条 + 水平滚动 */
+.overview-topstrip {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    flex: 0 0 auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 2px 12px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+.overview-topstrip::-webkit-scrollbar { height: 6px; }
+.overview-topstrip::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.22); border-radius: 3px; }
+.overview-ws-card {
+    position: relative;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+}
+.overview-ws-card:hover { transform: translateY(-3px); background: rgba(255, 255, 255, 0.11); }
+.overview-ws-card.active { border-color: var(--accent-color, #1abc9c); background: rgba(26, 188, 156, 0.16); }
+.overview-ws-label {
+    color: #ecf0f1;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.overview-ws-card.overview-add {
+    min-width: 150px;
+    min-height: 110px;
+    justify-content: center;
+    border-style: dashed;
+    color: #ecf0f1;
+    font-size: 13px;
+}
+/* 中部：当前桌面所有窗口，按真实尺寸同一比例平铺、互不重叠 */
+.overview-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    align-items: flex-start; /* 不拉伸：否则矮窗口被拉到整行高度，标签下方出现空白 */
+    justify-content: center;
+    gap: 18px;
+    overflow-y: auto;
+    padding: 8px 4px 16px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+.overview-empty {
+    align-self: center;
+    color: rgba(236, 240, 241, 0.6);
+    font-size: 14px;
+    padding: 40px 0;
+}
+.overview-win-tile {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: #12222b;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.overview-win-tile:hover { transform: translateY(-3px); border-color: var(--accent-color, #1abc9c); }
+.overview-win-tile.minimized { opacity: 0.72; }
+.overview-win-canvas { position: relative; overflow: hidden; flex: 0 0 auto; }
+.overview-win-stage {
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: top left;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.overview-win-stage > .window {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    box-shadow: none;
+    border-radius: 0;
+}
+.overview-win-label {
+    padding: 6px 10px;
+    color: #ecf0f1;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.25);
+}
+/* 任务视图中，任务栏用户按钮变为「退出登录」 */
+.taskbar-logout-label { display: none; }
+body.overview-active .taskbar-user .taskbar-user-avatar,
+body.overview-active .taskbar-user .taskbar-user-name,
+body.overview-active .taskbar-compact-user .taskbar-compact-avatar,
+body.overview-active .taskbar-compact-user .taskbar-compact-name { display: none; }
+body.overview-active .taskbar-logout-label {
+    display: inline;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+body.overview-active .taskbar-user { background-color: rgba(231, 76, 60, 0.85); }
+body.overview-active .taskbar-user:hover { background-color: rgba(231, 76, 60, 1); }
+body.overview-active .taskbar-compact-user { background: rgba(231, 76, 60, 0.85); }

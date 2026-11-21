@@ -269,6 +269,8 @@ class SettingsApp {
         const pers = await this.loadFromVFS(this.getUserInfoPath('personalization.json')) || {};
         this.setupWallpaperUI(pers.wallpaper);
         const accentColor = pers.accentColor || localStorage.getItem('webos-accent-color') || '#1abc9c';
+        const accentPicker = document.getElementById('accent-color');
+        const accentValEl = document.getElementById('accent-color-value');
         document.querySelectorAll('.accent-color').forEach(el => {
             if (el.dataset.color === accentColor) el.classList.add('active');
             el.addEventListener('click', () => {
@@ -277,9 +279,31 @@ class SettingsApp {
                 this.savePersonalization({ accentColor: el.dataset.color });
                 localStorage.setItem('webos-accent-color', el.dataset.color);
                 this.applyAccentColor(el.dataset.color);
+                if (accentPicker) accentPicker.value = el.dataset.color;
+                if (accentValEl) accentValEl.textContent = el.dataset.color;
             });
         });
+        if (accentPicker) {
+            accentPicker.value = accentColor;
+            if (accentValEl) accentValEl.textContent = accentColor;
+            accentPicker.addEventListener('input', (e) => {
+                const c = e.target.value;
+                if (accentValEl) accentValEl.textContent = c;
+                document.querySelectorAll('.accent-color').forEach(c2 => c2.classList.remove('active'));
+                this.savePersonalization({ accentColor: c });
+                localStorage.setItem('webos-accent-color', c);
+                this.applyAccentColor(c);
+            });
+        }
         this.applyAccentColor(accentColor);
+        const theme = pers.theme || localStorage.getItem('webos-theme') || 'dark';
+        const themeRadios = document.querySelectorAll('input[name="theme-mode"]');
+        if (themeRadios.length) {
+            themeRadios.forEach(r => {
+                r.checked = (r.value === theme);
+                r.addEventListener('change', () => { if (r.checked) this.changeTheme(r.value); });
+            });
+        }
         const fontSize = pers.fontSize || localStorage.getItem('webos-font-size') || '14';
         const fontSizeSelect = document.getElementById('font-size-select');
         if (fontSizeSelect) {
@@ -328,7 +352,7 @@ class SettingsApp {
         }
         this.applyTaskbarAutohide(taskbarAutohide);
         // ── 任务栏颜色 + 透明度（个性化可配置） ──
-        const taskbarColor   = pers.taskbarColor   || localStorage.getItem('webos-taskbar-color')   || '#1abc9c';
+        const taskbarColor   = pers.taskbarColor   || localStorage.getItem('webos-taskbar-color')   || localStorage.getItem('webos-accent-color') || '#1abc9c';
         const taskbarOpacity = pers.taskbarOpacity != null ? String(pers.taskbarOpacity) : (localStorage.getItem('webos-taskbar-opacity') || '70');
         const taskbarColorInput = document.getElementById('taskbar-color');
         const taskbarColorValue = document.getElementById('taskbar-color-value');
@@ -384,31 +408,53 @@ class SettingsApp {
     }
     setupWallpaperUI(savedWallpaper) {
         const typeRadios = document.querySelectorAll('input[name="wallpaper-type"]');
-        const panels = { solid: document.getElementById('wallpaper-solid-panel'), gradient: document.getElementById('wallpaper-gradient-panel'), image: document.getElementById('wallpaper-image-panel'), video: document.getElementById('wallpaper-video-panel') };
+        const panels = {
+            solid: document.getElementById('wallpaper-solid-panel'),
+            gradient: document.getElementById('wallpaper-gradient-panel'),
+            media: document.getElementById('wallpaper-media-panel')
+        };
         let wp = savedWallpaper || { type: 'gradient', start: '#0c3547', end: '#14a085', direction: '135deg' };
         if (typeof wp === 'string') {
             const oldMap = { default: {type:'gradient',start:'#0c3547',end:'#14a085',direction:'135deg'}, ocean: {type:'gradient',start:'#0c3547',end:'#14a085',direction:'135deg'}, dark: {type:'solid',color:'#0a0a0a'}, custom: {type:'solid',color:localStorage.getItem('webos-custom-color')||'#1a1a2e'}, gradient: {type:'gradient',start:'#667eea',end:'#764ba2',direction:'135deg'}, sunset: {type:'gradient',start:'#2c1810',end:'#e67e22',direction:'135deg'}, forest: {type:'gradient',start:'#0d1f0d',end:'#2d7a3e',direction:'135deg'} };
             wp = oldMap[wp] || oldMap.default;
         }
+        // 归一化：旧 image/video 类型映射到“媒体”分类
+        const isMedia = (wp.type === 'image' || wp.type === 'video');
+        const mediaSource = wp.source || (wp.data && /^https?:\/\//i.test(String(wp.data)) ? 'link' : 'upload');
+        const activeType = isMedia ? 'media' : wp.type;
+
         typeRadios.forEach(radio => {
-            radio.checked = radio.value === wp.type;
+            radio.checked = radio.value === activeType;
             radio.addEventListener('change', () => {
-                if (radio.checked) {
-                    Object.values(panels).forEach(p => p && (p.style.display = 'none'));
-                    if (panels[radio.value]) panels[radio.value].style.display = 'block';
-                }
+                if (!radio.checked) return;
+                Object.values(panels).forEach(p => p && (p.style.display = 'none'));
+                if (panels[radio.value]) panels[radio.value].style.display = 'block';
+                // 切到媒体分类时不立即应用（等用户选文件/填链接）；切到纯色/渐变立即生效
+                if (radio.value === 'solid') this.applySolid();
+                else if (radio.value === 'gradient') this.applyGradient();
             });
         });
         Object.values(panels).forEach(p => p && (p.style.display = 'none'));
-        if (panels[wp.type]) panels[wp.type].style.display = 'block';
+        if (panels[activeType]) panels[activeType].style.display = 'block';
+
+        // 媒体方式选择器（上传 / 链接）
+        const methodRadios = document.querySelectorAll('input[name="media-method"]');
+        const methodPanels = { upload: document.getElementById('media-upload-panel'), link: document.getElementById('media-link-panel') };
+        methodRadios.forEach(r => {
+            r.checked = (r.value === mediaSource);
+            r.addEventListener('change', () => {
+                if (!r.checked) return;
+                Object.values(methodPanels).forEach(p => p && (p.style.display = 'none'));
+                if (methodPanels[r.value]) methodPanels[r.value].style.display = 'block';
+            });
+        });
+        Object.values(methodPanels).forEach(p => p && (p.style.display = 'none'));
+        if (methodPanels[mediaSource]) methodPanels[mediaSource].style.display = 'block';
+
         const solidColor = document.getElementById('wallpaper-solid-color');
         if (solidColor) {
             solidColor.value = wp.color || '#0c3547';
-            solidColor.addEventListener('input', () => {
-                const newWp = { type: 'solid', color: solidColor.value };
-                this.savePersonalization({ wallpaper: newWp });
-                this.dispatchWallpaperChange(newWp);
-            });
+            solidColor.addEventListener('input', () => this.applySolid());
         }
         const gradStart = document.getElementById('wallpaper-gradient-start');
         const gradEnd = document.getElementById('wallpaper-gradient-end');
@@ -416,19 +462,17 @@ class SettingsApp {
         if (gradStart) { gradStart.value = wp.start || '#0c3547'; gradStart.addEventListener('input', () => this.applyGradient()); }
         if (gradEnd) { gradEnd.value = wp.end || '#14a085'; gradEnd.addEventListener('input', () => this.applyGradient()); }
         if (gradDir) { gradDir.value = wp.direction || '135deg'; gradDir.addEventListener('change', () => this.applyGradient()); }
+
         this.setupWallpaperFileUploads();
-        if (wp.type === 'image' && wp.data) {
-            const preview = document.getElementById('image-wallpaper-preview');
-            const name = document.getElementById('image-wallpaper-name');
-            if (preview) preview.style.display = 'flex';
-            if (name) name.textContent = wp.name || '自定义图片';
-        }
-        if (wp.type === 'video' && wp.data) {
-            const preview = document.getElementById('video-wallpaper-preview');
-            const name = document.getElementById('video-wallpaper-name');
-            if (preview) preview.style.display = 'flex';
-            if (name) name.textContent = wp.name || '自定义视频';
-        }
+        this.setupWallpaperLink();
+
+        if (isMedia && wp.data) this.showMediaPreview(wp, mediaSource === 'link');
+    }
+    applySolid() {
+        const c = document.getElementById('wallpaper-solid-color');
+        const wp = { type: 'solid', color: c ? c.value : '#0c3547' };
+        this.savePersonalization({ wallpaper: wp });
+        this.dispatchWallpaperChange(wp);
     }
     applyGradient() {
         const start = document.getElementById('wallpaper-gradient-start').value;
@@ -438,53 +482,91 @@ class SettingsApp {
         this.savePersonalization({ wallpaper: wp });
         this.dispatchWallpaperChange(wp);
     }
-    setupWallpaperFileUploads() {
-        const imgBtn = document.getElementById('upload-image-wallpaper');
-        const imgInput = document.getElementById('image-wallpaper-input');
-        const vidBtn = document.getElementById('upload-video-wallpaper');
-        const vidInput = document.getElementById('video-wallpaper-input');
-        const imgClear = document.getElementById('image-wallpaper-clear');
-        const vidClear = document.getElementById('video-wallpaper-clear');
-        if (imgBtn && imgInput) {
-            imgBtn.addEventListener('click', () => imgInput.click());
-            imgInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) this.handleWallpaperFile(file, 'image'); e.target.value = ''; });
-        }
-        if (vidBtn && vidInput) {
-            vidBtn.addEventListener('click', () => vidInput.click());
-            vidInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) this.handleWallpaperFile(file, 'video'); e.target.value = ''; });
-        }
-        if (imgClear) {
-            imgClear.addEventListener('click', () => {
-                const preview = document.getElementById('image-wallpaper-preview');
-                if (preview) preview.style.display = 'none';
-                const wp = { type: 'solid', color: '#0c3547' };
-                this.savePersonalization({ wallpaper: wp });
-                this.dispatchWallpaperChange(wp);
-            });
-        }
-        if (vidClear) {
-            vidClear.addEventListener('click', () => {
-                const preview = document.getElementById('video-wallpaper-preview');
-                if (preview) preview.style.display = 'none';
-                const wp = { type: 'solid', color: '#0c3547' };
-                this.savePersonalization({ wallpaper: wp });
-                this.dispatchWallpaperChange(wp);
-            });
+    mediaTypeFromUrl(url) {
+        const u = String(url).toLowerCase().split('?')[0];
+        if (/\.(mp4|webm|ogg|ogv|mov|m4v|avi)$/.test(u)) return 'video';
+        if (/\.(jpg|jpeg|png|gif|webp|bmp|svg|avif|ico)$/.test(u)) return 'image';
+        return 'image'; // 无法判断时默认按图片处理
+    }
+    showMediaPreview(wp, isLink) {
+        const typeLabel = wp.type === 'video' ? '视频' : '图片';
+        if (isLink) {
+            const p = document.getElementById('media-link-preview');
+            const t = document.getElementById('media-link-type-label');
+            const n = document.getElementById('media-link-name');
+            const inp = document.getElementById('media-wallpaper-url');
+            if (p) p.style.display = 'flex';
+            if (t) t.textContent = typeLabel + ' · ';
+            if (n) n.textContent = wp.name || wp.data;
+            if (inp) inp.value = wp.data;
+        } else {
+            const p = document.getElementById('media-wallpaper-preview');
+            const t = document.getElementById('media-wallpaper-type-label');
+            const n = document.getElementById('media-wallpaper-name');
+            if (p) p.style.display = 'flex';
+            if (t) t.textContent = typeLabel + ' · ';
+            if (n) n.textContent = wp.name || '自定义媒体';
         }
     }
-    handleWallpaperFile(file, type) {
+    setupWallpaperFileUploads() {
+        const btn = document.getElementById('upload-media-wallpaper');
+        const input = document.getElementById('media-wallpaper-input');
+        const clearBtn = document.getElementById('media-wallpaper-clear');
+        if (btn && input) {
+            btn.addEventListener('click', () => input.click());
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) this.handleWallpaperFile(file);
+                e.target.value = '';
+            });
+        }
+        if (clearBtn) clearBtn.addEventListener('click', () => this.clearMedia('upload'));
+    }
+    setupWallpaperLink() {
+        const applyBtn = document.getElementById('media-link-apply');
+        const urlInput = document.getElementById('media-wallpaper-url');
+        const clearBtn = document.getElementById('media-link-clear');
+        const doApply = () => {
+            const url = urlInput ? urlInput.value.trim() : '';
+            if (!url) return;
+            const type = this.mediaTypeFromUrl(url);
+            const name = url.split('/').pop().split('?')[0] || '链接媒体';
+            const wp = { type, data: url, name, source: 'link' };
+            this.savePersonalization({ wallpaper: wp });
+            this.showMediaPreview(wp, true);
+            this.dispatchWallpaperChange(wp);
+        };
+        if (applyBtn && urlInput) {
+            applyBtn.addEventListener('click', doApply);
+            urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doApply(); });
+        }
+        if (clearBtn) clearBtn.addEventListener('click', () => this.clearMedia('link'));
+    }
+    handleWallpaperFile(file) {
+        const type = file.type && file.type.startsWith('video/') ? 'video' : 'image';
         const reader = new FileReader();
         reader.onload = (e) => {
             const dataUrl = e.target.result;
-            const wp = { type, data: dataUrl, name: file.name };
+            const wp = { type, data: dataUrl, name: file.name, source: 'upload' };
             this.savePersonalization({ wallpaper: wp });
-            const preview = document.getElementById(type + '-wallpaper-preview');
-            const nameEl = document.getElementById(type + '-wallpaper-name');
-            if (preview) preview.style.display = 'flex';
-            if (nameEl) nameEl.textContent = file.name;
+            this.showMediaPreview(wp, false);
             this.dispatchWallpaperChange(wp);
         };
         reader.readAsDataURL(file);
+    }
+    clearMedia(which) {
+        if (which === 'upload') {
+            const p = document.getElementById('media-wallpaper-preview');
+            if (p) p.style.display = 'none';
+        } else {
+            const p = document.getElementById('media-link-preview');
+            if (p) p.style.display = 'none';
+            const inp = document.getElementById('media-wallpaper-url');
+            if (inp) inp.value = '';
+        }
+        const wp = { type: 'solid', color: '#0c3547' };
+        this.savePersonalization({ wallpaper: wp });
+        this.dispatchWallpaperChange(wp);
     }
     dispatchWallpaperChange(wp) {
         try { window.parent.document.dispatchEvent(new CustomEvent('wallpaper-changed', { detail: wp })); } catch (e) {}
@@ -516,6 +598,11 @@ class SettingsApp {
     }
     applyTaskbarAutohide(enabled) { try { window.parent.document.dispatchEvent(new CustomEvent('taskbar-autohide-changed', { detail: { enabled } })); } catch (e) {} }
     applyTaskbarTheme(color, opacity) { try { window.parent.document.dispatchEvent(new CustomEvent('taskbar-theme-changed', { detail: { color, opacity: Number(opacity) } })); } catch (e) {} }
+    changeTheme(theme) {
+        this.savePersonalization({ theme });
+        localStorage.setItem('webos-theme', theme);
+        try { if (window.parent && window.parent !== window) window.parent.document.dispatchEvent(new CustomEvent('theme-changed', { detail: { theme } })); } catch (e) {}
+    }
     loadLanguageSettings() {
         const langSelect = document.getElementById('lang-select');
         if (langSelect) {

@@ -12,7 +12,7 @@
  *
  * 发版流程：改了代码 → 改这里的 VERSION → 客户端首次访问即自动更新，无需用户强刷。
  */
-const VERSION = '47';
+const VERSION = '54';
 const CACHE_NAME = 'navore-os-v' + VERSION;
 
 self.addEventListener('install', (event) => {
@@ -46,14 +46,16 @@ self.addEventListener('fetch', (event) => {
     // 代理渲染的页面（/proxy?b=...）本身就是动态内容，交给网络
     if (url.pathname === '/proxy') return;
 
+    const isCode = NETWORK_FIRST.test(url.pathname);
     event.respondWith((async () => {
-        if (!NETWORK_FIRST.test(url.pathname)) {
+        if (!isCode) {
             // 图标、字体等静态资源：缓存优先，命中即返回
             const cached = await caches.match(req);
             if (cached) return cached;
         }
         try {
-            const resp = await fetch(req);
+            // 代码文件强制绕过 HTTP 缓存，确保拿到最新版本（避免改了代码线上不生效）
+            const resp = await fetch(req, isCode ? { cache: 'no-store' } : undefined);
             if (resp && resp.ok && resp.type === 'basic') {
                 const copy = resp.clone();
                 caches.open(CACHE_NAME).then(c => c.put(req, copy)).catch(() => {});

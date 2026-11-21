@@ -380,14 +380,14 @@ class Browser {
         const nameLabel = document.createElement('div'); nameLabel.style.cssText = 'font-size:12px;color:#888;margin-bottom:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'; nameLabel.textContent = name; dialog.appendChild(nameLabel);
         const folderLabel = document.createElement('div'); folderLabel.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:8px;'; folderLabel.textContent = this.t('browser.select_folder', '选择文件夹：'); dialog.appendChild(folderLabel);
         const folderList = document.createElement('div'); folderList.style.cssText = 'max-height:200px;overflow-y:auto;background:#1e1e1e;border-radius:4px;margin-bottom:12px;';
-        const rootOption = document.createElement('div'); rootOption.style.cssText = 'padding:10px 12px;cursor:pointer;color:#ccc;font-size:13px;background:color-mix(in srgb, var(--accent-color,#3498db) 20%, transparent);border-bottom:1px solid #333;'; rootOption.innerHTML = '<img src="../../icons/folder.svg" alt="" style="width:14px;height:14px;vertical-align:middle;filter:invert(1)"> ' + this.t('browser.bookmark_root', '收藏夹根目录');
+        const rootOption = document.createElement('div'); rootOption.style.cssText = 'padding:10px 12px;cursor:pointer;color:#ccc;font-size:13px;background:color-mix(in srgb, var(--accent-color,#3498db) 20%, transparent);border-bottom:1px solid #333;'; rootOption.innerHTML = '<img src="../../icons/folder.svg" alt="" style="width:14px;height:14px;vertical-align:middle;filter:var(--icon-filter)"> ' + this.t('browser.bookmark_root', '收藏夹根目录');
         rootOption.addEventListener('click', () => { this._addBookmark(name, url, null); this.renderBookmarks(); this.renderBookmarkDrawer(); document.body.removeChild(overlay); });
         folderList.appendChild(rootOption);
         const folders = this._getAllFolders();
         if (folders.length === 0) { const empty = document.createElement('div'); empty.style.cssText = 'padding:10px 12px;color:#666;font-size:12px;'; empty.textContent = this.t('browser.no_folders_hint', '暂无文件夹，可在收藏栏点击"+ 文件夹"创建'); folderList.appendChild(empty); }
         else {
             folders.forEach(folder => {
-                const item = document.createElement('div'); item.style.cssText = 'padding:10px 12px;cursor:pointer;color:#ccc;font-size:13px;border-bottom:1px solid #333;'; item.innerHTML = '<img src="../../icons/folder.svg" alt="" style="width:14px;height:14px;vertical-align:middle;filter:invert(1)"> ' + folder.name;
+                const item = document.createElement('div'); item.style.cssText = 'padding:10px 12px;cursor:pointer;color:#ccc;font-size:13px;border-bottom:1px solid #333;'; item.innerHTML = '<img src="../../icons/folder.svg" alt="" style="width:14px;height:14px;vertical-align:middle;filter:var(--icon-filter)"> ' + folder.name;
                 item.addEventListener('mouseenter', () => { item.style.background = '#3d3d3d'; });
                 item.addEventListener('mouseleave', () => { item.style.background = ''; });
                 item.addEventListener('click', () => { this._addBookmark(name, url, folder.id); this.renderBookmarks(); this.renderBookmarkDrawer(); document.body.removeChild(overlay); });
@@ -427,7 +427,7 @@ class Browser {
     }
     _renderBookmarkFolder(folder, container) {
         const wrapper = document.createElement('div'); wrapper.className = 'bookmark-folder-wrapper'; wrapper.style.position = 'relative'; wrapper.style.display = 'inline-block';
-        const btn = document.createElement('button'); btn.className = 'bookmark-link bookmark-folder'; btn.innerHTML = '<img src="../../icons/folder.svg" alt="" style="width:14px;height:14px;vertical-align:middle;filter:invert(1)"> ' + folder.name; btn.title = folder.name;
+        const btn = document.createElement('button'); btn.className = 'bookmark-link bookmark-folder'; btn.innerHTML = '<img src="../../icons/folder.svg" alt="" style="width:14px;height:14px;vertical-align:middle;filter:var(--icon-filter)"> ' + folder.name; btn.title = folder.name;
         const dropdown = document.createElement('div'); dropdown.className = 'bookmark-folder-dropdown'; dropdown.style.display = 'none';
         if (folder.children && folder.children.length > 0) {
             folder.children.forEach(child => {

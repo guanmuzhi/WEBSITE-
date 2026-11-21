@@ -6,24 +6,21 @@
    ========================================================= */
 
 :root {
-    --primary-bg: #0f0f1a;
-    --secondary-bg: #1a1a2e;
-    --card-bg: #16213e;
-    --num-btn-bg: #2d2d44;
-    --num-btn-hover: #3d3d54;
+    --primary-bg: var(--bg-darker);
+    --secondary-bg: var(--bg-dark);
+    --card-bg: var(--bg-dark);
+    --num-btn-bg: var(--bg-light);
+    --num-btn-hover: var(--bg-hover);
     --op-btn-bg: var(--accent-color, #1abc9c);
     --op-btn-hover: var(--accent-hover, #16a085);
-    --func-btn-bg: #1e1e32;
-    --func-btn-hover: #2e2e42;
+    --func-btn-bg: var(--bg-light);
+    --func-btn-hover: var(--bg-hover);
     --clear-btn-bg: #e74c3c;
     --clear-btn-hover: #f75c4c;
     --delete-btn-bg: #7f8c8d;
     --delete-btn-hover: #95a5a6;
     --equals-btn-bg: var(--accent-color, #1abc9c);
     --equals-btn-hover: var(--accent-hover, #16a085);
-    --text-primary: #ffffff;
-    --text-secondary: #aaa;
-    --text-muted: #666;
     --border-radius: 12px;
     --btn-radius: 10px;
     --shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -65,7 +62,7 @@ html, body {
 }
 body {
     font-family: var(--font-mono) !important;
-    background: #000000;
+    background: var(--bg-darker);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -114,7 +111,7 @@ body {
        先给 fallback（百分比 + clamp），再在支持 cqmin 的浏览器用 @supports 覆盖为 cqmin。*/
     padding: clamp(4px, 1.2%, 12px);
     gap: clamp(4px, 0.8%, 10px);
-    background: #000000;
+    background: var(--bg-darker);
     box-sizing: border-box;
     /* 横向/纵向极端窄时溢出不裁剪（子元素会按 container query 适配，正常不溢出；兜底允许极窄时内部 scroll 但不崩）*/
     overflow: auto;
@@ -136,8 +133,8 @@ body {
    ====================================================================================== */
 
 .display {
-    background: #000000;
-    border: 1px solid rgba(255,255,255,0.06);
+    background: var(--bg-darker);
+    border: 1px solid var(--overlay-weak);
     border-radius: var(--border-radius);
     padding: clamp(8px, 1.5%, 18px) clamp(12px, 2.2%, 20px);
     text-align: right;
@@ -168,7 +165,7 @@ body {
     line-height: 1.1;
     word-break: break-all;
     overflow: hidden;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    text-shadow: 0 0 20px var(--overlay);
 }
 
 .buttons {
@@ -225,7 +222,7 @@ body {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    background: linear-gradient(90deg, transparent, var(--overlay-weak), transparent);
     pointer-events: none;
 }
 
@@ -246,66 +243,66 @@ body {
 }
 
 .num {
-    background: #000000;
-    border: 1px solid rgba(255,255,255,0.06);
+    background: var(--bg-darker);
+    border: 1px solid var(--overlay-weak);
     font-size: clamp(14px, 3%, 24px);
 }
 
 .num:hover {
-    background: #0a0a0a;
+    background: var(--bg-hover);
     border-color: var(--accent-color, #1abc9c);
 }
 
 .op {
-    background: #000000;
+    background: var(--bg-darker);
     border: 1px solid rgba(26,188,156,0.25);
     color: var(--accent-color, #1abc9c);
     font-size: clamp(16px, 3.6%, 30px);
 }
 
 .op:hover {
-    background: #0a0a0a;
+    background: var(--bg-hover);
     border-color: var(--accent-color, #1abc9c);
 }
 
 .func {
-    background: #000000;
-    border: 1px solid rgba(255,255,255,0.06);
+    background: var(--bg-darker);
+    border: 1px solid var(--overlay-weak);
     font-size: clamp(11px, 2%, 18px);
     color: var(--text-secondary);
     line-height: 1.1;
 }
 
 .func:hover {
-    background: #0a0a0a;
+    background: var(--bg-hover);
     color: var(--text-primary);
     border-color: var(--accent-color, #1abc9c);
 }
 
 .clear {
-    background: #000000;
+    background: var(--bg-darker);
     border: 1px solid rgba(231,76,60,0.3);
     color: #e74c3c;
 }
 
 .clear:hover {
-    background: #1a0807;
+    background: rgba(231, 76, 60, 0.12);
     border-color: #e74c3c;
 }
 
 .delete {
-    background: #000000;
+    background: var(--bg-darker);
     border: 1px solid rgba(127,140,141,0.3);
     color: #95a5a6;
 }
 
 .delete:hover {
-    background: #0a0a0a;
+    background: var(--bg-hover);
     border-color: #bdc3c7;
 }
 
 .equals {
-    background: #000000;
+    background: var(--bg-darker);
     border: 1px solid var(--accent-color, #1abc9c);
     color: var(--accent-color, #1abc9c);
     font-size: clamp(18px, 4%, 34px);

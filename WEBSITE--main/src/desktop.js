@@ -1,7 +1,7 @@
-import UserManager from './user-manager.js?v=47';
-import LockScreen from './lock-screen.js?v=47';
-import StorageService from './storage.js?v=47';
-import { Path } from './lib/index.js?v=47';
+import UserManager from './user-manager.js?v=54';
+import LockScreen from './lock-screen.js?v=54';
+import StorageService from './storage.js?v=54';
+import { Path } from './lib/index.js?v=54';
 
 /**
  * 把「相对于本文件（src/desktop.js）」的路径解析成绝对 URL。
@@ -9,6 +9,12 @@ import { Path } from './lib/index.js?v=47';
  * 本模块运行在根目录的 index.html 下，两套基准不一致，裸相对路径在子路径部署时会错位。
  */
 const assetUrl = (rel) => new URL(rel, import.meta.url).href;
+
+/* 任务栏项的兜底图标：个别窗口（对话框、vi 等）没有 appIcon/icon，
+   旧实现给 img.src 传空串会显示破图，看起来就像"图标和窗口对不上"。 */
+const DEFAULT_WINDOW_ICON = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ecf0f1" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>'
+);
 
 class DesktopManager {
     constructor(options = {}) {
@@ -105,6 +111,10 @@ class DesktopManager {
             root.style.setProperty('--taskbar-opacity', o);
             root.style.setProperty('--taskbar-bg', `rgba(${rgb}, ${o})`);
             root.style.setProperty('--taskbar-border', `rgba(${rgb}, ${Math.min(o + 0.2, 1)})`);
+            // 文字/图标的对比色：根据任务栏颜色的亮度自动选黑或白
+            const [r, g, b] = rgb.split(',').map(n => Number(n.trim()));
+            const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            root.style.setProperty('--taskbar-fg', lum > 0.6 ? '#000000' : '#ffffff');
         } catch (e) {}
     }
     applyFontSize(size) {
@@ -146,6 +156,10 @@ class DesktopManager {
             localStorage.setItem('webos-accent-color', pers.accentColor);
             this.applyThemeColor(pers.accentColor);
         }
+        // 明暗主题
+        if (pers.theme) {
+            localStorage.setItem('webos-theme', pers.theme);
+        }
         // 字体大小
         if (pers.fontSize) {
             localStorage.setItem('webos-font-size', String(pers.fontSize));
@@ -167,7 +181,7 @@ class DesktopManager {
             this.setTaskbarAutohide(!!pers.taskbarAutohide);
         }
         // 任务栏颜色 + 不透明度
-        const tbColor = pers.taskbarColor || localStorage.getItem('webos-taskbar-color') || '#1abc9c';
+        const tbColor = pers.taskbarColor || localStorage.getItem('webos-taskbar-color') || this.getCurrentAccent();
         const tbOpacity = pers.taskbarOpacity != null ? String(pers.taskbarOpacity) : (localStorage.getItem('webos-taskbar-opacity') || '70');
         localStorage.setItem('webos-taskbar-color', tbColor);
         localStorage.setItem('webos-taskbar-opacity', String(tbOpacity));
@@ -182,14 +196,20 @@ class DesktopManager {
     }
     applyThemeToIframe(iframe, detail) {
         if (!iframe) return;
+        const apply = (doc) => {
+            try {
+                doc.documentElement.style.setProperty('--accent-color', detail.color);
+                doc.documentElement.style.setProperty('--accent-hover', detail.hover);
+                if (this._themeMode) doc.documentElement.setAttribute('data-theme', this._themeMode);
+            } catch (e) {}
+        };
         try {
             const doc = iframe.contentDocument;
             if (!doc || !doc.documentElement) {
                 iframe.addEventListener('load', () => this.applyThemeToIframe(iframe, detail), { once: true });
                 return;
             }
-            doc.documentElement.style.setProperty('--accent-color', detail.color);
-            doc.documentElement.style.setProperty('--accent-hover', detail.hover);
+            apply(doc);
         } catch (e) {}
     }
     applyThemeColor(color) {
@@ -197,16 +217,61 @@ class DesktopManager {
         const root = document.documentElement;
         root.style.setProperty('--accent-color', detail.color);
         root.style.setProperty('--accent-hover', detail.hover);
+        if (this._themeMode) root.setAttribute('data-theme', this._themeMode);
         this.windowManager.getAllWindows().forEach(win => {
             const iframe = win.element && win.element.querySelector('iframe');
             this.applyThemeToIframe(iframe, detail);
         });
         return detail;
     }
+    resolveThemeMode() {
+        const pref = (localStorage.getItem('webos-theme') || 'dark').trim();
+        if (pref === 'light' || pref === 'dark') return pref;
+        try {
+            return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        } catch (e) { return 'dark'; }
+    }
+    getAllWindowIframes() {
+        if (!this.windowManager) return [];
+        const arr = [];
+        this.windowManager.getAllWindows().forEach(win => {
+            const iframe = win.element && win.element.querySelector('iframe');
+            if (iframe) arr.push(iframe);
+        });
+        return arr;
+    }
+    applyTheme(themePref) {
+        if (themePref) localStorage.setItem('webos-theme', themePref);
+        const mode = this.resolveThemeMode();
+        this._themeMode = mode;
+        document.documentElement.setAttribute('data-theme', mode);
+        // 系统模式跟随操作系统切换
+        try {
+            if (!this._themeMedia) {
+                this._themeMedia = window.matchMedia('(prefers-color-scheme: light)');
+                this._themeMedia.addEventListener('change', () => {
+                    if ((localStorage.getItem('webos-theme') || 'dark') === 'system') this.applyTheme('system');
+                });
+            }
+        } catch (e) {}
+        // 已打开的窗口（iframe 文档）同步主题
+        this.getAllWindowIframes().forEach(iframe => {
+            try { if (iframe.contentDocument && iframe.contentDocument.documentElement) iframe.contentDocument.documentElement.setAttribute('data-theme', mode); } catch (e) {}
+        });
+    }
     setupThemeListener() {
         this.applyThemeColor(this.getCurrentAccent());
+        this.applyTheme();
         document.addEventListener('accent-color-changed', (e) => {
             this.applyThemeColor(e.detail && e.detail.color);
+            // 用户未显式设置任务栏颜色时，任务栏跟随强调色一起变
+            if (!localStorage.getItem('webos-taskbar-color')) {
+                const o = localStorage.getItem('webos-taskbar-opacity') || '70';
+                this.applyTaskbarColor(this.getCurrentAccent(), o);
+            }
+        });
+        document.addEventListener('theme-changed', (e) => {
+            this.applyTheme(e && e.detail && e.detail.theme);
         });
     }
     getStateFilePath() {
@@ -249,7 +314,10 @@ class DesktopManager {
         this.startClock();
         // 在恢复窗口和应用主题前，先应用 personalization.json（含语言/任务栏/动画/字体/壁纸/主题色）
         try { await this.applyPersonalization(); } catch (e) { console.warn('apply personalization failed:', e); }
-        this.loadState();
+        // 必须 await：loadState 内部逐个 await openAppByPath() 恢复窗口（含 fetch info.json）。
+        // 旧写法不等待就继续往下建任务栏、置 _initDone，导致恢复出来的窗口
+        // 与"当前工作区"判定竞态 → 应用看起来没加载 / 要切一遍桌面才出现。
+        await this.loadState();
         this.buildWorkspaceTaskbars();
         this.updateTaskbar();
         this.updateTaskbarUser();
@@ -262,11 +330,14 @@ class DesktopManager {
         this.setupWorkspaceShortcuts();
         this.setupOverviewKey();
         this.setupTerminalCommandListener();
+        this.setupAppsChangedListener();
+        this.setupPersonalizationListener();
         this.setupIframeFocusTracking();
         this.setupDesktopClick();
         window.openApp = this.openAppById.bind(this);
         window.installAppFromFile = this.installAppFromFile.bind(this);
         window.getInstalledApps = () => this.apps.filter(a => !this._systemAppPaths.has(a.path));
+        this._initDone = true; // init 异步体执行完毕（loadState 已完成窗口恢复）
     }
     getLangCode() { return localStorage.getItem('webos-language') || 'cmn'; }
     async fetchLangJson(url, cacheKey) {
@@ -599,7 +670,16 @@ class DesktopManager {
     setupCompactTaskbar() {
         if (!this.compactExpandBtn) return;
         this.compactExpandBtn.addEventListener('click', (e) => { e.stopPropagation(); this.expandTaskbarFromCompact(); });
-        if (this.compactTaskbarEl) { const compactUser = this.compactTaskbarEl.querySelector('#taskbar-compact-user'); if (compactUser) { compactUser.addEventListener('click', (e) => { e.stopPropagation(); this.openOverview(); }); } }
+        if (this.compactTaskbarEl) {
+            const compactUser = this.compactTaskbarEl.querySelector('#taskbar-compact-user');
+            if (compactUser) {
+                compactUser.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (this._overviewOpen) { this.closeOverview(); this.lock(); }
+                    else this.openOverview();
+                });
+            }
+        }
     }
     setTaskbarAutohide(enabled) {
         this._taskbarAutohide = enabled;
@@ -683,7 +763,7 @@ class DesktopManager {
             // 桌布移动优先级：应用内容(iframe/可滚动区域)或系统UI内部让浏览器原生滚动，
             // 其它情况（桌面空白、窗口标题栏/边框、桌面图标）一律用于移动桌布。
             const overIframe = !!e.target.closest('iframe');
-            const overSystemUI = e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') || e.target.closest('.user-switcher') || e.target.closest('.desktop-icons');
+            const overSystemUI = e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') || e.target.closest('.desktop-icons');
             // 检查指针是否位于窗口内可滚动元素（如终端 terminal-body）上：是则交给浏览器原生滚动，避免终端无法垂直滚动
             let overScrollable = false;
             let node = e.target;
@@ -703,24 +783,41 @@ class DesktopManager {
         desktop.addEventListener('mousedown', (e) => {
             const overUI = e.target.closest('.window') || e.target.closest('.desktop-icon') ||
                 e.target.closest('.taskbar') || e.target.closest('.taskbar-compact') ||
-                e.target.closest('.user-switcher') || e.target.closest('.lock-screen');
+                e.target.closest('.lock-screen');
             if ((overUI && !e.altKey) || e.button !== 0) return;
             this._isPanning = true; this._panStartX = e.clientX; this._panStartY = e.clientY; this._panStartViewX = this.viewX; this._panStartViewY = this.viewY; desktop.classList.add('panning'); e.preventDefault(); e.stopPropagation();
         });
         document.addEventListener('mousedown', (e) => {
             if (!e.altKey || e.button !== 0 || this._isPanning) return;
-            this._isPanning = true; this._panStartX = e.clientX; this._panStartY = e.clientY; this._panStartViewX = this.viewX; this._panStartViewY = this.viewY; desktop.classList.add('panning'); e.preventDefault();
+            this._isPanning = true; this._panStartX = e.clientX; this._panStartY = e.clientY; this._panStartViewX = this.viewX; this._panStartViewY = this.viewY; desktop.classList.add('panning');
+            // 拖拽平移应立即取消「居中过渡」，避免跟手延迟
+            if (this.windowsContainerEl) { this.windowsContainerEl.classList.remove('view-animating'); clearTimeout(this._viewAnimTimer); }
+            e.preventDefault();
         });
         document.addEventListener('mousemove', (e) => { if (!this._isPanning) return; const dx = e.clientX - this._panStartX; const dy = e.clientY - this._panStartY; this.viewX = this._panStartViewX + dx; this.viewY = this._panStartViewY + dy; this.applyViewTransform(); });
         document.addEventListener('mouseup', () => { if (this._isPanning) { this._isPanning = false; desktop.classList.remove('panning'); } });
     }
-    applyViewTransform() { if (this.windowsContainerEl) { this.windowsContainerEl.style.transform = `translate(${this.viewX}px, ${this.viewY}px)`; } }
+    applyViewTransform(animate = false) {
+        if (!this.windowsContainerEl) return;
+        if (animate) {
+            // 平滑过渡模式：加过渡类，动画结束后移除（期间若有拖拽会立即取消）
+            this.windowsContainerEl.classList.add('view-animating');
+            clearTimeout(this._viewAnimTimer);
+            this._viewAnimTimer = setTimeout(() => {
+                this.windowsContainerEl && this.windowsContainerEl.classList.remove('view-animating');
+            }, 420);
+        } else {
+            this.windowsContainerEl.classList.remove('view-animating');
+        }
+        this.windowsContainerEl.style.transform = `translate(${this.viewX}px, ${this.viewY}px)`;
+    }
     centerWindowInView(win) {
         if (!win || !win.element) return;
         const winLeft = parseInt(win.element.style.left) || 0; const winTop = parseInt(win.element.style.top) || 0; const winWidth = parseInt(win.element.style.width) || 600; const winHeight = parseInt(win.element.style.height) || 400;
         const viewCenterX = (window.innerWidth - 110) / 2; const viewCenterY = (window.innerHeight - 48) / 2;
         const winCenterX = winLeft + winWidth / 2; const winCenterY = winTop + winHeight / 2;
-        this.viewX = viewCenterX - winCenterX; this.viewY = viewCenterY - winCenterY; this.applyViewTransform();
+        this.viewX = viewCenterX - winCenterX; this.viewY = viewCenterY - winCenterY;
+        this.applyViewTransform(true);
     }
     lock() {
         // 兜底：锁屏对象可能因之前的闪退/destroy 或 init 时机问题未初始化
@@ -745,19 +842,76 @@ class DesktopManager {
     }
     async scanApps() {
         try { const res = await fetch(assetUrl('../apps/manifest.json')); if (!res.ok) return; this.apps = await res.json(); this._systemAppPaths = new Set(this.apps.map(a => a.path)); } catch (e) { console.warn('扫描应用失败:', e); this.apps = []; }
+        this._manifestPaths = new Set((this.apps || []).map(a => a.path));
+        this._syncVfsAppsIntoList();
+    }
+    /** 把 VFS /application 下已安装但不在 manifest 中的应用合并进 this.apps（桌面图标 / 启动 / 列表用） */
+    _syncVfsAppsIntoList() {
+        try {
+            const fs = this.storage.fs;
+            const appDir = (fs.children || []).find(c => c.name === 'application' && c.type === 'folder');
+            const vfsPaths = new Set();
+            for (const c of (appDir && appDir.children) || []) {
+                if (c.type !== 'folder' || !c.name.endsWith('.app')) continue;
+                vfsPaths.add(c.name);
+                if ((this.apps || []).some(a => a.path === c.name)) continue;
+                const infoFile = (c.children || []).find(f => f.name === 'info.json' && f.type === 'file');
+                let id = c.name.replace(/\.app$/, ''), name = id, version = '1.0.0', description = '', category = 'productivity';
+                if (infoFile) { try { const info = JSON.parse(infoFile.content); id = info.id || id; name = info.name || name; version = info.version || version; description = info.description || ''; category = info.category || category; } catch (e) {} }
+                this.apps.push({ id, name, path: c.name, description, category, version });
+            }
+            // 清理既不在 manifest 也不在 VFS 的残留项
+            this.apps = (this.apps || []).filter(a => (this._manifestPaths && this._manifestPaths.has(a.path)) || vfsPaths.has(a.path));
+        } catch (e) { console.warn('同步 VFS 应用列表失败:', e); }
+    }
+    /** 终端 application install/uninstall 后：刷新应用清单与桌面图标 */
+    setupAppsChangedListener() {
+        document.addEventListener('apps-changed', async () => {
+            try {
+                await this.scanApps();
+                await this.refreshAppNames();
+                this.setupDesktopIcons();
+                this.updateTaskbar();
+            } catch (e) { console.warn('apps-changed 刷新失败:', e); }
+        });
+    }
+    /** 终端 personality 命令修改个性化后：实时应用（动画/任务栏/字体/壁纸/主题色） */
+    setupPersonalizationListener() {
+        document.addEventListener('personality-changed', async () => {
+            try { await this.applyPersonalization(); } catch (e) { console.warn('personality-changed 应用失败:', e); }
+        });
     }
     setupDesktopIcons() {
         const desktopIcons = this.desktopEl.querySelector('.desktop-icons');
         const terminalIcon = this.desktopEl.querySelector('#terminal-icon');
-        if (terminalIcon) { const label = terminalIcon.querySelector('.icon-label'); if (label) label.textContent = this.t('app.terminal', '终端'); terminalIcon.addEventListener('click', () => { this.openTerminalWindow(); }); }
+        if (terminalIcon) {
+            const label = terminalIcon.querySelector('.icon-label'); if (label) label.textContent = this.t('app.terminal', '终端');
+            // 幂等：重复调用（如应用变更刷新）不重复绑定
+            if (!terminalIcon.dataset.bound) {
+                terminalIcon.dataset.bound = '1';
+                terminalIcon.addEventListener('click', () => { this.openTerminalWindow(); });
+            }
+        }
         const calculatorIcon = this.desktopEl.querySelector('#calculator-icon');
-        if (calculatorIcon) { const label = calculatorIcon.querySelector('.icon-label'); if (label) label.textContent = this.getAppLabelForPath('calculator.app', '计算器'); calculatorIcon.dataset.manualBound = '1'; calculatorIcon.addEventListener('click', () => { this.openAppByPath({ path: 'calculator.app', name: this.getAppLabelForPath('calculator.app', '计算器') }); }); }
+        if (calculatorIcon) {
+            const label = calculatorIcon.querySelector('.icon-label'); if (label) label.textContent = this.getAppLabelForPath('calculator.app', '计算器'); calculatorIcon.dataset.manualBound = '1';
+            if (!calculatorIcon.dataset.bound) { calculatorIcon.dataset.bound = '1'; calculatorIcon.addEventListener('click', () => { this.openAppByPath({ path: 'calculator.app', name: this.getAppLabelForPath('calculator.app', '计算器') }); }); }
+        }
         const filemanagerIcon = this.desktopEl.querySelector('#filemanager-icon');
-        if (filemanagerIcon) { const label = filemanagerIcon.querySelector('.icon-label'); if (label) label.textContent = this.getAppLabelForPath('filemanager.app', '文件管理器'); filemanagerIcon.dataset.manualBound = '1'; filemanagerIcon.addEventListener('click', () => { this.openAppByPath({ path: 'filemanager.app', name: this.getAppLabelForPath('filemanager.app', '文件管理器') }); }); }
+        if (filemanagerIcon) {
+            const label = filemanagerIcon.querySelector('.icon-label'); if (label) label.textContent = this.getAppLabelForPath('filemanager.app', '文件管理器'); filemanagerIcon.dataset.manualBound = '1';
+            if (!filemanagerIcon.dataset.bound) { filemanagerIcon.dataset.bound = '1'; filemanagerIcon.addEventListener('click', () => { this.openAppByPath({ path: 'filemanager.app', name: this.getAppLabelForPath('filemanager.app', '文件管理器') }); }); }
+        }
         this.apps.forEach(app => {
             let iconEl = desktopIcons.querySelector(`[data-app="${app.id}"]`);
             if (!iconEl) { iconEl = document.createElement('div'); iconEl.className = 'desktop-icon'; iconEl.setAttribute('data-app', app.id); const displayName = this.getAppDisplayName(app, app.name); iconEl.innerHTML = `<div class="icon-image"><img src="${assetUrl(`../apps/${encodeURI(app.path)}/icon.svg`)}" alt="${displayName}" style="width:28px;height:28px;"></div><div class="icon-label">${displayName}</div>`; desktopIcons.appendChild(iconEl); }
-            if (!iconEl.dataset.manualBound) { iconEl.addEventListener('click', () => { this.openAppByPath({ ...app, name: this.getAppDisplayName(app, app.name) }); }); }
+            if (!iconEl.dataset.manualBound && !iconEl.dataset.bound) { iconEl.dataset.bound = '1'; iconEl.addEventListener('click', () => { this.openAppByPath({ ...app, name: this.getAppDisplayName(app, app.name) }); }); }
+        });
+        // 移除已卸载应用的桌面图标
+        const validIds = new Set(this.apps.map(a => a.id));
+        desktopIcons.querySelectorAll('.desktop-icon[data-app]').forEach(el => {
+            const id = el.getAttribute('data-app');
+            if (id && !validIds.has(id) && !['terminal', 'calculator', 'filemanager'].includes(id)) el.remove();
         });
     }
     openTerminalWindow(options = {}) {
@@ -801,7 +955,7 @@ class DesktopManager {
      */
     appEntryUrl(appPath) {
         // 带缓存版本号：应用文件更新后不会被浏览器继续沿用旧缓存
-        return new URL(`../apps/${encodeURI(appPath)}/main/index.html`, import.meta.url).href + '?v=47';
+        return new URL(`../apps/${encodeURI(appPath)}/main/index.html`, import.meta.url).href + '?v=54';
     }
     /** srcdoc 里要用的 base：指向该应用的 main/ 目录 */
     appBaseUrl(appPath) {
@@ -919,7 +1073,9 @@ class DesktopManager {
         const windows = this.windowManager.getAllWindows().filter(w => w.workspaceId === ws);
         windows.forEach(win => {
             const item = document.createElement('div'); item.className = 'taskbar-item';
-            const iconEl = document.createElement('img'); iconEl.className = 'taskbar-icon'; iconEl.src = win.appIcon || ''; iconEl.alt = win.appName || win.title || '窗口'; iconEl.style.width = '20px'; iconEl.style.height = '20px';
+            const iconEl = document.createElement('img'); iconEl.className = 'taskbar-icon';
+            iconEl.src = win.appIcon || win.icon || DEFAULT_WINDOW_ICON;
+            iconEl.alt = win.appName || win.title || '窗口'; iconEl.style.width = '20px'; iconEl.style.height = '20px';
             item.appendChild(iconEl);
             if (topWindow && win.id === topWindow.id && !win.isMinimized) { item.classList.add('active'); }
             item.addEventListener('click', () => {
@@ -934,19 +1090,16 @@ class DesktopManager {
         });
     }
     _getTopWindow() {
-        const windows = this.windowManager.getAllWindows(); if (windows.length === 0) return null;
-        // 只统计「当前工作区且非最小化」的窗口，避免其它桌面的窗口抢占高亮
-        const activeWindows = windows.filter(w => w.workspaceId === this.activeWorkspace && !w.isMinimized);
-        if (activeWindows.length === 0) return null;
-        // 优先以 window-focused 类为准（focusWindow 每次都会切换此类，表示真正的当前焦点）
-        let focused = null;
-        for (const w of activeWindows) {
-            if (w.element.classList.contains('window-focused')) { focused = w; break; }
-        }
-        if (focused) return focused;
-        // 兜底：z-index 最大（兼容首次加载 state、或某些路径没设置类的情况）
+        // 「真实最高层」由 z-index 唯一决定，不能用 window-focused 类判断：
+        // 类可能因新建窗口未自动聚焦、iframe 焦点轮询延迟、桌面点击清空等场景
+        // 与真实层级脱节，导致任务栏高亮指向另一个应用。
+        const activeWindows = this.windowManager.getAllWindows()
+            .filter(w => w.workspaceId === this.activeWorkspace && !w.isMinimized);
         let topWin = null; let maxZIndex = -1;
-        activeWindows.forEach(win => { const zIndex = parseInt(win.element.style.zIndex) || 0; if (zIndex > maxZIndex) { maxZIndex = zIndex; topWin = win; } });
+        activeWindows.forEach(win => {
+            const zIndex = parseInt(win.element.style.zIndex) || 0;
+            if (zIndex > maxZIndex) { maxZIndex = zIndex; topWin = win; }
+        });
         return topWin;
     }
     // ───────────────────────── 多桌面 / 工作区（虚拟桌面） ─────────────────────────
@@ -971,14 +1124,19 @@ class DesktopManager {
             const user = document.createElement('div'); user.className = 'taskbar-user'; user.id = `taskbar-user-${i}`;
             const avatar = document.createElement('span'); avatar.className = 'taskbar-user-avatar'; avatar.id = `taskbar-user-avatar-${i}`;
             const name = document.createElement('span'); name.className = 'taskbar-user-name'; name.id = `taskbar-user-name-${i}`; name.textContent = currentUser;
-            user.appendChild(avatar); user.appendChild(name);
+            const logout = document.createElement('span'); logout.className = 'taskbar-logout-label'; logout.textContent = '退出登录';
+            user.appendChild(avatar); user.appendChild(name); user.appendChild(logout);
             right.appendChild(clock); right.appendChild(user);
             taskbar.appendChild(items); taskbar.appendChild(right);
             container.appendChild(taskbar);
             const surface = { workspace: i, taskbarEl: taskbar, itemsEl: items, clockEl: clock, userEl: user, userNameEl: name, userAvatarEl: avatar };
             this.surfaces.push(surface);
-            // 点击用户按钮 → 打开桌面总览（缩略图切换 + 退出登录），而非锁定界面
-            user.addEventListener('click', (e) => { e.stopPropagation(); this.openOverview(); });
+            // 正常态：点击打开任务视图；任务视图中：按钮变「退出登录」，点击即锁屏
+            user.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this._overviewOpen) { this.closeOverview(); this.lock(); }
+                else this.openOverview();
+            });
         }
         this.updateTaskbar();
         this.updateTaskbarUser();
@@ -990,11 +1148,45 @@ class DesktopManager {
     }
     setActiveWorkspace(id) {
         if (id < 0 || id >= this.workspaceCount) return;
+        const changed = id !== this.activeWorkspace;
         this.activeWorkspace = id;
         this.windowManager.setActiveWorkspace(id);
         this.surfaces.forEach(s => { s.taskbarEl.style.display = (s.workspace === id) ? '' : 'none'; });
         this.updateTaskbar();
         this.saveState();
+        if (changed) this._playWorkspaceEnterAnimation();
+        // 任务视图打开时（例如通过底部任务栏点另一个桌面的窗口），同步刷新
+        // 顶部缩略图高亮与中部窗口列表，避免显示上一个桌面的内容
+        if (changed && this._overviewOpen) this.openOverview();
+    }
+    /** 工作区切换入场动画：容器淡入 + 任务栏上浮 + 可见窗口轻微上移渐显 */
+    _playWorkspaceEnterAnimation() {
+        try {
+            const container = this.windowsContainerEl;
+            if (container) {
+                container.classList.remove('ws-enter');
+                void container.offsetWidth; // 重启动画
+                container.classList.add('ws-enter');
+            }
+            const bar = this._getActiveTaskbarEl();
+            if (bar) {
+                bar.classList.remove('ws-enter');
+                void bar.offsetWidth;
+                bar.classList.add('ws-enter');
+            }
+            this.windowManager.getAllWindows().forEach(win => {
+                if (win.workspaceId !== this.activeWorkspace || win.isMinimized || !win.element) return;
+                win.element.classList.remove('ws-win-enter');
+                void win.element.offsetWidth;
+                win.element.classList.add('ws-win-enter');
+            });
+            clearTimeout(this._wsEnterTimer);
+            this._wsEnterTimer = setTimeout(() => {
+                if (container) container.classList.remove('ws-enter');
+                if (bar) bar.classList.remove('ws-enter');
+                this.windowManager.getAllWindows().forEach(win => win.element && win.element.classList.remove('ws-win-enter'));
+            }, 420);
+        } catch (e) { /* 动画失败不影响功能 */ }
     }
     addWorkspace() {
         if (this.workspaceCount >= 9) return; // 数量上限保护
@@ -1020,7 +1212,10 @@ class DesktopManager {
         this.windowManager.setActiveWorkspace(this.activeWorkspace);
         this.saveState();
     }
-    // ───────────────────────── 桌面总览（缩略图切换 + 退出登录） ─────────────────────────
+    // ─────────────────── 任务视图（桌面总览） ───────────────────
+    // 布局：顶部 = 所有桌面缩略图（窄条、横向滚动）；中部 = 当前桌面所有窗口
+    // （互不重叠、按真实尺寸同一比例缩放）；底部 = 真实任务栏，用户按钮切换成
+    // 「退出登录」。所有窗口只克隆展示，真实窗口始终在后台运行，状态不丢失。
     setupOverviewKey() {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this._overviewOpen) { e.preventDefault(); this.closeOverview(); }
@@ -1030,66 +1225,225 @@ class DesktopManager {
         const overlay = this.desktopEl.querySelector('#desktop-overview');
         if (!overlay) return;
         overlay.innerHTML = '';
-        const grid = document.createElement('div'); grid.className = 'overview-grid';
+        this._overviewOpen = true;
+        document.body.classList.add('overview-active');
+        // 自动隐藏任务栏时，任务视图期间强制展开，保证底部任务栏与退出登录按钮可见
+        if (this._taskbarAutohide) this.expandTaskbarFromCompact();
+        this._clearAutohideTimer();
+
+        const strip = document.createElement('div'); strip.className = 'overview-topstrip';
+        overlay.appendChild(strip);
+        this._renderOverviewStrip(strip);
+
+        const main = document.createElement('div'); main.className = 'overview-main';
+        overlay.appendChild(main);
+        this._renderOverviewWindows(main);
+
+        overlay.style.display = 'flex';
+        // 布局完成后再算一次窗口比例（首次 clientWidth/clientHeight 尚未稳定）
+        requestAnimationFrame(() => {
+            if (this._overviewOpen && main.isConnected) this._renderOverviewWindows(main);
+        });
+    }
+    closeOverview() {
+        const overlay = this.desktopEl.querySelector('#desktop-overview');
+        if (overlay) {
+            overlay.style.display = 'none';
+            // 必须清空：缩略图里的克隆节点（含克隆的终端/应用 iframe）若留在 DOM 中，
+            // 既会继续匹配 .window .terminal 等全局选择器造成串扰，也会白白运行
+            overlay.innerHTML = '';
+        }
+        this._overviewOpen = false;
+        document.body.classList.remove('overview-active');
+        if (this._taskbarAutohide) this._resetAutohideTimer();
+    }
+    /** 顶部：所有桌面缩略图，窄条 + 水平滚动 */
+    _renderOverviewStrip(strip) {
+        strip.innerHTML = '';
         const count = Math.max(1, this.workspaceCount);
-        for (let i = 0; i < count; i++) {
-            const ws = i;
-            const card = document.createElement('div'); card.className = 'overview-card';
-            if (ws === this.activeWorkspace) card.classList.add('active');
-            card.appendChild(this.renderOverviewThumbnail(ws));
-            const label = document.createElement('div'); label.className = 'overview-label';
+        for (let ws = 0; ws < count; ws++) {
+            const card = document.createElement('div');
+            card.className = 'overview-ws-card' + (ws === this.activeWorkspace ? ' active' : '');
+            card.appendChild(this.renderOverviewThumbnail(ws, 150));
+            const label = document.createElement('div'); label.className = 'overview-ws-label';
             label.textContent = `桌面 ${ws + 1}`;
             const wins = this.windowManager.getAllWindows().filter(w => w.workspaceId === ws && !w.isMinimized).length;
-            if (wins > 0) { const badge = document.createElement('span'); badge.className = 'overview-badge'; badge.textContent = String(wins); label.appendChild(badge); }
+            if (wins > 0) {
+                const badge = document.createElement('span'); badge.className = 'overview-badge'; badge.textContent = String(wins);
+                label.appendChild(badge);
+            }
             card.appendChild(label);
             if (count > 1) {
                 const rm = document.createElement('div'); rm.className = 'overview-remove'; rm.textContent = '×'; rm.title = '删除此桌面';
                 rm.addEventListener('click', (e) => { e.stopPropagation(); this.removeWorkspace(ws); this.openOverview(); });
                 card.appendChild(rm);
             }
-            card.addEventListener('click', () => { this.setActiveWorkspace(ws); this.closeOverview(); });
-            grid.appendChild(card);
+            card.addEventListener('click', () => {
+                // 切桌面由 setActiveWorkspace 统一负责重绘（任务视图打开时会刷新
+                // 条带高亮 + 中部窗口列表），这里无需再 openOverview 一次
+                if (ws !== this.activeWorkspace) this.setActiveWorkspace(ws);
+            });
+            strip.appendChild(card);
         }
         if (count < 9) {
-            const add = document.createElement('div'); add.className = 'overview-card overview-add'; add.textContent = '+ 新建桌面';
-            add.addEventListener('click', () => { this.addWorkspace(); this.closeOverview(); });
-            grid.appendChild(add);
+            const add = document.createElement('div'); add.className = 'overview-ws-card overview-add'; add.textContent = '+ 新建桌面';
+            add.addEventListener('click', () => { this.addWorkspace(); this.openOverview(); });
+            strip.appendChild(add);
         }
-        overlay.appendChild(grid);
-        const bar = document.createElement('div'); bar.className = 'overview-bar';
-        const logout = document.createElement('button'); logout.className = 'overview-logout'; logout.textContent = '退出登录';
-        logout.addEventListener('click', () => { this.closeOverview(); this.lock(); });
-        bar.appendChild(logout);
-        overlay.appendChild(bar);
-        overlay.style.display = 'flex';
-        this._overviewOpen = true;
     }
-    closeOverview() {
-        const overlay = this.desktopEl.querySelector('#desktop-overview');
-        if (overlay) overlay.style.display = 'none';
-        this._overviewOpen = false;
-    }
-    renderOverviewThumbnail(ws) {
-        const thumb = document.createElement('div'); thumb.className = 'overview-thumb';
-        const W = window.innerWidth || 1280, H = window.innerHeight || 800;
-        const TW = 240; const scale = TW / W;
-        thumb.style.width = TW + 'px';
-        thumb.style.height = Math.round(H * scale) + 'px';
-        this.windowManager.getAllWindows().forEach(win => {
-            if (win.workspaceId !== ws || win.isMinimized) return;
-            const rect = document.createElement('div'); rect.className = 'overview-thumb-win';
-            const x = parseInt(win.element.style.left) || 0;
-            const y = parseInt(win.element.style.top) || 0;
-            const w = parseInt(win.element.style.width) || 600;
-            const h = parseInt(win.element.style.height) || 400;
-            rect.style.left = Math.round(x * scale) + 'px';
-            rect.style.top = Math.round(y * scale) + 'px';
-            rect.style.width = Math.max(8, Math.round(w * scale)) + 'px';
-            rect.style.height = Math.max(6, Math.round(h * scale)) + 'px';
-            rect.title = win.title || '';
-            thumb.appendChild(rect);
+    /** 中部：当前桌面所有窗口（含最小化的），按真实尺寸同一比例平铺、不重叠 */
+    _renderOverviewWindows(main) {
+        main.innerHTML = '';
+        const wins = this.windowManager.getAllWindows().filter(w => w.workspaceId === this.activeWorkspace && w.element);
+        if (!wins.length) {
+            const empty = document.createElement('div'); empty.className = 'overview-empty';
+            empty.textContent = '此桌面暂无窗口';
+            main.appendChild(empty);
+            return;
+        }
+        const availW = Math.max(320, main.clientWidth || (window.innerWidth - 80));
+        const availH = Math.max(200, main.clientHeight || (window.innerHeight - 280));
+        const dims = wins.map(w => ({
+            w: Math.max(120, parseInt(w.element.style.width) || w.element.offsetWidth || 600),
+            h: Math.max(90, parseInt(w.element.style.height) || w.element.offsetHeight || 400)
+        }));
+        const maxW = Math.max.apply(null, dims.map(d => d.w));
+        const maxH = Math.max.apply(null, dims.map(d => d.h));
+        // 估算列数（按可用区宽高比），再求「能让最大窗口放进一格」的统一缩放系数。
+        // 所有窗口共用同一 scale，彼此的相对大小与真实桌面一致。
+        const cols = Math.max(1, Math.min(wins.length, Math.ceil(Math.sqrt(wins.length * availW / availH))));
+        const rows = Math.ceil(wins.length / cols);
+        const gap = 18;
+        const cellW = (availW - gap * (cols + 1)) / cols;
+        const cellH = (availH - gap * (rows + 1)) / rows - 26; // 预留标题条
+        const scale = Math.max(0.06, Math.min(0.6, cellW / maxW, Math.max(60, cellH) / maxH));
+
+        wins.forEach((win, i) => {
+            const w = dims[i].w, h = dims[i].h;
+            const cw = Math.max(40, Math.round(w * scale));
+            const ch = Math.max(30, Math.round(h * scale));
+            const tile = document.createElement('div');
+            tile.className = 'overview-win-tile' + (win.isMinimized ? ' minimized' : '');
+            const canvasEl = document.createElement('div');
+            canvasEl.className = 'overview-win-canvas';
+            canvasEl.style.width = cw + 'px';
+            canvasEl.style.height = ch + 'px';
+            const stage = document.createElement('div');
+            stage.className = 'overview-win-stage';
+            stage.style.width = w + 'px';
+            stage.style.height = h + 'px';
+            stage.style.transform = `scale(${scale})`;
+            const wel = this._cleanClone(win.element);
+            wel.style.left = '0'; wel.style.top = '0';
+            wel.style.width = w + 'px'; wel.style.height = h + 'px';
+            wel.style.zIndex = '1';
+            stage.appendChild(wel);
+            canvasEl.appendChild(stage);
+            tile.appendChild(canvasEl);
+            const label = document.createElement('div'); label.className = 'overview-win-label';
+            label.textContent = win.title + (win.isMinimized ? ' · 已最小化' : '');
+            tile.title = win.title;
+            tile.appendChild(label);
+            tile.addEventListener('click', () => {
+                if (win.workspaceId !== this.activeWorkspace) this.setActiveWorkspace(win.workspaceId);
+                if (win.isMinimized) win.restore();
+                try { win.focus(); } catch (e) {}
+                this.closeOverview();
+            });
+            main.appendChild(tile);
         });
+    }
+    renderOverviewThumbnail(ws, TW = 260) {
+        // 缩略图 = 真实桌面的「活镜像」：把壁纸、程序坞（.desktop-icons）、窗口
+        // （.windows-container 内属于本工作区的窗口）、任务栏逐层克隆进一个与桌面
+        // 等尺寸的舞台，再用 CSS transform 整体缩放到卡片宽度。这样背景、窗口、
+        // 任务栏、程序坞与真实桌面完全一致（旧实现是手绘近似条带，对不上）。
+        const thumb = document.createElement('div');
+        thumb.className = 'overview-thumb';
+        thumb.title = `桌面 ${ws + 1}`;
+        const desktop = this.desktopEl;
+        const stageW = Math.max(320, desktop.clientWidth || window.innerWidth || 1280);
+        const stageH = Math.max(240, desktop.clientHeight || window.innerHeight || 800);
+        const scale = TW / stageW;
+        const TH = Math.max(80, Math.round(stageH * scale));
+        thumb.style.width = TW + 'px';
+        thumb.style.height = TH + 'px';
+
+        const stage = document.createElement('div');
+        stage.className = 'overview-thumb-stage';
+        stage.style.width = stageW + 'px';
+        stage.style.height = stageH + 'px';
+        stage.style.transform = `scale(${scale})`;
+        thumb.appendChild(stage);
+
+        // ① 壁纸：复制 #desktop 的计算背景（渐变 / 纯色 / 图片）
+        try {
+            const dcs = getComputedStyle(desktop);
+            stage.style.backgroundColor = dcs.backgroundColor;
+            stage.style.backgroundImage = dcs.backgroundImage;
+            stage.style.backgroundSize = dcs.backgroundSize;
+            stage.style.backgroundPosition = dcs.backgroundPosition;
+            stage.style.backgroundRepeat = dcs.backgroundRepeat;
+        } catch (e) { /* 极端环境下取不到计算样式就保持默认 */ }
+        // 视频壁纸：把当前帧画进 canvas（同源 data/blob 源可 drawImage）
+        const video = this.wallpaperVideoEl || document.getElementById('wallpaper-video');
+        if (video && video.classList && video.classList.contains('active')) {
+            try {
+                const cv = document.createElement('canvas');
+                cv.className = 'overview-thumb-video';
+                cv.width = Math.max(1, Math.round(stageW * scale));
+                cv.height = Math.max(1, Math.round(stageH * scale));
+                const ctx = cv.getContext('2d');
+                if (video.readyState >= 2) ctx.drawImage(video, 0, 0, cv.width, cv.height);
+                else { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height); }
+                cv.style.width = stageW + 'px';
+                cv.style.height = stageH + 'px';
+                stage.appendChild(cv);
+            } catch (e) { /* 视频帧抓取失败：退回纯黑背景 */ }
+        }
+
+        // ② 程序坞（桌面图标列）
+        const icons = desktop.querySelector('.desktop-icons');
+        if (icons) stage.appendChild(this._cleanClone(icons));
+
+        // ③ 窗口：克隆 .windows-container 骨架，仅挂本工作区的非最小化窗口
+        const wc = this.windowsContainerEl;
+        if (wc) {
+            const wcc = wc.cloneNode(false);
+            wcc.style.transform = wc.style.transform || 'none'; // 保留视图平移，与真实可视一致
+            wcc.classList.remove('view-animating', 'ws-enter');
+            this.windowManager.getAllWindows().forEach(win => {
+                if (!win.element || win.workspaceId !== ws || win.isMinimized) return;
+                const wel = this._cleanClone(win.element); // 会清掉后台/最小化隐藏态
+                wcc.appendChild(wel);
+            });
+            stage.appendChild(wcc);
+        }
+
+        // ④ 任务栏：克隆本工作区的真实任务栏（非活动工作区的真实态是 display:none）
+        const surface = this.surfaces.find(s => s.workspace === ws);
+        if (surface && surface.taskbarEl) {
+            const tbc = this._cleanClone(surface.taskbarEl);
+            tbc.style.display = '';
+            tbc.classList.remove('ws-enter', 'autohide-hidden', 'autohide-visible');
+            stage.appendChild(tbc);
+        }
         return thumb;
+    }
+    /** 深拷贝并清理：去掉 id / 幂等标记 / 后台隐藏态与 inert，
+        保证克隆出来的窗口在任务视图里是可见、可渲染的 */
+    _cleanClone(el) {
+        const c = el.cloneNode(true);
+        if (c.id) c.removeAttribute('id');
+        c.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+        c.querySelectorAll('[data-bound]').forEach(n => n.removeAttribute('data-bound'));
+        const reveal = (n) => {
+            n.classList && n.classList.remove('window-hidden', 'window-opening', 'window-closing', 'ws-win-enter', 'view-animating');
+            if (n.hasAttribute && n.hasAttribute('inert')) n.removeAttribute('inert');
+        };
+        reveal(c);
+        c.querySelectorAll('.window-hidden, [inert]').forEach(reveal);
+        return c;
     }
     setupWorkspaceShortcuts() {
         // 输入框聚焦时不触发「关闭 / 显示桌面 / 切换窗口」等高风险快捷键，避免误关正在输入的窗口
@@ -1172,6 +1526,9 @@ class DesktopManager {
             this.storage.reload(); const data = this.storage.loadJSON(this.getStateFilePath()); if (!data) return;
             const state = data; if (!state.windows || !Array.isArray(state.windows)) return;
             this._isLoadingState = true;
+            // 恢复前先记下已有窗口数量：下面用「偏移」而不是绝对下标来对应恢复的窗口，
+            // 避免 init 阶段已有窗口时索引错位（把 A 窗口的坐标套到 B 窗口上）
+            const baseCount = this.windowManager.getAllWindows().length;
             // 恢复工作区数量与「保存时的当前工作区」
             this.workspaceCount = Math.max(1, state.workspaceCount || 1);
             const savedWorkspace = (state.currentWorkspace != null) ? state.currentWorkspace : 0;
@@ -1181,7 +1538,17 @@ class DesktopManager {
                 else if (winState.windowType === 'app' && winState.appPath) { await this.openAppByPath({ path: winState.appPath, name: winState.title, params: winState.appParams, x: winState.x, y: winState.y, width: winState.width, height: winState.height, workspaceId }); }
             }
             const restoredWindows = this.windowManager.getAllWindows();
-            state.windows.forEach((winState, index) => { const restoredWin = restoredWindows[index]; if (restoredWin) { restoredWin.element.style.left = winState.x + 'px'; restoredWin.element.style.top = winState.y + 'px'; restoredWin.element.style.width = winState.width + 'px'; restoredWin.element.style.height = winState.height + 'px'; restoredWin.element.style.zIndex = winState.zIndex; if (winState.isMinimized) { restoredWin.isMinimized = true; } } });
+            state.windows.forEach((winState, index) => {
+                const restoredWin = restoredWindows[baseCount + index];
+                if (restoredWin) {
+                    restoredWin.element.style.left = winState.x + 'px';
+                    restoredWin.element.style.top = winState.y + 'px';
+                    restoredWin.element.style.width = winState.width + 'px';
+                    restoredWin.element.style.height = winState.height + 'px';
+                    restoredWin.element.style.zIndex = winState.zIndex;
+                    if (winState.isMinimized) restoredWin.isMinimized = true;
+                }
+            });
             // 统一按「最小化状态 + 工作区归属」重算所有窗口显隐（取代原先简单的 display=none）
             this.activeWorkspace = savedWorkspace;
             this.windowManager.setActiveWorkspace(savedWorkspace);

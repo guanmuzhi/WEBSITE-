@@ -1,6 +1,12 @@
 const IMAGE_EXTENSIONS = { 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'gif': 'image/gif', 'bmp': 'image/bmp', 'webp': 'image/webp', 'svg': 'image/svg+xml' };
 const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg'];
 const AUDIO_EXTENSIONS = ['mp3', 'wav', 'ogg', 'flac'];
+const FONT_STACKS = {
+    sans: "'Microsoft YaHei','微软雅黑','PingFang SC',system-ui,sans-serif",
+    serif: "'SimSun','宋体','Songti SC','Times New Roman',serif",
+    mono: "'SF Mono',Consolas,'Courier New',monospace",
+    kai: "'KaiTi','楷体','STKaiti',serif"
+};
 class MediaViewer {
     constructor() {
         this.strings = {};
@@ -41,6 +47,22 @@ class MediaViewer {
         this.statusDimensionsEl = document.getElementById('status-dimensions');
         this.statusFormatEl = document.getElementById('status-format');
         this.statusDurationEl = document.getElementById('status-duration');
+        this.container = document.querySelector('.viewer-container');
+
+        // 批注画布
+        this.canvas = document.getElementById('anno-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.tool = 'none';
+        this.history = [];
+        this._snapshot = null;
+        this._drawing = false;
+        this._start = null;
+        this.opts = {
+            brush: { color: '#ff3b30', size: 4, opacity: 100 },
+            shape: { border: '#ff3b30', width: 3, fill: '#ffcc00', nofill: false, opacity: 100 },
+            text:  { font: 'sans', size: 28, color: '#ff3b30' }
+        };
+
         this.currentPath = '';
         this.currentType = '';
         this.currentFileName = '';
@@ -58,8 +80,30 @@ class MediaViewer {
         this.currentSpeed = 1;
         this.storage = window.parent.StorageService.getInstance();
         this.initEvents();
+        this.initTheme();
         this.initLanguage();
     }
+
+    /* ───────────── 主题（明暗）───────────── */
+    initTheme() {
+        const apply = (pref) => {
+            document.documentElement.setAttribute('data-theme', this.resolveTheme(pref));
+        };
+        apply(localStorage.getItem('webos-theme') || 'dark');
+        try {
+            window.parent.document.addEventListener('theme-changed', (e) => {
+                const t = (e.detail && e.detail.theme) || localStorage.getItem('webos-theme') || 'dark';
+                apply(t);
+            });
+        } catch (_) {}
+    }
+    resolveTheme(pref) {
+        pref = (pref || 'dark').trim();
+        if (pref === 'light' || pref === 'dark') return pref;
+        try { return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; }
+        catch (e) { return 'dark'; }
+    }
+
     async initLanguage() {
         await this.loadLanguage();
         this.applyLanguage();
@@ -95,7 +139,7 @@ class MediaViewer {
     applyLanguage() {
         this.filenameEl.textContent = this.currentFileName ? this.currentFileName : this.t('mv.no_file', '未打开文件');
         if (this.placeholderTextEl) this.placeholderTextEl.textContent = this.t('mv.placeholder_text', '点击"打开"按钮选择文件');
-        if (this.placeholderHintEl) this.placeholderHintEl.textContent = this.t('mv.placeholder_hint', '支持图片、视频、音频格式');
+        if (this.placeholderHintEl) this.placeholderHintEl.textContent = this.t('mv.placeholder_hint', '支持图片、视频、音频格式 · 图片支持批注');
         if (this.loadingTextEl) this.loadingTextEl.textContent = this.t('mv.loading', '加载中...');
         if (this.currentFileType !== 'audio') {
             this.audioTitle.textContent = this.t('mv.unknown', '未知');
@@ -126,6 +170,8 @@ class MediaViewer {
         this.image.addEventListener('wheel', (e) => this.handleWheel(e));
         let isDragging = false; let startX, startY, imgLeft = 0, imgTop = 0;
         this.imageWrapper.addEventListener('mousedown', (e) => {
+            // 批注工具激活时不触发图片拖拽
+            if (this.tool && this.tool !== 'none') return;
             if (this.zoomLevel > 100) { isDragging = true; startX = e.clientX - imgLeft; startY = e.clientY - imgTop; this.imageWrapper.style.cursor = 'grabbing'; e.preventDefault(); }
         });
         document.addEventListener('mousemove', (e) => {
@@ -152,8 +198,29 @@ class MediaViewer {
                 if (e.key === '+') { e.preventDefault(); this.zoomIn(); }
                 else if (e.key === '-') { e.preventDefault(); this.zoomOut(); }
                 else if (e.key === '0') { e.preventDefault(); this.resetZoom(); }
+                else if (e.key === 'z') { e.preventDefault(); this.undo(); }
             }
         });
+
+        // ── 批注：工具栏、画布、属性面板 ──
+        document.querySelectorAll('.tool-rail [data-tool]').forEach(btn => {
+            btn.addEventListener('click', () => this.setTool(btn.dataset.tool));
+        });
+        document.getElementById('undo-btn').addEventListener('click', () => this.undo());
+        document.getElementById('clear-btn').addEventListener('click', () => this.clearAnno());
+        document.getElementById('save-btn').addEventListener('click', () => this.saveAnno());
+        this.canvas.addEventListener('pointerdown', (e) => this.onPointerDown(e));
+        this.canvas.addEventListener('pointermove', (e) => this.onPointerMove(e));
+        window.addEventListener('pointerup', (e) => this.onPointerUp(e));
+        const overlay = document.getElementById('text-overlay');
+        const input = document.getElementById('text-input');
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); this.commitText(); }
+            else if (e.key === 'Escape') { e.preventDefault(); overlay.classList.remove('visible'); input.value = ''; }
+        });
+        input.addEventListener('blur', () => this.commitText());
+        this.bindPropInputs();
+        this.syncToolUI();
     }
     checkUrlParam() {
         let path = null;
@@ -172,13 +239,13 @@ class MediaViewer {
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;';
             const dialog = document.createElement('div');
-            dialog.style.cssText = 'background:#2d2d2d;border:1px solid #3d3d3d;border-radius:8px;padding:24px;width:320px;color:#ddd;font-family:inherit;';
+            dialog.style.cssText = 'background:var(--webos-surface,#2d2d2d);border:1px solid var(--webos-border,#3d3d3d);border-radius:8px;padding:24px;width:320px;color:var(--webos-fg,#ddd);font-family:inherit;';
             const title = document.createElement('div');
-            title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:#eee;';
+            title.style.cssText = 'font-size:16px;font-weight:500;margin-bottom:12px;color:var(--webos-fg,#eee);';
             title.textContent = this.t('mv.alert', '提示');
             dialog.appendChild(title);
             const msg = document.createElement('div');
-            msg.style.cssText = 'font-size:13px;color:#ccc;margin-bottom:16px;';
+            msg.style.cssText = 'font-size:13px;color:var(--webos-muted,#ccc);margin-bottom:16px;';
             msg.textContent = message;
             dialog.appendChild(msg);
             const okBtn = document.createElement('button');
@@ -251,16 +318,25 @@ class MediaViewer {
         document.title = fileName + ' - ' + this.t('app.mediaviewer', '媒体查看器');
     }
     showImageViewer(node) {
+        this.container.classList.add('image-mode');
         this.placeholder.style.display = 'none'; this.imageViewer.style.display = 'flex'; this.mediaPlayer.style.display = 'none'; this.zoomControls.style.display = 'flex';
         const content = node.content || '';
         if (!content) { this.showAlert(this.t('mv.empty_content', '图片内容为空')); return; }
         const dataUrl = this.buildDataUrl(content, node.name);
         this.loadingEl.style.display = 'flex'; this.resetZoom();
-        this.image.onload = () => { this.loadingEl.style.display = 'none'; const dimensions = this.image.naturalWidth + ' × ' + this.image.naturalHeight; this.currentDimensions = dimensions; this.statusDimensionsEl.textContent = this.t('mv.dimensions', '尺寸:') + ' ' + dimensions; };
+        this.image.onload = () => {
+            this.loadingEl.style.display = 'none';
+            const dimensions = this.image.naturalWidth + ' × ' + this.image.naturalHeight;
+            this.currentDimensions = dimensions;
+            this.statusDimensionsEl.textContent = this.t('mv.dimensions', '尺寸:') + ' ' + dimensions;
+            this.setupCanvas();
+        };
         this.image.onerror = () => { this.loadingEl.style.display = 'none'; this.showAlert(this.t('mv.load_failed', '图片加载失败')); };
         this.image.src = dataUrl;
     }
     showMediaPlayer(node, mediaType) {
+        this.container.classList.remove('image-mode');
+        this.canvas.classList.remove('visible', 'drawing');
         this.placeholder.style.display = 'none'; this.imageViewer.style.display = 'none'; this.mediaPlayer.style.display = 'flex'; this.zoomControls.style.display = 'none';
         const extension = this.getExtension(node.name);
         const dataUrl = this.buildDataUrl(node.content || '', extension);
@@ -268,6 +344,214 @@ class MediaViewer {
         if (mediaType === 'audio') { this.videoContainer.style.display = 'none'; this.audioMode.style.display = 'flex'; this.audioTitle.textContent = node.name.replace(/\.[^/.]+$/, ''); this.audioArtist.textContent = this.t('mv.local_file', '本地文件'); }
         else { this.videoContainer.style.display = 'flex'; this.audioMode.style.display = 'none'; }
         this.player.load(); this.player.play().catch(() => {});
+    }
+    /* ───────────── 批注：画布 ───────────── */
+    setupCanvas() {
+        this.canvas.width = this.image.naturalWidth;
+        this.canvas.height = this.image.naturalHeight;
+        this.canvas.classList.add('visible');
+        this.history = [];
+        this.updateCanvasCursor();
+    }
+    updateCanvasCursor() {
+        this.canvas.classList.toggle('drawing', this.tool !== 'none');
+    }
+    mapCoords(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return {
+            x: (e.clientX - rect.left) / rect.width * this.canvas.width,
+            y: (e.clientY - rect.top) / rect.height * this.canvas.height
+        };
+    }
+    pushHistory() {
+        try {
+            this.history.push(this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height));
+            if (this.history.length > 40) this.history.shift();
+        } catch (e) {}
+    }
+    undo() {
+        if (!this.history.length) return;
+        const snap = this.history.pop();
+        this.ctx.putImageData(snap, 0, 0);
+    }
+    clearHistory() { this.history = []; }
+    clearAnno() {
+        this.pushHistory();
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+    /* ───────────── 批注：工具切换 ───────────── */
+    setTool(tool) {
+        this.tool = tool;
+        this.syncToolUI();
+        this.updateCanvasCursor();
+    }
+    syncToolUI() {
+        document.querySelectorAll('.tool-rail [data-tool]').forEach(b => {
+            b.classList.toggle('active', b.dataset.tool === this.tool);
+        });
+        const groups = { brush: 'prop-brush', rect: 'prop-shape', ellipse: 'prop-shape', text: 'prop-text' };
+        const active = groups[this.tool];
+        document.querySelectorAll('.prop-group').forEach(g => g.classList.remove('visible'));
+        if (active) document.getElementById(active).classList.add('visible');
+    }
+    /* ───────────── 批注：属性面板绑定 ───────────── */
+    bindPropInputs() {
+        const bind = (id, key, sub, isNum) => {
+            const el = document.getElementById(id);
+            const valEl = document.getElementById(id + '-v');
+            const sync = () => {
+                const v = isNum ? Number(el.value) : el.value;
+                this.opts[key][sub] = v;
+                if (valEl) valEl.textContent = (id.endsWith('opacity') ? v + '%' : v);
+            };
+            el.addEventListener('input', sync);
+            sync();
+        };
+        bind('brush-color', 'brush', 'color', false);
+        bind('brush-size', 'brush', 'size', true);
+        bind('brush-opacity', 'brush', 'opacity', true);
+        bind('shape-border', 'shape', 'border', false);
+        bind('shape-width', 'shape', 'width', true);
+        bind('shape-fill', 'shape', 'fill', false);
+        bind('shape-opacity', 'shape', 'opacity', true);
+        bind('text-size', 'text', 'size', true);
+        bind('text-color', 'text', 'color', false);
+        document.getElementById('shape-nofill').addEventListener('change', (e) => { this.opts.shape.nofill = e.target.checked; });
+        document.getElementById('text-font').addEventListener('change', (e) => { this.opts.text.font = e.target.value; });
+    }
+    /* ───────────── 批注：指针绘制 ───────────── */
+    onPointerDown(e) {
+        if (this.tool === 'none' || !this.canvas.classList.contains('visible')) return;
+        e.preventDefault();
+        const p = this.mapCoords(e);
+        this._drawing = true;
+        this._start = p;
+        try { this.canvas.setPointerCapture(e.pointerId); } catch (_) {}
+        if (this.tool === 'brush') {
+            this.pushHistory();
+            const o = this.opts.brush;
+            this.ctx.globalAlpha = o.opacity / 100;
+            this.ctx.strokeStyle = o.color;
+            this.ctx.lineWidth = o.size;
+            this.ctx.lineCap = 'round';
+            this.ctx.lineJoin = 'round';
+            this.ctx.beginPath();
+            this.ctx.moveTo(p.x, p.y);
+        } else if (this.tool === 'rect' || this.tool === 'ellipse') {
+            this._snapshot = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        } else if (this.tool === 'text') {
+            this.showTextInput(e.clientX, e.clientY, p);
+            this._drawing = false;
+        }
+    }
+    onPointerMove(e) {
+        if (!this._drawing) return;
+        const p = this.mapCoords(e);
+        if (this.tool === 'brush') {
+            this.ctx.lineTo(p.x, p.y);
+            this.ctx.stroke();
+        } else if (this.tool === 'rect' || this.tool === 'ellipse') {
+            this.ctx.putImageData(this._snapshot, 0, 0);
+            this.drawShape(this._start, p);
+        }
+    }
+    onPointerUp(e) {
+        if (!this._drawing) return;
+        this._drawing = false;
+        const p = this.mapCoords(e);
+        if (this.tool === 'brush') {
+            this.ctx.globalAlpha = 1;
+        } else if (this.tool === 'rect' || this.tool === 'ellipse') {
+            this.ctx.putImageData(this._snapshot, 0, 0);
+            this.drawShape(this._start, p);
+            this._snapshot = null;
+        }
+    }
+    drawShape(a, b) {
+        const o = this.opts.shape;
+        this.ctx.save();
+        this.ctx.globalAlpha = o.opacity / 100;
+        this.ctx.lineWidth = o.width;
+        this.ctx.strokeStyle = o.border;
+        this.ctx.beginPath();
+        if (this.tool === 'rect') {
+            this.ctx.rect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+        } else {
+            const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+            this.ctx.ellipse(cx, cy, Math.abs(b.x - a.x) / 2, Math.abs(b.y - a.y) / 2, 0, 0, Math.PI * 2);
+        }
+        if (!o.nofill && o.fill) { this.ctx.fillStyle = o.fill; this.ctx.fill(); }
+        this.ctx.stroke();
+        this.ctx.restore();
+    }
+    /* ───────────── 批注：文本 ───────────── */
+    showTextInput(screenX, screenY, canvasPt) {
+        const overlay = document.getElementById('text-overlay');
+        const input = document.getElementById('text-input');
+        const area = this.canvas.closest('.content-area') || this.container;
+        const arect = area.getBoundingClientRect();
+        const left = screenX - arect.left;
+        const top = screenY - arect.top;
+        overlay.style.left = left + 'px';
+        overlay.style.top = top + 'px';
+        overlay.classList.add('visible');
+        input._pt = canvasPt;
+        input.value = '';
+        setTimeout(() => { input.focus(); input.select(); }, 0);
+    }
+    commitText() {
+        const overlay = document.getElementById('text-overlay');
+        const input = document.getElementById('text-input');
+        if (!overlay.classList.contains('visible')) return;
+        const text = input.value;
+        const pt = input._pt;
+        overlay.classList.remove('visible');
+        input.value = '';
+        if (!text || !pt) return;
+        this.pushHistory();
+        const o = this.opts.text;
+        this.ctx.save();
+        this.ctx.globalAlpha = 1;
+        this.ctx.fillStyle = o.color;
+        this.ctx.textBaseline = 'top';
+        this.ctx.font = `${o.size}px ${FONT_STACKS[o.font] || FONT_STACKS.sans}`;
+        this.ctx.fillText(text, pt.x, pt.y);
+        this.ctx.restore();
+    }
+    /* ───────────── 批注：保存 ───────────── */
+    async saveAnno() {
+        if (!this.canvas.classList.contains('visible')) {
+            this.showAlert(this.t('mv.open_first', '请先打开一张图片'));
+            return;
+        }
+        const out = document.createElement('canvas');
+        out.width = this.canvas.width;
+        out.height = this.canvas.height;
+        const octx = out.getContext('2d');
+        octx.drawImage(this.image, 0, 0);
+        octx.drawImage(this.canvas, 0, 0);
+        const dataUrl = out.toDataURL('image/png');
+
+        // 下载
+        const a = document.createElement('a');
+        const base = (this.currentFileName) ? this.currentFileName.replace(/\.[^.]+$/, '') : 'image';
+        a.download = `${base}-annotated.png`;
+        a.href = dataUrl;
+        a.click();
+
+        // 写回虚拟文件系统（若由文件打开）
+        if (this.currentPath) {
+            try {
+                const S = window.parent.StorageService || window.StorageService;
+                if (S && S.getInstance) {
+                    const base64 = dataUrl.split(',')[1];
+                    await S.getInstance().writeFile(this.currentPath, base64);
+                    this.showAlert(this.t('mv.saved_vfs', '已保存批注到文件'));
+                }
+            } catch (e) {
+                this.showAlert(this.t('mv.saved_local', '已下载批注图片（文件系统写入失败）'));
+            }
+        }
     }
     zoomIn() { if (this.zoomLevel < this.maxZoom) { this.zoomLevel += this.zoomStep; this.updateZoom(); } }
     zoomOut() { if (this.zoomLevel > this.minZoom) { this.zoomLevel -= this.zoomStep; this.updateZoom(); } }
@@ -282,9 +566,9 @@ class MediaViewer {
     seek(e) { const rect = this.progressBar.getBoundingClientRect(); const percent = (e.clientX - rect.left) / rect.width; this.player.currentTime = percent * (this.player.duration || 0); }
     updateProgress() { if (isNaN(this.player.duration)) return; const percent = (this.player.currentTime / this.player.duration) * 100; this.progressFill.style.width = percent + '%'; const current = this.formatTime(this.player.currentTime); const total = this.formatTime(this.player.duration); this.timeDisplay.textContent = current + ' / ' + total; }
     updateMetadata() { if (!isNaN(this.player.duration)) { const duration = this.formatTime(this.player.duration); this.currentDuration = duration; this.statusDurationEl.textContent = this.t('mv.duration', '时长:') + ' ' + duration; } }
-    toggleMute() { this.player.muted = !this.player.muted; this.volumeBtn.innerHTML = this.player.muted ? '<img src="../../icons/volume-off.svg" alt="" style="width:18px;height:18px;filter:invert(1)">' : '<img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:invert(1)">'; }
+    toggleMute() { this.player.muted = !this.player.muted; this.volumeBtn.innerHTML = this.player.muted ? '<img src="../../icons/volume-off.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)">' : '<img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)">'; }
     setVolume(e) { const rect = this.volumeSlider.getBoundingClientRect(); const percent = (e.clientX - rect.left) / rect.width; this.volume = Math.max(0, Math.min(1, percent)); this.player.volume = this.volume; this.player.muted = false; this.updateVolumeDisplay(); }
-    updateVolumeDisplay() { const displayVolume = this.player.muted ? 0 : this.player.volume; this.volumeFill.style.width = (displayVolume * 100) + '%'; if (this.player.muted || displayVolume === 0) { this.volumeBtn.innerHTML = '<img src="../../icons/volume-off.svg" alt="" style="width:18px;height:18px;filter:invert(1)">'; } else if (displayVolume < 0.5) { this.volumeBtn.innerHTML = '<img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:invert(1)">'; } else { this.volumeBtn.innerHTML = '<img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:invert(1)">'; } }
+    updateVolumeDisplay() { const displayVolume = this.player.muted ? 0 : this.player.volume; this.volumeFill.style.width = (displayVolume * 100) + '%'; if (this.player.muted || displayVolume === 0) { this.volumeBtn.innerHTML = '<img src="../../icons/volume-off.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)">'; } else if (displayVolume < 0.5) { this.volumeBtn.innerHTML = '<img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)">'; } else { this.volumeBtn.innerHTML = '<img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)">'; } }
     setSpeed(e) { this.currentSpeed = parseFloat(e.target.value); this.player.playbackRate = this.currentSpeed; }
     toggleFullscreen() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(() => {}); } else { document.exitFullscreen().catch(() => {}); } }
 }

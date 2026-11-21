@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>影音播放器</title>
+    <link rel="stylesheet" href="../../common.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="player-container">
         <div class="toolbar">
             <div class="toolbar-actions">
-                <button class="open-btn" id="open-btn" title="打开媒体文件"><img src="../../icons/folder.svg" alt="" style="width:18px;height:18px;filter:invert(1)"> 打开</button>
+                <button class="open-btn" id="open-btn" title="打开媒体文件"><img src="../../icons/folder.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)"> 打开</button>
             </div>
             <div class="toolbar-info">
                 <span id="filename" class="filename">未选择文件</span>
@@ -59,7 +60,7 @@
                 <div class="time-display" id="time-display">00:00 / 00:00</div>
             </div>
             <div class="volume-container">
-                <button class="volume-btn" id="volume-btn" title="音量"><img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:invert(1)"></button>
+                <button class="volume-btn" id="volume-btn" title="音量"><img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)"></button>
                 <div class="volume-slider" id="volume-slider">
                     <div class="volume-fill" id="volume-fill"></div>
                 </div>
@@ -72,7 +73,7 @@
                 <option value="1.5">1.5×</option>
                 <option value="2">2×</option>
             </select>
-            <button class="fullscreen-btn" id="fullscreen-btn" title="全屏"><img src="../../icons/fullscreen.svg" alt="" style="width:18px;height:18px;filter:invert(1)"></button>
+            <button class="fullscreen-btn" id="fullscreen-btn" title="全屏"><img src="../../icons/fullscreen.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)"></button>
         </div>
         <div class="status-bar">
             <div class="status-left">

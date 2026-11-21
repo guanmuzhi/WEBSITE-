@@ -19,7 +19,7 @@
 }
 body {
     font-family: var(--font-sans) !important;
-    background: #1a1a2e;
+    background: var(--bg-darker);
     height: 100vh;
     width: 100vw;
     margin: 0;
@@ -35,7 +35,7 @@ body {
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: #16213e;
+    background: var(--bg-dark);
     border-radius: 8px;
     overflow: hidden;
 }
@@ -43,8 +43,8 @@ body {
     display: flex;
     align-items: center;
     padding: 8px 12px;
-    background: rgba(20, 20, 40, 0.9);
-    border-bottom: 1px solid #3d3d5c;
+    background: var(--panel-overlay);
+    border-bottom: 1px solid var(--border-color);
     gap: 12px;
     flex-shrink: 0;
 }
@@ -62,14 +62,14 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #aaa;
+    color: var(--text-muted);
 }
 .nav-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: var(--overlay);
+    color: var(--text-primary);
 }
 .nav-btn:active {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--overlay);
 }
 .nav-btn:disabled {
     opacity: 0.4;
@@ -95,27 +95,27 @@ body {
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--overlay-weak);
     border-radius: 6px;
     cursor: pointer;
     min-width: 100px;
     max-width: 180px;
 }
 .tab:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--overlay);
 }
 .tab.active {
     background: var(--accent-color, #3498db);
 }
 .tab-title {
     font-size: 12px;
-    color: #ddd;
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .tab.active .tab-title {
-    color: #fff;
+    color: var(--text-primary);
 }
 .tab-close {
     width: 20px;
@@ -127,15 +127,15 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #888;
+    color: var(--text-muted);
     flex-shrink: 0;
 }
 .tab-close:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #fff;
+    background: var(--overlay-strong);
+    color: var(--text-primary);
 }
 .tab.active .tab-close:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--overlay-strong);
 }
 .tab-close svg {
     width: 12px;
@@ -145,8 +145,8 @@ body {
     flex: 2;
     display: flex;
     align-items: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid #3d3d5c;
+    background: var(--overlay-weak);
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     overflow: hidden;
     padding: 0 8px;
@@ -163,10 +163,10 @@ body {
     font-size: 14px;
     font-family: inherit;
     background: transparent;
-    color: #eee;
+    color: var(--text-primary);
 }
 .address-bar::placeholder {
-    color: #666;
+    color: var(--text-muted);
 }
 .go-btn {
     width: 32px;
@@ -178,14 +178,14 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #aaa;
+    color: var(--text-muted);
 }
 .go-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: var(--overlay);
+    color: var(--text-primary);
 }
 .go-btn:active {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--overlay);
 }
 .go-btn svg {
     width: 16px;
@@ -197,15 +197,15 @@ body {
     align-items: center;
     gap: 4px;
     padding: 4px 12px;
-    background: rgba(15, 15, 30, 0.9);
-    border-bottom: 1px solid #3d3d5c;
+    background: var(--panel-overlay);
+    border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
     overflow-x: auto;
 }
 .bookmark-link {
     padding: 4px 10px;
     border: 1px solid transparent;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--overlay-weak);
     border-radius: 4px;
     color: #bbb;
     font-size: 12px;
@@ -214,8 +214,8 @@ body {
     font-family: inherit;
 }
 .bookmark-link:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: var(--overlay);
+    color: var(--text-primary);
 }
 .bookmark-link:active {
     background: rgba(52, 152, 219, 0.3);
@@ -234,8 +234,8 @@ body {
     min-width: 180px;
     max-height: 300px;
     overflow-y: auto;
-    background: #1e1e3a;
-    border: 1px solid #3d3d5c;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     z-index: 100;
@@ -244,7 +244,7 @@ body {
 .bookmark-dropdown-item {
     padding: 8px 14px;
     font-size: 13px;
-    color: #ccc;
+    color: var(--text-secondary);
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
@@ -252,7 +252,7 @@ body {
 }
 .bookmark-dropdown-item:hover {
     background: rgba(52, 152, 219, 0.2);
-    color: #fff;
+    color: var(--text-primary);
 }
 /* ── History sidebar ───────────────────────────────── */
 .history-sidebar {
@@ -262,8 +262,8 @@ body {
     right: 0;
     width: 280px;
     height: 100%;
-    background: rgba(15, 15, 30, 0.97);
-    border-left: 1px solid #3d3d5c;
+    background: var(--panel-overlay);
+    border-left: 1px solid var(--border-color);
     z-index: 50;
     flex-direction: column;
 }
@@ -276,10 +276,10 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 10px 14px;
-    border-bottom: 1px solid #3d3d5c;
+    border-bottom: 1px solid var(--border-color);
     font-size: 14px;
     font-weight: 500;
-    color: #eee;
+    color: var(--text-primary);
     flex-shrink: 0;
 }
 .history-list {
@@ -290,7 +290,7 @@ body {
 .history-date-header {
     padding: 8px 14px 4px;
     font-size: 11px;
-    color: #666;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -303,7 +303,7 @@ body {
 }
 .history-title {
     font-size: 13px;
-    color: #ddd;
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -318,7 +318,7 @@ body {
 }
 .history-footer {
     padding: 10px 14px;
-    border-top: 1px solid #3d3d5c;
+    border-top: 1px solid var(--border-color);
     flex-shrink: 0;
 }
 .history-footer button {
@@ -343,8 +343,8 @@ body {
     right: 0;
     width: 280px;
     height: 100%;
-    background: rgba(15, 15, 30, 0.97);
-    border-left: 1px solid #3d3d5c;
+    background: var(--panel-overlay);
+    border-left: 1px solid var(--border-color);
     z-index: 50;
     flex-direction: column;
 }
@@ -357,10 +357,10 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 10px 14px;
-    border-bottom: 1px solid #3d3d5c;
+    border-bottom: 1px solid var(--border-color);
     font-size: 14px;
     font-weight: 500;
-    color: #eee;
+    color: var(--text-primary);
     flex-shrink: 0;
 }
 .sidebar-header-actions {
@@ -375,7 +375,7 @@ body {
 }
 .sidebar-footer {
     padding: 10px 14px;
-    border-top: 1px solid #3d3d5c;
+    border-top: 1px solid var(--border-color);
     flex-shrink: 0;
 }
 .sidebar-footer button {
@@ -398,7 +398,7 @@ body {
     padding: 7px 10px;
     cursor: pointer;
     font-size: 13px;
-    color: #ddd;
+    color: var(--text-primary);
     user-select: none;
 }
 .bookmark-tree-item:hover {
@@ -422,25 +422,25 @@ body {
 .bookmark-tree-empty {
     padding: 4px 10px;
     font-size: 12px;
-    color: #666;
+    color: var(--text-muted);
 }
 /* ── Status bar ────────────────────────────────────── */
 .status-bar {
     height: 24px;
-    background: rgba(20, 20, 40, 0.9);
-    border-top: 1px solid #3d3d5c;
+    background: var(--panel-overlay);
+    border-top: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     padding: 0 12px;
     font-size: 12px;
-    color: #666;
+    color: var(--text-muted);
     flex-shrink: 0;
 }
 .content-area {
     flex: 1;
     position: relative;
     overflow: hidden;
-    background: #0d0d1a;
+    background: var(--bg-darker);
 }
 .content-area iframe {
     width: 100%;
@@ -455,7 +455,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(13, 13, 26, 0.95);
+    background: var(--panel-overlay);
     align-items: center;
     justify-content: center;
     z-index: 10;
@@ -483,17 +483,17 @@ body {
 .error-title {
     font-size: 20px;
     font-weight: 500;
-    color: #eee;
+    color: var(--text-primary);
     margin-bottom: 10px;
 }
 .error-message {
     font-size: 14px;
-    color: #888;
+    color: var(--text-muted);
     margin-bottom: 8px;
 }
 .error-hint {
     font-size: 12px;
-    color: #555;
+    color: var(--text-muted);
     margin-bottom: 24px;
 }
 .error-actions {
@@ -503,16 +503,16 @@ body {
 }
 .error-btn {
     padding: 10px 24px;
-    border: 1px solid #3d3d5c;
+    border: 1px solid var(--border-color);
     background: transparent;
     border-radius: 6px;
-    color: #aaa;
+    color: var(--text-muted);
     font-size: 14px;
     cursor: pointer;
 }
 .error-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: var(--overlay);
+    color: var(--text-primary);
 }
 .error-btn.primary {
     background: var(--accent-color, #3498db);

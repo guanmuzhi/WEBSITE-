@@ -329,7 +329,7 @@ class MediaPlayer {
 
     toggleMute() {
         this.player.muted = !this.player.muted;
-        this.volumeBtn.innerHTML = this.player.muted ? '<img src="../../icons/volume-off.svg" alt="" style="width:18px;height:18px;filter:invert(1)">' : '<img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:invert(1)">';
+        this.volumeBtn.innerHTML = this.player.muted ? '<img src="../../icons/volume-off.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)">' : '<img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)">';
     }
 
     setVolume(e) {
@@ -346,11 +346,11 @@ class MediaPlayer {
         this.volumeFill.style.width = `${displayVolume * 100}%`;
         
         if (this.player.muted || displayVolume === 0) {
-            this.volumeBtn.innerHTML = '<img src="../../icons/volume-off.svg" alt="" style="width:18px;height:18px;filter:invert(1)">';
+            this.volumeBtn.innerHTML = '<img src="../../icons/volume-off.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)">';
         } else if (displayVolume < 0.5) {
-            this.volumeBtn.innerHTML = '<img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:invert(1)">';
+            this.volumeBtn.innerHTML = '<img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)">';
         } else {
-            this.volumeBtn.innerHTML = '<img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:invert(1)">';
+            this.volumeBtn.innerHTML = '<img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)">';
         }
     }
 
@@ -362,10 +362,10 @@ class MediaPlayer {
     toggleFullscreen() {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(() => {});
-            this.fullscreenBtn.innerHTML = '<img src="../../icons/fullscreen.svg" alt="" style="width:18px;height:18px;filter:invert(1)">';
+            this.fullscreenBtn.innerHTML = '<img src="../../icons/fullscreen.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)">';
         } else {
             document.exitFullscreen().catch(() => {});
-            this.fullscreenBtn.innerHTML = '<img src="../../icons/fullscreen.svg" alt="" style="width:18px;height:18px;filter:invert(1)">';
+            this.fullscreenBtn.innerHTML = '<img src="../../icons/fullscreen.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)">';
         }
     }
 }

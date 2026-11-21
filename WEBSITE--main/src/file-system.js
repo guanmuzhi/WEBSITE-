@@ -1,5 +1,5 @@
-import StorageService from './storage.js?v=47';
-import { Path as PathUtil } from './lib/index.js?v=47';
+import StorageService from './storage.js?v=54';
+import { Path as PathUtil } from './lib/index.js?v=54';
 const CURRENT_DIR_KEY = 'web-terminal-os-cwd';
 // System directories that are read-only for all users
 const SYSTEM_PATHS = ['/application', '/languages'];
@@ -19,10 +19,33 @@ class FileSystem {
         // read-only facade; actual root is managed by StorageService
     }
     get currentDir() {
-        return this._currentDir || this.root;
+        // 懒解析：storage.reload() 会整体替换 storage.fs，导致缓存节点引用脱节
+        // （getCurrentPath 只剩节点名、路径解析全部错位）。这里在每次访问时校验
+        // 缓存节点是否仍挂在本代树上，脱节则按记录的路径重新解析。
+        const cached = this._currentDir;
+        if (cached && (cached === this.root || this.findParent(cached) != null)) return cached;
+        if (this._currentDirPath) {
+            const n = this.getNodeByAbsPath(this._currentDirPath);
+            if (n && n.type === 'folder') { this._currentDir = n; return n; }
+        }
+        return this.root;
     }
     set currentDir(value) {
-        this._currentDir = value;
+        this._currentDir = value || null;
+        const p = this._pathOfNode(value);
+        if (p) this._currentDirPath = p;
+    }
+    /** 计算节点在当前树中的绝对路径；脱节（走不到根）时返回 null */
+    _pathOfNode(node) {
+        if (!node) return null;
+        const path = [];
+        let n = node;
+        while (n && n !== this.root) {
+            path.unshift(n.name);
+            n = this.findParent(n);
+            if (!n) return null;
+        }
+        return '/' + path.join('/');
     }
     ensureDefaultStructure() {
         const fs = this.storage.fs;
@@ -82,26 +105,24 @@ class FileSystem {
     }
     load() {
         const cwdPath = localStorage.getItem(CURRENT_DIR_KEY);
-        if (cwdPath) {
-            this._currentDir = this.findNodeByPath(cwdPath);
-        }
-        if (!this._currentDir) {
-            this._currentDir = this.root;
-        }
+        let node = cwdPath ? this.findNodeByPath(cwdPath) : null;
+        if (!node || node.type !== 'folder') node = this.root;
+        this._currentDir = node;
+        this._currentDirPath = this._pathOfNode(node) || '/';
     }
     save() {
         this.storage.saveFS();
         localStorage.setItem(CURRENT_DIR_KEY, this.getCurrentPath());
     }
     getCurrentPath() {
+        // 干净输出：根为 '/'，子路径为 '/user/public'（不再出现 '//user/public'）
         const path = [];
         let node = this.currentDir;
-        while (node) {
+        while (node && node !== this.root) {
             path.unshift(node.name);
-            if (node.name === '/') break;
             node = this.findParent(node);
         }
-        return path.join('/');
+        return '/' + path.join('/');
     }
     findParent(node) {
         const find = (current) => {
@@ -170,11 +191,13 @@ class FileSystem {
         if (this.currentDir.children.find(c => c.name === name)) {
             return { success: false, message: '文件夹 "' + name + '" 已存在' };
         }
-        this.currentDir.children.push({
+        const folder = {
             type: 'folder',
             name: name,
             children: []
-        });
+        };
+        this._touch(folder);
+        this.currentDir.children.push(folder);
         this.save();
         return { success: true, message: '文件夹 "' + name + '" 创建成功' };
     }
@@ -183,12 +206,14 @@ class FileSystem {
         if (this.currentDir.children.find(c => c.name === name)) {
             return { success: false, message: '文件 "' + name + '" 已存在' };
         }
-        this.currentDir.children.push({
+        const file = {
             type: 'file',
             name: name,
             content: content,
             isBinary: isBinary
-        });
+        };
+        this._touch(file);
+        this.currentDir.children.push(file);
         this.save();
         return { success: true, message: '文件 "' + name + '" 创建成功' };
     }
@@ -217,6 +242,7 @@ class FileSystem {
             return { success: false, message: '"' + newName + '" 已存在' };
         }
         node.name = newName;
+        this._touch(node);
         this.save();
         return { success: true, message: '已将 "' + oldName + '" 重命名为 "' + newName + '"' };
     }
@@ -228,7 +254,7 @@ class FileSystem {
         if (!folder) {
             return { success: false, message: '找不到文件夹 "' + name + '"' };
         }
-        this._currentDir = folder;
+        this.currentDir = folder;
         this.save();
         return { success: true, message: '' };
     }
@@ -237,7 +263,7 @@ class FileSystem {
         if (!parent || parent.name === '/') {
             return { success: false, message: '已经在根目录' };
         }
-        this._currentDir = parent;
+        this.currentDir = parent;
         this.save();
         return { success: true, message: '' };
     }
@@ -381,6 +407,7 @@ class FileSystem {
         }
         const file = folder.children[idx];
         file.content = typeof content === 'string' ? content : JSON.stringify(content);
+        this._touch(file);
         this.save();
         return { success: true, message: created ? `已创建 "${absFilePath}" 并写入` : `已写入 "${absFilePath}"`, file, created };
     }
@@ -425,22 +452,153 @@ class FileSystem {
         return { success: true, message: '已将 "' + filename + '" 复制为 "' + newName + '"' };
     }
     generateCopyName(filename, targetDir) {
-        const nameParts = filename.split('.');
-        let nameWithoutExt;
-        let extension = '';
-        if (nameParts.length > 1) {
-            extension = '.' + nameParts.pop();
-            nameWithoutExt = nameParts.join('.');
-        } else {
-            nameWithoutExt = filename;
-        }
-        let newName = nameWithoutExt + '副本' + extension;
-        let counter = 2;
-        while (targetDir.children.find(c => c.name === newName)) {
-            newName = nameWithoutExt + '副本' + counter + extension;
+        // 副本命名规范：file.txt → file(1).txt（与文件管理器粘贴行为一致）
+        const dot = filename.lastIndexOf('.');
+        let base = filename, ext = '';
+        if (dot > 0) { base = filename.slice(0, dot); ext = filename.slice(dot); }
+        let counter = 1;
+        let newName = `${base}(${counter})${ext}`;
+        while (targetDir.children && targetDir.children.find(c => c.name === newName)) {
             counter++;
+            newName = `${base}(${counter})${ext}`;
         }
         return newName;
     }
+    // ─────────────────────────────────────────────────────────────
+    //  重构后的终端命令层所需能力：mtime / 递归大小 / 通用节点操作
+    // ─────────────────────────────────────────────────────────────
+    /** 记录修改时间（毫秒时间戳）。历史数据无 mtime 时由 ensureMtime 兜底。 */
+    _touch(node) {
+        if (node) node.mtime = Date.now();
+        return node;
+    }
+    /** 老数据没有 mtime：首次访问时补一个"现在"，保证 time 选择器可用。 */
+    ensureMtime(node) {
+        if (!node) return 0;
+        if (!node.mtime) { node.mtime = Date.now(); this.save(); }
+        return node.mtime;
+    }
+    /** 递归计算节点占用字节数（文件=内容字节，文件夹=子孙之和）。 */
+    nodeSize(node) {
+        if (!node) return 0;
+        if (node.type === 'file') return bytesOfContent(node.content);
+        let total = 0;
+        for (const c of node.children || []) total += this.nodeSize(c);
+        return total;
+    }
+    /** 按绝对路径取节点（文件或文件夹），不存在返回 null（区别于 findNodeByPath 的回退 root）。 */
+    getNodeByAbsPath(absPath) {
+        const parts = String(absPath || '').split('/').filter(p => p && p !== '.');
+        let node = this.root;
+        for (const part of parts) {
+            if (!node.children) return null;
+            const next = node.children.find(c => c.name === part);
+            if (!next) return null;
+            node = next;
+        }
+        return node;
+    }
+    _isAncestorOrSelf(anc, node) {
+        let n = node;
+        while (n) {
+            if (n === anc) return true;
+            n = this.findParent(n);
+        }
+        return false;
+    }
+    _cloneNode(node, name) {
+        const now = Date.now();
+        if (node.type === 'file') {
+            return { type: 'file', name, content: node.content, isBinary: node.isBinary, mtime: now };
+        }
+        return {
+            type: 'folder',
+            name,
+            mtime: now,
+            children: (node.children || []).map(c => this._cloneNode(c, c.name))
+        };
+    }
+    /** 深拷贝节点到目标文件夹；同名自动生成 (n) 副本名。 */
+    copyNodeTo(srcNode, targetDir, forceName) {
+        if (!srcNode || !targetDir || targetDir.type !== 'folder') {
+            return { success: false, message: '复制目标不是文件夹' };
+        }
+        if (this._isAncestorOrSelf(srcNode, targetDir)) {
+            return { success: false, message: '不能将文件夹复制到自身或其子目录中' };
+        }
+        if (!targetDir.children) targetDir.children = [];
+        let name = forceName || srcNode.name;
+        if (targetDir.children.find(c => c.name === name)) {
+            name = this.generateCopyName(srcNode.name, targetDir);
+        }
+        const copy = this._cloneNode(srcNode, name);
+        targetDir.children.push(copy);
+        this.save();
+        return { success: true, message: `已复制 "${srcNode.name}" 为 "${name}"`, node: copy, name };
+    }
+    /** 移动节点（文件或文件夹）到目标文件夹。 */
+    moveNodeTo(srcNode, targetDir) {
+        if (!srcNode || !targetDir || targetDir.type !== 'folder') {
+            return { success: false, message: '移动目标不是文件夹' };
+        }
+        const parent = this.findParent(srcNode);
+        if (!parent || !parent.children) {
+            return { success: false, message: '找不到源所在目录' };
+        }
+        if (this._isAncestorOrSelf(srcNode, targetDir)) {
+            return { success: false, message: '不能将文件夹移动到自身或其子目录中' };
+        }
+        if (!targetDir.children) targetDir.children = [];
+        const existing = targetDir.children.find(c => c.name === srcNode.name);
+        if (existing) {
+            return { success: false, message: `目标目录中已存在 "${srcNode.name}"` };
+        }
+        parent.children.splice(parent.children.indexOf(srcNode), 1);
+        targetDir.children.push(srcNode);
+        this._touch(srcNode);
+        this.save();
+        return { success: true, message: `已移动 "${srcNode.name}"`, node: srcNode };
+    }
+    /** 按节点删除（自动定位父目录）。 */
+    deleteNodeAny(node) {
+        const parent = this.findParent(node);
+        if (!parent || !parent.children) {
+            return { success: false, message: '找不到父目录' };
+        }
+        parent.children.splice(parent.children.indexOf(node), 1);
+        this.save();
+        return { success: true, message: `已删除 "${node.name}"` };
+    }
+    /** 按节点重命名（新名称不得与同级现有项冲突）。 */
+    renameNodeAny(node, newName) {
+        const parent = this.findParent(node);
+        if (!parent || !parent.children) {
+            return { success: false, message: '找不到父目录' };
+        }
+        if (parent.children.find(c => c.name === newName && c !== node)) {
+            return { success: false, message: `"${newName}" 已存在` };
+        }
+        node.name = newName;
+        this._touch(node);
+        this.save();
+        return { success: true, message: `已重命名为 "${newName}"` };
+    }
 }
+/** 计算 VFS 内容字节数：data: URL 按 base64/原文长度估算，其余按字符串长度。 */
+function bytesOfContent(content) {
+    if (content == null) return 0;
+    if (typeof content !== 'string') return String(content).length;
+    if (content.startsWith('data:')) {
+        const i = content.indexOf(',');
+        if (i === -1) return content.length;
+        const body = content.slice(i + 1);
+        if (/;base64$/.test(content.slice(0, i))) {
+            const b64 = body.replace(/=+$/, '');
+            return Math.floor((b64.length * 3) / 4);
+        }
+        return body.length;
+    }
+    return content.length;
+}
+export { bytesOfContent };
 export default FileSystem;

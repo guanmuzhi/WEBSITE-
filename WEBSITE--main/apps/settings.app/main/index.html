@@ -72,7 +72,7 @@
                 <h3 id="pers-wallpaper-title">壁纸设置</h3>
                 <div class="wallpaper-type-selector">
                     <label class="wallpaper-type-option">
-                        <input type="radio" name="wallpaper-type" value="solid" checked>
+                        <input type="radio" name="wallpaper-type" value="solid">
                         <span>纯色</span>
                     </label>
                     <label class="wallpaper-type-option">
@@ -80,12 +80,8 @@
                         <span>渐变色</span>
                     </label>
                     <label class="wallpaper-type-option">
-                        <input type="radio" name="wallpaper-type" value="image">
-                        <span>图片</span>
-                    </label>
-                    <label class="wallpaper-type-option">
-                        <input type="radio" name="wallpaper-type" value="video">
-                        <span>视频</span>
+                        <input type="radio" name="wallpaper-type" value="media">
+                        <span>媒体</span>
                     </label>
                 </div>
                 <div id="wallpaper-solid-panel" class="wallpaper-panel">
@@ -115,29 +111,62 @@
                         </select>
                     </div>
                 </div>
-                <div id="wallpaper-image-panel" class="wallpaper-panel" style="display:none;">
-                    <div class="wallpaper-upload-row">
-                        <button id="upload-image-wallpaper" class="wallpaper-upload-btn">上传图片 (支持GIF动图)</button>
-                        <input type="file" id="image-wallpaper-input" accept="image/*" style="display:none;">
+                <div id="wallpaper-media-panel" class="wallpaper-panel" style="display:none;">
+                    <p class="wallpaper-hint">图片或视频均可作为桌面媒体背景，支持本地上传或填写网络链接两种方式。</p>
+                    <div class="media-method-selector">
+                        <label class="media-method-option">
+                            <input type="radio" name="media-method" value="upload" checked>
+                            <span>上传</span>
+                        </label>
+                        <label class="media-method-option">
+                            <input type="radio" name="media-method" value="link">
+                            <span>链接</span>
+                        </label>
                     </div>
-                    <div id="image-wallpaper-preview" class="wallpaper-preview" style="display:none;">
-                        <span>当前图片:</span>
-                        <span id="image-wallpaper-name"></span>
-                        <button id="image-wallpaper-clear" class="wallpaper-clear-btn">清除</button>
+                    <div id="media-upload-panel" class="media-method-panel">
+                        <div class="wallpaper-upload-row">
+                            <button id="upload-media-wallpaper" class="wallpaper-upload-btn">选择文件 (图片/视频)</button>
+                            <input type="file" id="media-wallpaper-input" accept="image/*,video/*" style="display:none;">
+                        </div>
+                        <div id="media-wallpaper-preview" class="wallpaper-preview" style="display:none;">
+                            <span id="media-wallpaper-type-label"></span>
+                            <span id="media-wallpaper-name"></span>
+                            <button id="media-wallpaper-clear" class="wallpaper-clear-btn">清除</button>
+                        </div>
+                    </div>
+                    <div id="media-link-panel" class="media-method-panel" style="display:none;">
+                        <div class="setting-row" style="border-bottom:none; padding-bottom:0;">
+                            <input type="text" id="media-wallpaper-url" class="media-url-input" placeholder="粘贴图片或视频链接 (URL)">
+                            <button id="media-link-apply" class="wallpaper-upload-btn">应用</button>
+                        </div>
+                        <div id="media-link-preview" class="wallpaper-preview" style="display:none;">
+                            <span id="media-link-type-label"></span>
+                            <span id="media-link-name"></span>
+                            <button id="media-link-clear" class="wallpaper-clear-btn">清除</button>
+                        </div>
                     </div>
                 </div>
-                <div id="wallpaper-video-panel" class="wallpaper-panel" style="display:none;">
-                    <div class="wallpaper-upload-row">
-                        <button id="upload-video-wallpaper" class="wallpaper-upload-btn">上传视频</button>
-                        <input type="file" id="video-wallpaper-input" accept="video/*" style="display:none;">
-                    </div>
-                    <div id="video-wallpaper-preview" class="wallpaper-preview" style="display:none;">
-                        <span>当前视频:</span>
-                        <span id="video-wallpaper-name"></span>
-                        <button id="video-wallpaper-clear" class="wallpaper-clear-btn">清除</button>
-                    </div>
+                <h3 id="pers-theme-title">主题模式</h3>
+                <div class="theme-mode-selector">
+                    <label class="theme-mode-option">
+                        <input type="radio" name="theme-mode" value="light">
+                        <span>浅色</span>
+                    </label>
+                    <label class="theme-mode-option">
+                        <input type="radio" name="theme-mode" value="dark">
+                        <span>深色</span>
+                    </label>
+                    <label class="theme-mode-option">
+                        <input type="radio" name="theme-mode" value="system">
+                        <span>跟随系统</span>
+                    </label>
                 </div>
                 <h3 id="pers-accent-title">主题色</h3>
+                <div class="accent-picker-row">
+                    <input type="color" id="accent-color" value="#1abc9c" title="选择主题色">
+                    <span id="accent-color-value" class="accent-color-value">#1abc9c</span>
+                </div>
+                <div class="accent-colors-label" id="pers-accent-presets">预设颜色</div>
                 <div class="accent-colors">
                     <div class="accent-color" data-color="#3498db" style="background:#3498db;"></div>
                     <div class="accent-color" data-color="#2ecc71" style="background:#2ecc71;"></div>

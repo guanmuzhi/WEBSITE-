@@ -109,7 +109,7 @@ class AppStore {
         const icon = document.createElement('div');
         icon.style.cssText = `width:48px;height:48px;border-radius:50%;background:${color}20;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;color:${color};`;
         const iconName = type === 'success' ? 'check' : type === 'error' ? 'close' : 'info';
-        icon.innerHTML = `<img src="../../icons/${iconName}.svg" alt="" style="width:24px;height:24px;filter:invert(1)">`;
+        icon.innerHTML = `<img src="../../icons/${iconName}.svg" alt="" style="width:24px;height:24px;filter:var(--icon-filter)">`;
         dialog.appendChild(icon);
         const titleEl = document.createElement('div');
         titleEl.style.cssText = 'font-size:18px;font-weight:600;margin-bottom:8px;color:#eee;text-align:center;';

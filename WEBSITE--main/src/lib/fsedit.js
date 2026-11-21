@@ -127,8 +127,9 @@ function applyOne(text, op) {
             const after = lines.slice(endIdx + 1);
             const block = String(op.block == null ? '' : op.block);
             const incoming = readLines(block);
-            // 末尾段与删除尾段的分隔符一致：取删除最后一行的 sep，若无则取 EOL 默认
-            const tailSep = (lines[endIdx] && lines[endIdx].sep) || sep;
+            // 末尾段与删除尾段的分隔符一致：取删除最后一行的 sep（'' 表示原文件无尾随换行，必须保留，
+            // 不能用 `|| sep` 兜底——那会给「不以换行结尾的文件」误补一个 \n）
+            const tailSep = lines[endIdx] ? lines[endIdx].sep : sep;
             if (incoming.length > 0) {
                 const last = incoming[incoming.length - 1];
                 if (after.length === 0) {
@@ -147,6 +148,49 @@ function applyOne(text, op) {
                 to: incoming.length ? `替换为 ${incoming.length} 行` : '删除为 0 行',
             };
             return { success: true, nextContent: writeLines(before.concat(incoming).concat(after)), diff };
+        }
+        case 'charRange': {
+            // 字符区间替换：{ sl, sc, el, ec, text }，行列均 1 起始，区间含端点。
+            // 例：第5行第1~10列替换为 "hello"；text 可含换行（展开为多行）。
+            const lines = readLines(text);
+            const sep = getSep(text);
+            if (lines.length === 0) lines.push({ content: '', sep: '' });
+            let sl = Math.max(1, Math.floor(Number(op.sl) || 1));
+            let sc = Math.max(1, Math.floor(Number(op.sc) || 1));
+            let el = Math.max(sl, Math.floor(Number(op.el) || sl));
+            let ec = Math.max(1, Math.floor(Number(op.ec) || 1));
+            // 行号越界 → 截断到已有行范围（允许在文件尾之后操作：按 append 语义补空行）
+            while (lines.length < sl) lines.push({ content: '', sep });
+            sl = Math.min(sl, lines.length);
+            el = Math.min(el, lines.length);
+            if (el < sl) el = sl;
+            const sIdx = sl - 1, eIdx = el - 1;
+            const sLine = lines[sIdx], eLine = lines[eIdx];
+            // 列越界 → 截断到该行长度（允许贴住末尾）
+            sc = Math.min(sc, sLine.content.length + 1);
+            if (eIdx === sIdx) ec = Math.max(sc, Math.min(ec, sLine.content.length + 1));
+            else ec = Math.min(ec, eLine.content.length + 1);
+            const sCol = sc - 1; // 0 起始
+            const head = sLine.content.slice(0, sCol);
+            const tail = eLine.content.slice(ec);
+            const removed = eIdx === sIdx
+                ? sLine.content.slice(sCol, ec)
+                : sLine.content.slice(sCol) + '⏎' + eLine.content.slice(0, ec);
+            let incoming = readLines(String(op.text == null ? '' : op.text));
+            if (incoming.length === 0) incoming = [{ content: '', sep: '' }];
+            incoming[0].content = head + incoming[0].content;
+            const lastIncoming = incoming[incoming.length - 1];
+            lastIncoming.content = lastIncoming.content + tail;
+            lastIncoming.sep = eLine.sep; // 保留区间末行原有的换行形态
+            const before = lines.slice(0, sIdx);
+            const after = lines.slice(eIdx + 1);
+            const merged = before.concat(incoming).concat(after);
+            const diff = {
+                label: `char ${sl}-${sc}..${el}-${ec}`,
+                from: removed.length > 40 ? removed.slice(0, 40) + '…' : removed,
+                to: String(op.text == null ? '' : op.text).replace(/(\r\n|\r|\n)/g, '\\n').slice(0, 40),
+            };
+            return { success: true, nextContent: writeLines(merged), diff };
         }
         case 'delete': {
             return applyOne(text, { type: 'range', start: op.start, end: op.end, block: '' });

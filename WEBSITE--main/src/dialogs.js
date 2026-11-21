@@ -1,5 +1,5 @@
-import UserManager from './user-manager.js?v=47';
-import StorageService from './storage.js?v=47';
+import UserManager from './user-manager.js?v=54';
+import StorageService from './storage.js?v=54';
 
 // 【零重复代码 SVG 图标】
 // 所有图标源文件统一在 /apps/icons/*.svg，通过 window.WebOS.Lib.Icons 读取并缓存。

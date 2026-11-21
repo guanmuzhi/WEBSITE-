@@ -89,17 +89,16 @@ class WindowManager {
                     winObj.restore();
                 } else {
                     winObj.isMinimized = true;
-                    winEl.style.display = 'none';
+                    this._applyVisibility(winObj);
                 }
             },
             restore: () => {
                 winObj.isMinimized = false;
-                winEl.style.display = 'flex';
                 winEl.classList.remove('window-opening');
                 void winEl.offsetWidth;
                 winEl.classList.add('window-opening');
                 this.focusWindow(id);
-                // 恢复后重新计算可见性：若窗口不属于当前工作区，仍应隐藏
+                // 恢复后重新计算可见性：若窗口不属于当前工作区，仍应留在后台
                 this._applyVisibility(winObj);
             },
             close: () => {
@@ -300,22 +299,48 @@ class WindowManager {
             resizeHandle.addEventListener('mousedown', startResize);
             resizeHandle.addEventListener('touchstart', startResize, { passive: false });
         }
+        /* 关键：窗口创建的那一刻就要按「工作区归属 + 最小化状态」决定显隐。
+           旧实现只在 setActiveWorkspace() 时统一算，而 loadState() 是异步逐个
+           await openAppByPath() 恢复窗口的，恢复出来的窗口没有立即套用可见性规则
+           → 表现为「应用加载不出来 / 切一遍桌面才突然全冒出来」。
+           另外新窗口必须自动成为焦点，否则 window-focused 类会留在旧窗口上。 */
+        this._applyVisibility(winObj);
+        if (winObj.workspaceId === this.activeWorkspace && !winObj.isMinimized) {
+            this.focusWindow(id);
+        }
         return winObj;
     }
     getWindow(id) {
         return this.windows.find(w => w.id === id) || null;
     }
-    /* 多桌面 / 工作区：根据「是否最小化」+「是否属于当前工作区」决定窗口显隐。
-       要点：最小化 (isMinimized) 优先于工作区归属——最小化窗口无论如何都隐藏；
-       非最小化但不在当前工作区的窗口同样隐藏，从而实现「切走即隐藏、切回即恢复」。 */
+    /* 后台运行语义：跨工作区 / 最小化的窗口不再 display:none，而是
+       visibility:hidden + inert。display:none 会让 iframe 失去布局尺寸、被浏览器
+       节流甚至延迟加载 srcdoc；visibility:hidden 保留布局与 browsing context，
+       iframe 内的 JS 状态、未保存文本、滚动位置都能原样保留（等价于"最小化"）。 */
     _applyVisibility(win) {
         if (!win || !win.element) return;
         const visible = !win.isMinimized && win.workspaceId === this.activeWorkspace;
-        win.element.style.display = visible ? 'flex' : 'none';
+        win.element.classList.toggle('window-hidden', !visible);
+        // inert 阻止隐藏窗口接收指针/键盘焦点，避免后台 iframe 抢焦点
+        try { win.element.inert = !visible; } catch (e) { /* 老浏览器忽略 */ }
+    }
+    isWindowVisible(win) {
+        return !!win && !win.isMinimized && win.workspaceId === this.activeWorkspace;
     }
     setActiveWorkspace(id) {
         this.activeWorkspace = id;
         this.windows.forEach(w => this._applyVisibility(w));
+        // 焦点类归位到新工作区里层级最高的窗口（不同桌面各自保留焦点）
+        const visible = this.windows.filter(w => w.workspaceId === id && !w.isMinimized);
+        let top = null, maxZ = -1;
+        visible.forEach(w => {
+            const z = parseInt(w.element.style.zIndex) || 0;
+            if (z > maxZ) { maxZ = z; top = w; }
+        });
+        this.windows.forEach(w => {
+            if (w.workspaceId === id) w.element.classList.remove('window-focused');
+        });
+        if (top) top.element.classList.add('window-focused');
     }
     getAllWindows() {
         return [...this.windows];
@@ -323,7 +348,10 @@ class WindowManager {
     focusWindow(id) {
         const win = this.getWindow(id);
         if (!win) return;
-        this.windows.forEach(w => w.element.classList.remove('window-focused'));
+        // 只清同一工作区的焦点类：切到别的桌面时后台窗口仍保留自己的焦点状态
+        this.windows.forEach(w => {
+            if (w.workspaceId === win.workspaceId) w.element.classList.remove('window-focused');
+        });
         win.element.classList.add('window-focused');
         win.element.style.zIndex = this.zIndexCounter++;
         /* 关键修复：通知 desktop 焦点变化，刷新任务栏高亮。

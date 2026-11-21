@@ -1,4 +1,5 @@
-import UserManager from './user-manager.js?v=47';
+import UserManager from './user-manager.js?v=54';
+import StorageService from './storage.js?v=54';
 /**
  * LockScreen · v1.6 — 稳定重写
  *  - 壁纸固定 Bing UHD（全屏覆盖 + 半透明深色渐变 + Canvas 粒子）
@@ -44,6 +45,11 @@ class LockScreen {
             this._build();
             this._startClock();
             this._bindEvents();
+            // 设置里换头像后，锁屏（含时钟阶段）立即同步，不用等下次解锁
+            document.addEventListener('user-avatar-changed', () => {
+                try { this._refreshAvatars(); } catch (e) {}
+            });
+            this._refreshAvatars();
             await this._loadLanguage();
         } catch (e) { console.error('LockScreen init failed:', e); }
     }
@@ -66,8 +72,30 @@ class LockScreen {
     get defaultAvatarUrl() { return assetUrl('../apps/icons/user-avatar.svg'); }
 
     _getAvatarFor(user) {
+        // 与任务栏保持一致：用户在「设置」里上传的头像存在 VFS
+        // /user/<name>/info/avatar.json，旧实现只读 user.avatar（注册时的旧值），
+        // 于是锁定界面永远显示默认头像。
+        try {
+            const storage = StorageService.getInstance();
+            const username = (user && user.username) || 'public';
+            const saved = storage.loadJSON(`/user/${username}/info/avatar.json`);
+            if (saved && saved.data) return saved.data;
+        } catch (e) { /* VFS 不可用时回退 */ }
         if (user && user.avatar) return user.avatar;
         return this.defaultAvatarUrl;
+    }
+
+    /** 刷新所有头像（主头像、时钟阶段头像、用户列表） */
+    _refreshAvatars() {
+        const user = this.userManager.getCurrentUser();
+        if (this.clockAvatarEl) {
+            this.clockAvatarEl.innerHTML = '';
+            if (user) this.clockAvatarEl.appendChild(this._buildAvatarEl(user));
+        }
+        if (this.clockUsernameEl && user) this.clockUsernameEl.textContent = user.username;
+        if (this.stage === 'input') {
+            try { this._renderInput(); } catch (e) { /* 忽略 */ }
+        }
     }
 
     /** 构造头像元素（纯 <img>，彻底无文字 fallback） */
@@ -137,6 +165,10 @@ class LockScreen {
             this.clockStage.innerHTML = `
                 <div class="lock-clock-time" id="lock-clock-time">00:00</div>
                 <div class="lock-clock-date" id="lock-clock-date">—</div>
+                <div class="lock-clock-user">
+                    <div class="lock-clock-avatar" id="lock-clock-avatar"></div>
+                    <div class="lock-clock-username" id="lock-clock-username"></div>
+                </div>
                 <div class="lock-hint" id="lock-clock-hint">点击屏幕任意位置 · 或按任意键开始</div>
                 <div class="lock-swipe-hint" id="lock-swipe-hint">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -200,6 +232,8 @@ class LockScreen {
             this.cardTitleEl = header.querySelector('#lock-card-title');
             this.clockTimeEl = this.clockStage.querySelector('#lock-clock-time');
             this.clockDateEl = this.clockStage.querySelector('#lock-clock-date');
+            this.clockAvatarEl = this.clockStage.querySelector('#lock-clock-avatar');
+            this.clockUsernameEl = this.clockStage.querySelector('#lock-clock-username');
             this.hintEl = this.clockStage.querySelector('#lock-clock-hint');
             this.swipeHintEl = this.clockStage.querySelector('#lock-swipe-hint');
             this.swipeHintTextEl = this.clockStage.querySelector('#lock-swipe-hint-text');
@@ -843,6 +877,7 @@ class LockScreen {
         this.el.style.display = 'flex';
         this._refreshStaticTexts();
         this._refreshClock();
+        this._refreshAvatars();
         this._startParticles();
     }
     hide() {

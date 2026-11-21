@@ -18,19 +18,56 @@
     --success-hover: #27ae60;
     --warning-color: #f39c12;
     --warning-hover: #e67e22;
-    --bg-dark: #2d2d2d;
-    --bg-darker: #1e1e1e;
-    --bg-light: #3d3d3d;
+    /* ── 主题语义色（深色为默认；浅色见下方 [data-theme="light"]） ──
+       所有应用的样式都应引用这些变量，才能随「设置 → 深浅模式」统一切换。*/
+    --bg-darker: #1e1e1e;   /* 最深表面：页面底色、弹窗 */
+    --bg-dark: #2d2d2d;     /* 面板：工具栏、侧栏、卡片 */
+    --bg-card: #1e1e1e;     /* 卡片/弹窗表面 */
+    --bg-light: #3d3d3d;    /* 次级表面：按钮、输入框 */
+    --bg-hover: #4d4d4d;    /* 悬停表面 */
     --text-primary: #eee;
     --text-secondary: #ccc;
     --text-muted: #999;
     --border-color: #444;
+    --sel-bg: #34495e;      /* 选中项背景 */
+    --sel-fg: #ecf0f1;      /* 选中项文字 */
+    /* 半透明叠层（深色主题下为「提亮」，浅色主题下反转为「压暗」）*/
+    --overlay-weak: rgba(255, 255, 255, 0.05);
+    --overlay: rgba(255, 255, 255, 0.10);
+    --overlay-strong: rgba(255, 255, 255, 0.20);
+    --panel-overlay: rgba(20, 20, 40, 0.85);
     --border-radius: 6px;
     --btn-size: 36px;
     --icon-size: 18px;
+    /* 图标滤镜：图标多为黑色 SVG（经 <img> 加载无法继承 currentColor），
+       深色主题下反相成白色，浅色主题下保持黑色。各应用统一用此变量。
+       dim 变体用于「弱化/次要」图标（原 invert(0.7)）。*/
+    --icon-filter: invert(1);
+    --icon-filter-dim: invert(0.7);
     --font-sans: 'WebOS Sans', 'Microsoft YaHei', '微软雅黑', 'PingFang SC',
                  'Source Han Sans SC', 'Noto Sans CJK SC', 'Hiragino Sans GB',
                  'SimHei', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* 浅色模式：白底黑字；深色模式相反。由父窗口把 data-theme 写到各应用 iframe 的 <html> 上。*/
+[data-theme="light"] {
+    --bg-darker: #ffffff;
+    --bg-dark: #f4f5f7;
+    --bg-card: #ffffff;
+    --bg-light: #e8eaee;
+    --bg-hover: #dadee4;
+    --text-primary: #1a1a1a;
+    --text-secondary: #333333;
+    --text-muted: #6b7280;
+    --border-color: #d0d4da;
+    --sel-bg: #d6e6ff;
+    --sel-fg: #123a5c;
+    --overlay-weak: rgba(0, 0, 0, 0.04);
+    --overlay: rgba(0, 0, 0, 0.07);
+    --overlay-strong: rgba(0, 0, 0, 0.12);
+    --panel-overlay: rgba(255, 255, 255, 0.92);
+    --icon-filter: invert(0);
+    --icon-filter-dim: invert(0.35);
 }
 
 * {

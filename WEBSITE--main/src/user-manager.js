@@ -1,4 +1,4 @@
-import StorageService from './storage.js?v=47';
+import StorageService from './storage.js?v=54';
 const CURRENT_USER_KEY = 'web-terminal-os-current-user';
 /* 相对于本文件（src/user-manager.js）解析：img.src 按文档 base 解析，两套基准不一致 */
 const DEFAULT_AVATAR_URL = new URL('../apps/icons/user-avatar.svg', import.meta.url).href;

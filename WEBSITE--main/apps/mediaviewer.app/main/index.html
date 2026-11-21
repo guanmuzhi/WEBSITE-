@@ -11,8 +11,8 @@
     <div class="viewer-container">
         <div class="toolbar">
             <div class="toolbar-left">
-                <button class="btn" id="open-btn" title="打开文件">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button class="icon-btn" id="open-btn" title="打开文件">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                         <polyline points="14 2 14 8 20 8"/>
                     </svg>
@@ -22,14 +22,14 @@
             </div>
             <div class="toolbar-right">
                 <div class="zoom-controls" id="zoom-controls">
-                    <button class="btn btn-sm" id="zoom-out" title="缩小">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <button class="icon-btn" id="zoom-out" title="缩小">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
                     </button>
                     <span class="zoom-level" id="zoom-level">100%</span>
-                    <button class="btn btn-sm" id="zoom-in" title="放大">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <button class="icon-btn" id="zoom-in" title="放大">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="12" y1="5" x2="12" y2="19"/>
                             <line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
@@ -40,9 +40,9 @@
 
         <div class="content-area">
             <div id="placeholder" class="placeholder">
-                <div class="placeholder-icon"><img src="../../icons/type-video.svg" alt="" style="width:48px;height:48px;filter:invert(1)"></div>
+                <div class="placeholder-icon"><img src="../../icons/type-video.svg" alt="" style="width:48px;height:48px;filter:var(--icon-filter)"></div>
                 <div class="placeholder-text" id="placeholder-text">点击"打开"按钮选择文件</div>
-                <div class="placeholder-hint" id="placeholder-hint">支持图片、视频、音频格式</div>
+                <div class="placeholder-hint" id="placeholder-hint">支持图片、视频、音频格式 · 图片支持批注</div>
             </div>
 
             <div id="image-viewer" class="image-viewer" style="display: none;">
@@ -52,6 +52,7 @@
                 </div>
                 <div id="image-wrapper" class="image-wrapper">
                     <img id="image" class="image" src="" alt="">
+                    <canvas id="anno-canvas" class="anno-canvas"></canvas>
                 </div>
             </div>
 
@@ -61,7 +62,7 @@
                 </div>
                 <div id="audio-mode" class="audio-mode" style="display: none;">
                     <div class="audio-artwork">
-                        <div class="audio-icon"><img src="../../icons/type-audio.svg" alt="" style="width:48px;height:48px;filter:invert(1)"></div>
+                        <div class="audio-icon"><img src="../../icons/type-audio.svg" alt="" style="width:48px;height:48px;filter:var(--icon-filter)"></div>
                     </div>
                     <div class="audio-info">
                         <div id="audio-title" class="audio-title">未知</div>
@@ -74,24 +75,24 @@
                 </div>
 
                 <div class="player-controls">
-                    <button class="btn btn-sm" id="play-btn" title="播放/暂停">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <button class="icon-btn" id="play-btn" title="播放/暂停">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polygon points="5 3 19 12 5 21 5 3"/>
                         </svg>
                     </button>
-                    <button class="btn btn-sm" id="prev-btn" title="上一个">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <button class="icon-btn" id="prev-btn" title="上一个">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polygon points="19 20 9 12 19 4 19 20"/>
                             <line x1="5" y1="19" x2="5" y2="5"/>
                         </svg>
                     </button>
-                    <button class="btn btn-sm" id="next-btn" title="下一个">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <button class="icon-btn" id="next-btn" title="下一个">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polygon points="5 4 15 12 5 20 5 4"/>
                             <line x1="19" y1="5" x2="19" y2="19"/>
                         </svg>
                     </button>
-                    
+
                     <div class="progress-container">
                         <div id="progress-bar" class="progress-bar">
                             <div id="progress-fill" class="progress-fill"></div>
@@ -99,7 +100,7 @@
                         <span id="time-display" class="time-display">00:00 / 00:00</span>
                     </div>
 
-                    <button class="control-btn" id="volume-btn"><img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:invert(1)"></button>
+                    <button class="icon-btn" id="volume-btn"><img src="../../icons/volume.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)"></button>
                     <div class="volume-container">
                         <div id="volume-slider" class="volume-slider">
                             <div id="volume-fill" class="volume-fill"></div>
@@ -115,8 +116,120 @@
                         <option value="2">2x</option>
                     </select>
 
-                    <button class="control-btn" id="fullscreen-btn"><img src="../../icons/fullscreen.svg" alt="" style="width:18px;height:18px;filter:invert(1)"></button>
+                    <button class="icon-btn" id="fullscreen-btn"><img src="../../icons/fullscreen.svg" alt="" style="width:18px;height:18px;filter:var(--icon-filter)"></button>
                 </div>
+            </div>
+
+            <!-- 批注工具栏（仅图片模式可见） -->
+            <div class="tool-rail" id="tool-rail">
+                <button class="icon-btn" data-tool="none" title="选择/移动">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3l7.07 17 2.51-7.42L20 10.07 3 3z"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" data-tool="brush" title="画笔">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" data-tool="rect" title="矩形">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="5" width="18" height="14" rx="2"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" data-tool="ellipse" title="椭圆">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" data-tool="text" title="文本">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 7V5h16v2"/><line x1="12" y1="5" x2="12" y2="19"/><line x1="9" y1="19" x2="15" y2="19"/>
+                    </svg>
+                </button>
+                <div class="tool-rail-divider"></div>
+                <button class="icon-btn" id="undo-btn" title="撤销">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 7v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7L3 8"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="clear-btn" title="清除批注">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="save-btn" title="保存批注">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 批注属性面板（仅图片模式可见） -->
+            <div class="anno-panel" id="anno-panel">
+                <div class="prop-group" id="prop-brush">
+                    <div class="prop-title">画笔</div>
+                    <div class="prop-row">
+                        <label>颜色</label>
+                        <input type="color" id="brush-color" value="#ff3b30">
+                    </div>
+                    <div class="prop-row">
+                        <label>粗细 <span id="brush-size-v">4</span></label>
+                        <input type="range" id="brush-size" min="1" max="40" value="4">
+                    </div>
+                    <div class="prop-row">
+                        <label>透明度 <span id="brush-opacity-v">100%</span></label>
+                        <input type="range" id="brush-opacity" min="5" max="100" value="100">
+                    </div>
+                </div>
+                <div class="prop-group" id="prop-shape">
+                    <div class="prop-title">形状</div>
+                    <div class="prop-row">
+                        <label>边框色</label>
+                        <input type="color" id="shape-border" value="#ff3b30">
+                    </div>
+                    <div class="prop-row">
+                        <label>边框粗细 <span id="shape-width-v">3</span></label>
+                        <input type="range" id="shape-width" min="1" max="40" value="3">
+                    </div>
+                    <div class="prop-row">
+                        <label>填充色</label>
+                        <input type="color" id="shape-fill" value="#ffcc00">
+                    </div>
+                    <div class="prop-row">
+                        <label>无填充</label>
+                        <input type="checkbox" id="shape-nofill">
+                    </div>
+                    <div class="prop-row">
+                        <label>透明度 <span id="shape-opacity-v">100%</span></label>
+                        <input type="range" id="shape-opacity" min="5" max="100" value="100">
+                    </div>
+                </div>
+                <div class="prop-group" id="prop-text">
+                    <div class="prop-title">文本</div>
+                    <div class="prop-row">
+                        <label>字体</label>
+                        <select id="text-font">
+                            <option value="sans">无衬线</option>
+                            <option value="serif">宋体</option>
+                            <option value="mono">等宽</option>
+                            <option value="kai">楷体</option>
+                        </select>
+                    </div>
+                    <div class="prop-row">
+                        <label>大小 <span id="text-size-v">28</span></label>
+                        <input type="range" id="text-size" min="8" max="120" value="28">
+                    </div>
+                    <div class="prop-row">
+                        <label>颜色</label>
+                        <input type="color" id="text-color" value="#ff3b30">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文本输入浮层 -->
+            <div class="text-input-overlay" id="text-overlay">
+                <input type="text" id="text-input" placeholder="输入文字后回车" autocomplete="off">
             </div>
         </div>
 
